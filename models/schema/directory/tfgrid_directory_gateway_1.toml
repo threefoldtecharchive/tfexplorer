@@ -1,0 +1,18 @@
+
+@url = tfgrid.directory.gateway.2
+node_id** = (S)
+os_version** = (S)
+created = (T)
+updated = (T)
+uptime = (I)
+address = (S)
+location = (O) !tfgrid.directory.location.1
+public_key_hex = "" (S)     #hex representation of public key of the TF node
+workloads = (O)!tfgrid.directory.gateway.resource.workloads.1
+managed_domains = (LS)
+tcp_router_port = (I) # port on which the tcp router client needs to connect to
+dns_nameserver = (LS) # A user needs to know how he needs to configure its DNS record to let TFGW serve subdomain of the user domain nameserver IPs
+
+@url = tfgrid.directory.gateway.resource.workloads.1
+proxy = (I)
+domain = (I)

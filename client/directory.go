@@ -7,8 +7,6 @@ import (
 
 	"github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
-	"github.com/threefoldtech/zos/pkg/capacity"
-	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 )
 
 type httpDirectory struct {
@@ -84,6 +82,7 @@ func (d *httpDirectory) NodeSetPublic(id string, pub directory.PublicIface) erro
 func (d *httpDirectory) NodeSetCapacity(
 	id string,
 	resources directory.ResourceAmount,
+<<<<<<< HEAD
 	dmiInfo dmi.DMI,
 	disksInfo capacity.Disks,
 	hypervisor []string) error {
@@ -97,6 +96,21 @@ func (d *httpDirectory) NodeSetCapacity(
 		Capacity:   resources,
 		DMI:        dmiInfo,
 		Disks:      disksInfo,
+=======
+	// dmiInfo dmi.DMI,
+	// disksInfo capacity.Disks,
+	hypervisor []string) error {
+
+	payload := struct {
+		Capacity directory.ResourceAmount `json:"capacity"`
+		// DMI dmi.DMI `json:"dmi"`
+		// Disks      capacity.Disks           `json:"disks"`
+		Hypervisor []string `json:"hypervisor"`
+	}{
+		Capacity: resources,
+		// DMI:        dmiInfo,
+		// Disks:      disksInfo,
+>>>>>>> 07e2d40... more progress
 		Hypervisor: hypervisor,
 	}
 
@@ -123,6 +137,7 @@ func (d *httpDirectory) NodeUpdateUsedResources(id string, resources directory.R
 	}
 	return d.post(d.url("nodes", id, "used_resources"), input, nil, http.StatusOK)
 }
+<<<<<<< HEAD
 
 func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 	choice := struct {
@@ -131,3 +146,5 @@ func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 
 	return d.post(d.url("nodes", id, "configure_free"), choice, nil, http.StatusOK)
 }
+=======
+>>>>>>> 07e2d40... more progress

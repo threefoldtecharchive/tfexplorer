@@ -42,8 +42,8 @@ type ReservationData struct {
 	Kubernetes              []K8S                 `bson:"kubernetes" json:"kubernetes"`
 	Proxies                 []GatewayProxy        `bson:"proxies" json:"proxies"`
 	ReserveProxy            []GatewayReserveProxy `bson:"reserve_proxies" json:"reserve_proxies"`
-	GatewaySubdomain        []GatewaySubdomain    `bson:"subdomain" json:"subdomain"`
-	GatewayDomainDelegate   []GatewayDelegate     `bson:"domain_delegate" json:"domain_delegate"`
+	Subdomains              []GatewaySubdomain    `bson:"subdomain" json:"subdomain"`
+	DomainDelegate          []GatewayDelegate     `bson:"domain_delegate" json:"domain_delegate"`
 	ExpirationProvisioning  schema.Date           `bson:"expiration_provisioning" json:"expiration_provisioning"`
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
 }
@@ -485,11 +485,13 @@ func (e ZDBModeEnum) String() string {
 }
 
 type GatewayProxy struct {
-	ID          schema.ID `bson:"_id" json:"id"`
-	WorkloadId  int64     `bson:"workload_id" json:"workload_id"`
-	NodeId      string    `bson:"node_id" json:"node_id"`
-	Domain      string    `bson:"domain" json:"domain"`
-	Destination string    `bson:"destination" json:"destination"`
+	ID         schema.ID `bson:"_id" json:"id"`
+	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
+	NodeId     string    `bson:"node_id" json:"node_id"`
+	Domain     string    `bson:"domain" json:"domain"`
+	Addr       string    `bson:"addr" json:"add"`
+	Port       uint32    `json:"port"`
+	PortTLS    uint32    `json:"port_tls`
 }
 
 type GatewayReserveProxy struct {
@@ -514,7 +516,7 @@ type GatewaySubdomain struct {
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
 	NodeId     string    `bson:"node_id" json:"node_id"`
 	Domain     string    `bson:"domain" json:"domain"`
-	Ip         []string  `bson:"ip" json:"ip"`
+	IPs        []string  `bson:"ip" json:"ip"`
 }
 
 func NewGatewaySubdomain() (GatewaySubdomain, error) {

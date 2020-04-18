@@ -21,7 +21,9 @@ require (
 	github.com/zaibon/httpsig v0.0.0-20200401133919-ea9cb57b0946
 	go.mongodb.org/mongo-driver v1.3.2
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
-	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20191219145116-fa6499c8e75f
-	gopkg.in/yaml.v2 v2.2.7
 	gotest.tools v2.2.0+incompatible
 )
+
+// replace github.com/threefoldtech/zos => ../zos
+
+// replace github.com/threefoldtech/tfgateway => ../tf_gateway
