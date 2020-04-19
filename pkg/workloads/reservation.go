@@ -281,6 +281,20 @@ func (a *API) list(r *http.Request) (interface{}, mw.Response) {
 	return reservations, mw.Ok().WithHeader("Pages", pages)
 }
 
+// workloadsTypeMap keeps the mapping between the supported workloads type
+// and they actual types
+var workloadsTypeMap = map[generated.WorkloadTypeEnum]interface{}{
+	generated.WorkloadTypeContainer:      generated.Container{},
+	generated.WorkloadTypeVolume:         generated.Volume{},
+	generated.WorkloadTypeZDB:            generated.ZDB{},
+	generated.WorkloadTypeNetwork:        generated.Network{},
+	generated.WorkloadTypeKubernetes:     generated.K8S{},
+	generated.WorkloadTypeProxy:          generated.GatewayProxy{},
+	generated.WorkloadTypeReverseProxy:   generated.GatewayReserveProxy{},
+	generated.WorkloadTypeSubDomain:      generated.GatewaySubdomain{},
+	generated.WorkloadTypeDomainDelegate: generated.GatewayDelegate{},
+}
+
 func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, limit int64) ([]types.Workload, error) {
 
 	type intermediate struct {
@@ -322,48 +336,22 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 			WorkloadId: wl.WorkloadID,
 			User:       wl.User,
 			Type:       wl.Type,
-			// Content:    wl.Content,
-			Created:   wl.Created,
-			Duration:  wl.Duration,
-			Signature: wl.Signature,
-			ToDelete:  wl.ToDelete,
+			Created:    wl.Created,
+			Duration:   wl.Duration,
+			Signature:  wl.Signature,
+			ToDelete:   wl.ToDelete,
 		}
-		switch wl.Type {
-		case generated.WorkloadTypeContainer:
-			var data generated.Container
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
 
-		case generated.WorkloadTypeVolume:
-			var data generated.Volume
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeZDB:
-			var data generated.ZDB
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeNetwork:
-			var data generated.Network
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeKubernetes:
-			var data generated.K8S
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
+		data, ok := workloadsTypeMap[wl.Type]
+		if !ok {
+			log.Warn().Msgf("found an unsupported workload type %s", wl.Type)
+			continue
 		}
+
+		if err := bson.Unmarshal(wl.Content, &data); err != nil {
+			return nil, err
+		}
+		obj.Content = data
 
 		workloads = append(workloads, types.Workload{
 			NodeID:              wl.NodeID,
@@ -388,6 +376,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 	if err != nil {
 		return nil, mw.Error(err)
 	}
+	log.Debug().Msgf("%d queue", len(workloads))
 
 	if len(workloads) > maxPageSize {
 		return workloads, nil

@@ -82,21 +82,6 @@ func (d *httpDirectory) NodeSetPublic(id string, pub directory.PublicIface) erro
 func (d *httpDirectory) NodeSetCapacity(
 	id string,
 	resources directory.ResourceAmount,
-<<<<<<< HEAD
-	dmiInfo dmi.DMI,
-	disksInfo capacity.Disks,
-	hypervisor []string) error {
-
-	payload := struct {
-		Capacity   directory.ResourceAmount `json:"capacity"`
-		DMI        dmi.DMI                  `json:"dmi"`
-		Disks      capacity.Disks           `json:"disks"`
-		Hypervisor []string                 `json:"hypervisor"`
-	}{
-		Capacity:   resources,
-		DMI:        dmiInfo,
-		Disks:      disksInfo,
-=======
 	// dmiInfo dmi.DMI,
 	// disksInfo capacity.Disks,
 	hypervisor []string) error {
@@ -110,7 +95,6 @@ func (d *httpDirectory) NodeSetCapacity(
 		Capacity: resources,
 		// DMI:        dmiInfo,
 		// Disks:      disksInfo,
->>>>>>> 07e2d40... more progress
 		Hypervisor: hypervisor,
 	}
 
@@ -138,6 +122,7 @@ func (d *httpDirectory) NodeUpdateUsedResources(id string, resources directory.R
 	return d.post(d.url("nodes", id, "used_resources"), input, nil, http.StatusOK)
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 	choice := struct {
@@ -148,3 +133,27 @@ func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 }
 =======
 >>>>>>> 07e2d40... more progress
+=======
+
+func (d *httpDirectory) GatewayRegister(Gateway directory.Gateway) error {
+	return d.post(d.url("gateways"), Gateway, nil, http.StatusCreated)
+}
+
+func (d *httpDirectory) GatewayList(tid schema.ID, name string, page *Pager) (Gateways []directory.Gateway, err error) {
+	query := url.Values{}
+	page.apply(query)
+	// if tid > 0 {
+	// 	query.Set("owner", fmt.Sprint(tid))
+	// }
+	if len(name) != 0 {
+		query.Set("name", name)
+	}
+	err = d.get(d.url("gateways"), query, &Gateways, http.StatusOK)
+	return
+}
+
+func (d *httpDirectory) GatewayGet(id string) (Gateway directory.Gateway, err error) {
+	err = d.get(d.url("gateways", id), nil, &Gateway, http.StatusOK)
+	return
+}
+>>>>>>> fd60fdd... add new gateway entity

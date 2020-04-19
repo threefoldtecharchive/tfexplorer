@@ -101,6 +101,30 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 			return result, err
 		}
 		result.Content = o
+	case workloads.WorkloadTypeProxy:
+		var o workloads.GatewayProxy
+		if err := json.Unmarshal(wl.Content, &o); err != nil {
+			return result, err
+		}
+		result.Content = o
+	case workloads.WorkloadTypeReverseProxy:
+		var o workloads.GatewayReserveProxy
+		if err := json.Unmarshal(wl.Content, &o); err != nil {
+			return result, err
+		}
+		result.Content = o
+	case workloads.WorkloadTypeSubDomain:
+		var o workloads.GatewaySubdomain
+		if err := json.Unmarshal(wl.Content, &o); err != nil {
+			return result, err
+		}
+		result.Content = o
+	case workloads.WorkloadTypeDomainDelegate:
+		var o workloads.GatewayDelegate
+		if err := json.Unmarshal(wl.Content, &o); err != nil {
+			return result, err
+		}
+		result.Content = o
 	default:
 		return result, fmt.Errorf("unknown workload type")
 	}

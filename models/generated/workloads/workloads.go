@@ -103,6 +103,10 @@ type Container struct {
 	Capacity          ContainerCapacity   `bson:"capcity" json:"capacity"`
 }
 
+func (c Container) WorkloadID() int64 {
+	return c.WorkloadId
+}
+
 type ContainerCapacity struct {
 	Cpu    int64 `bson:"cpu" json:"cpu"`
 	Memory int64 `bson:"memory" json:"memory"`
@@ -169,13 +173,8 @@ type K8S struct {
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
 }
 
-func NewK8S() (K8S, error) {
-	const value = "{}"
-	var object K8S
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (k K8S) WorkloadID() int64 {
+	return k.WorkloadId
 }
 
 type Network struct {
@@ -187,13 +186,8 @@ type Network struct {
 	FarmerTid        int64                `bson:"farmer_tid" json:"farmer_tid"`
 }
 
-func NewNetwork() (Network, error) {
-	const value = "{\"name\": \"\", \"iprange\": \"10.10.0.0/16\"}"
-	var object Network
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (n Network) WorkloadID() int64 {
+	return n.WorkloadId
 }
 
 type NetworkNetResource struct {
@@ -277,13 +271,8 @@ type Volume struct {
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
 }
 
-func NewVolume() (Volume, error) {
-	const value = "{}"
-	var object Volume
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (v Volume) WorkloadID() int64 {
+	return v.WorkloadId
 }
 
 // NOTE: this type has some manual changes
@@ -320,13 +309,8 @@ type ZDB struct {
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
 }
 
-func NewZDB() (ZDB, error) {
-	const value = "{\"public\": false}"
-	var object ZDB
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (z ZDB) WorkloadID() int64 {
+	return z.WorkloadId
 }
 
 type DiskTypeEnum uint8
@@ -386,6 +370,10 @@ const (
 	ResultCategoryNetwork
 	ResultCategoryVolume
 	ResultCategoryK8S
+	ResultCategoryProxy
+	ResultCategoryReverseProxy
+	ResultCategorySubDomain
+	ResultCategoryDomainDelegate
 )
 
 func (e ResultCategoryEnum) String() string {
@@ -400,6 +388,14 @@ func (e ResultCategoryEnum) String() string {
 		return "volume"
 	case ResultCategoryK8S:
 		return "kubernetes"
+	case ResultCategoryProxy:
+		return "proxy"
+	case ResultCategoryReverseProxy:
+		return "reverse-proxy"
+	case ResultCategorySubDomain:
+		return "subdomain"
+	case ResultCategoryDomainDelegate:
+		return "domain-deletate"
 	}
 	return "UNKNOWN"
 }
@@ -449,6 +445,10 @@ const (
 	WorkloadTypeVolume
 	WorkloadTypeNetwork
 	WorkloadTypeKubernetes
+	WorkloadTypeProxy
+	WorkloadTypeReverseProxy
+	WorkloadTypeSubDomain
+	WorkloadTypeDomainDelegate
 )
 
 func (e WorkloadTypeEnum) String() string {
@@ -463,6 +463,15 @@ func (e WorkloadTypeEnum) String() string {
 		return "network"
 	case WorkloadTypeKubernetes:
 		return "kubernetes"
+	case WorkloadTypeProxy:
+		return "proxy"
+	case WorkloadTypeReverseProxy:
+		return "reverse-proxy"
+	case WorkloadTypeSubDomain:
+		return "subdomain"
+	case WorkloadTypeDomainDelegate:
+		return "domain-deletate"
+
 	}
 	return "UNKNOWN"
 }
@@ -489,9 +498,13 @@ type GatewayProxy struct {
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
 	NodeId     string    `bson:"node_id" json:"node_id"`
 	Domain     string    `bson:"domain" json:"domain"`
-	Addr       string    `bson:"addr" json:"add"`
+	Addr       string    `bson:"addr" json:"addr"`
 	Port       uint32    `json:"port"`
 	PortTLS    uint32    `json:"port_tls`
+}
+
+func (g GatewayProxy) WorkloadID() int64 {
+	return g.WorkloadId
 }
 
 type GatewayReserveProxy struct {
@@ -502,13 +515,8 @@ type GatewayReserveProxy struct {
 	Secret     string    `bson:"secret" json:"secret"`
 }
 
-func NewGatewayReserveProxy() (GatewayReserveProxy, error) {
-	const value = "{}"
-	var object GatewayReserveProxy
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (g GatewayReserveProxy) WorkloadID() int64 {
+	return g.WorkloadId
 }
 
 type GatewaySubdomain struct {
@@ -516,16 +524,11 @@ type GatewaySubdomain struct {
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
 	NodeId     string    `bson:"node_id" json:"node_id"`
 	Domain     string    `bson:"domain" json:"domain"`
-	IPs        []string  `bson:"ip" json:"ip"`
+	IPs        []string  `bson:"ips" json:"ips"`
 }
 
-func NewGatewaySubdomain() (GatewaySubdomain, error) {
-	const value = "{}"
-	var object GatewaySubdomain
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (g GatewaySubdomain) WorkloadID() int64 {
+	return g.WorkloadId
 }
 
 type GatewayDelegate struct {
@@ -535,11 +538,6 @@ type GatewayDelegate struct {
 	Domain     string    `bson:"domain" json:"domain"`
 }
 
-func NewGatewayDelegate() (GatewayDelegate, error) {
-	const value = "{}"
-	var object GatewayDelegate
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+func (g GatewayDelegate) WorkloadID() int64 {
+	return g.WorkloadId
 }

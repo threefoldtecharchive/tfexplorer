@@ -153,20 +153,15 @@ func NewResourceAmount() (ResourceAmount, error) {
 }
 
 type WorkloadAmount struct {
-	Network      uint16 `bson:"network" json:"network"`
-	Volume       uint16 `bson:"volume" json:"volume"`
-	ZDBNamespace uint16 `bson:"zdb_namespace" json:"zdb_namespace"`
-	Container    uint16 `bson:"container" json:"container"`
-	K8sVM        uint16 `bson:"k8s_vm" json:"k8s_vm"`
-}
-
-func NewWorkloadAmount() (WorkloadAmount, error) {
-	const value = "{}"
-	var object WorkloadAmount
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+	Network        uint16 `bson:"network" json:"network"`
+	Volume         uint16 `bson:"volume" json:"volume"`
+	ZDBNamespace   uint16 `bson:"zdb_namespace" json:"zdb_namespace"`
+	Container      uint16 `bson:"container" json:"container"`
+	K8sVM          uint16 `bson:"k8s_vm" json:"k8s_vm"`
+	Proxy          uint16 `bson:"proxy" json:"proxy"`
+	ReverseProxy   uint16 `bson:"reverse_proxy" json:"reverse_proxy"`
+	Subdomain      uint16 `bson:"subdomain" json:"subdomain"`
+	DelegateDomain uint16 `bson:"delegate_domain" json:"delegate_domain"`
 }
 
 type Proof struct {
@@ -228,4 +223,25 @@ func (e PriceCurrencyEnum) String() string {
 		return "GBP"
 	}
 	return "UNKNOWN"
+}
+
+type Gateway struct {
+	ID             schema.ID                `bson:"_id" json:"id"`
+	NodeId         string                   `bson:"node_id" json:"node_id"`
+	OsVersion      string                   `bson:"os_version" json:"os_version"`
+	Created        schema.Date              `bson:"created" json:"created"`
+	Updated        schema.Date              `bson:"updated" json:"updated"`
+	Uptime         int64                    `bson:"uptime" json:"uptime"`
+	Address        string                   `bson:"address" json:"address"`
+	Location       Location                 `bson:"location" json:"location"`
+	PublicKeyHex   string                   `bson:"public_key_hex" json:"public_key_hex"`
+	Workloads      GatewayResourceWorkloads `bson:"workloads" json:"workloads"`
+	ManagedDomains []string                 `bson:"managed_domains" json:"managed_domains"`
+	TcpRouterPort  int64                    `bson:"tcp_router_port" json:"tcp_router_port"`
+	DnsNameserver  []string                 `bson:"dns_nameserver" json:"dns_nameserver"`
+}
+
+type GatewayResourceWorkloads struct {
+	Proxy  int64 `bson:"proxy" json:"proxy"`
+	Domain int64 `bson:"domain" json:"domain"`
 }

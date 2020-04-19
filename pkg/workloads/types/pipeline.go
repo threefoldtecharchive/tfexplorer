@@ -98,7 +98,7 @@ func (p *Pipeline) Next() (Reservation, bool) {
 		return p.r, false
 	}
 
-	slog := log.With().Int64("id", int64(p.r.ID)).Logger()
+	slog := log.With().Str("func", "pipeline.Next").Int64("id", int64(p.r.ID)).Logger()
 
 	// reseration expiration time must be checked, once expiration time is exceeded
 	// the reservation must be deleted

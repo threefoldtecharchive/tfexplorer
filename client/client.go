@@ -26,6 +26,10 @@ type Directory interface {
 	FarmList(tid schema.ID, name string, page *Pager) (farms []directory.Farm, err error)
 	FarmGet(id schema.ID) (farm directory.Farm, err error)
 
+	GatewayRegister(Gateway directory.Gateway) error
+	GatewayList(tid schema.ID, name string, page *Pager) (farms []directory.Gateway, err error)
+	GatewayGet(id string) (farm directory.Gateway, err error)
+
 	NodeRegister(node directory.Node) error
 	NodeList(filter NodeFilter) (nodes []directory.Node, err error)
 	NodeGet(id string, proofs bool) (node directory.Node, err error)

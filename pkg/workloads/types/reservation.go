@@ -98,7 +98,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	//data_reservation.{containers, volumes, zdbs, networks, kubernetes}.node_id
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomain", "domain_delegate"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -176,42 +176,53 @@ func (r *Reservation) validate() error {
 		return fmt.Errorf("json data does not match the reservation data")
 	}
 
-	ids := make(map[int64]struct{})
+	totalWl := len(r.DataReservation.Containers) +
+		len(r.DataReservation.Networks) +
+		len(r.DataReservation.Volumes) +
+		len(r.DataReservation.Zdbs) +
+		len(r.DataReservation.Proxies) +
+		len(r.DataReservation.ReserveProxy) +
+		len(r.DataReservation.Subdomains) +
+		len(r.DataReservation.DomainDelegate)
 
-	// yes, it's ugly. live with it.
+	// all workloads are supposed to implement this interface
+	type workloader interface{ WorkloadID() int64 }
+
+	ids := make(map[int64]struct{}, totalWl)
+	workloaders := make([]workloader, 0, totalWl)
+
+	// seems go doesn't allow : workloaders=append(workloaders, r.DataReservation.Containers)
+	// so we have to loop
 	for _, w := range r.DataReservation.Containers {
-		if _, ok := ids[w.WorkloadId]; ok {
-			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadId)
-		}
-		ids[w.WorkloadId] = struct{}{}
+		workloaders = append(workloaders, w)
 	}
-
-	for _, w := range r.DataReservation.Networks {
-		if _, ok := ids[w.WorkloadId]; ok {
-			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadId)
-		}
-		ids[w.WorkloadId] = struct{}{}
-	}
-
-	for _, w := range r.DataReservation.Zdbs {
-		if _, ok := ids[w.WorkloadId]; ok {
-			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadId)
-		}
-		ids[w.WorkloadId] = struct{}{}
-	}
-
 	for _, w := range r.DataReservation.Volumes {
-		if _, ok := ids[w.WorkloadId]; ok {
-			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadId)
-		}
-		ids[w.WorkloadId] = struct{}{}
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Zdbs {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Kubernetes {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Proxies {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.ReserveProxy {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Subdomains {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.DomainDelegate {
+		workloaders = append(workloaders, w)
 	}
 
-	for _, w := range r.DataReservation.Kubernetes {
-		if _, ok := ids[w.WorkloadId]; ok {
-			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadId)
+	for _, w := range workloaders {
+		if _, ok := ids[w.WorkloadID()]; ok {
+			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadID())
 		}
-		ids[w.WorkloadId] = struct{}{}
+		ids[w.WorkloadID()] = struct{}{}
 	}
 
 	return nil
@@ -296,88 +307,106 @@ func (r *Reservation) AllDeleted() bool {
 // Workloads returns all reservation workloads (filter by nodeID)
 // if nodeID is empty, return all workloads
 func (r *Reservation) Workloads(nodeID string) []Workload {
+
 	data := &r.DataReservation
-	var workloads []Workload
-	for _, wl := range data.Containers {
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		workload := Workload{
+
+	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string, wl interface{}) Workload {
+		return Workload{
 			ReservationWorkload: generated.ReservationWorkload{
-				WorkloadId: fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+				WorkloadId: wid,
 				User:       fmt.Sprint(r.CustomerTid),
-				Type:       generated.WorkloadTypeContainer,
+				Type:       t,
 				Content:    wl,
 				Created:    r.Epoch,
 				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
 				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
 			},
-			NodeID: wl.NodeId,
+			NodeID: nodeID,
 		}
+	}
 
-		workloads = append(workloads, workload)
+	var workloads []Workload
+	for _, wl := range data.Containers {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeContainer,
+			wl.NodeId,
+			wl))
 	}
 
 	for _, wl := range data.Volumes {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workload := Workload{
-			ReservationWorkload: generated.ReservationWorkload{
-				WorkloadId: fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-				User:       fmt.Sprint(r.CustomerTid),
-				Type:       generated.WorkloadTypeVolume,
-				Content:    wl,
-				Created:    r.Epoch,
-				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
-				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
-			},
-			NodeID: wl.NodeId,
-		}
-
-		workloads = append(workloads, workload)
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeVolume,
+			wl.NodeId,
+			wl))
 	}
-
 	for _, wl := range data.Zdbs {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workload := Workload{
-			ReservationWorkload: generated.ReservationWorkload{
-				WorkloadId: fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-				User:       fmt.Sprint(r.CustomerTid),
-				Type:       generated.WorkloadTypeZDB,
-				Content:    wl,
-				Created:    r.Epoch,
-				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
-				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
-			},
-			NodeID: wl.NodeId,
-		}
-
-		workloads = append(workloads, workload)
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeZDB,
+			wl.NodeId,
+			wl))
 	}
-
 	for _, wl := range data.Kubernetes {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workload := Workload{
-			ReservationWorkload: generated.ReservationWorkload{
-				WorkloadId: fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-				User:       fmt.Sprint(r.CustomerTid),
-				Type:       generated.WorkloadTypeKubernetes,
-				Content:    wl,
-				Created:    r.Epoch,
-				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
-				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
-			},
-			NodeID: wl.NodeId,
-		}
-
-		workloads = append(workloads, workload)
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeKubernetes,
+			wl.NodeId,
+			wl))
 	}
-
+	for _, wl := range data.Proxies {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeProxy,
+			wl.NodeId,
+			wl))
+	}
+	for _, wl := range data.ReserveProxy {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeReverseProxy,
+			wl.NodeId,
+			wl))
+	}
+	for _, wl := range data.Subdomains {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeSubDomain,
+			wl.NodeId,
+			wl))
+	}
+	for _, wl := range data.DomainDelegate {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		workloads = append(workloads, newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeDomainDelegate,
+			wl.NodeId,
+			wl))
+	}
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
 
@@ -389,20 +418,11 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			// when the node report their results. because it means only last
 			// result is what is gonna be visible. We need to (may be) change
 			// the workload id to have the network resource index
-			workload := Workload{
-				ReservationWorkload: generated.ReservationWorkload{
-					WorkloadId: fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-					User:       fmt.Sprint(r.CustomerTid),
-					Type:       generated.WorkloadTypeNetwork,
-					Content:    wl,
-					Created:    r.Epoch,
-					Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
-					ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
-				},
-				NodeID: nr.NodeId,
-			}
-
-			workloads = append(workloads, workload)
+			workloads = append(workloads, newWrkl(
+				fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+				generated.WorkloadTypeNetwork,
+				nr.NodeId,
+				wl))
 		}
 	}
 
@@ -451,12 +471,37 @@ func (r *Reservation) NodeIDs() []string {
 	}
 
 	nodeIDs := make([]string, 0, len(ids))
-
 	for nid := range ids {
 		nodeIDs = append(nodeIDs, nid)
 	}
-
 	return nodeIDs
+}
+
+// GatewayIDs return a list of all the gateway IDs used in this reservation
+func (r *Reservation) GatewayIDs() []string {
+	ids := make(map[string]struct{})
+
+	for _, p := range r.DataReservation.Proxies {
+		ids[p.NodeId] = struct{}{}
+	}
+
+	for _, p := range r.DataReservation.ReserveProxy {
+		ids[p.NodeId] = struct{}{}
+	}
+
+	for _, p := range r.DataReservation.Subdomains {
+		ids[p.NodeId] = struct{}{}
+	}
+
+	for _, p := range r.DataReservation.DomainDelegate {
+		ids[p.NodeId] = struct{}{}
+	}
+
+	gwIDs := make([]string, 0, len(ids))
+	for nid := range ids {
+		gwIDs = append(gwIDs, nid)
+	}
+	return gwIDs
 }
 
 // ReservationCreate save new reservation to database.
