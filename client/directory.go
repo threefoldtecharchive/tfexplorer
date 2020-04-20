@@ -121,8 +121,6 @@ func (d *httpDirectory) NodeUpdateUsedResources(id string, resources directory.R
 	}
 	return d.post(d.url("nodes", id, "used_resources"), input, nil, http.StatusOK)
 }
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 	choice := struct {
@@ -131,9 +129,6 @@ func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 
 	return d.post(d.url("nodes", id, "configure_free"), choice, nil, http.StatusOK)
 }
-=======
->>>>>>> 07e2d40... more progress
-=======
 
 func (d *httpDirectory) GatewayRegister(Gateway directory.Gateway) error {
 	return d.post(d.url("gateways"), Gateway, nil, http.StatusCreated)
@@ -156,4 +151,3 @@ func (d *httpDirectory) GatewayGet(id string) (Gateway directory.Gateway, err er
 	err = d.get(d.url("gateways", id), nil, &Gateway, http.StatusOK)
 	return
 }
->>>>>>> fd60fdd... add new gateway entity

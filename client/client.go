@@ -37,23 +37,15 @@ type Directory interface {
 	NodeSetInterfaces(id string, ifaces []directory.Iface) error
 	NodeSetPorts(id string, ports []uint) error
 	NodeSetPublic(id string, pub directory.PublicIface) error
-<<<<<<< HEAD
 	NodeSetFreeToUse(id string, free bool) error
-=======
->>>>>>> 07e2d40... more progress
 
 	//TODO: this method call uses types from zos that is not generated
 	//from the schema. Which is wrong imho.
 	NodeSetCapacity(
 		id string,
 		resources directory.ResourceAmount,
-<<<<<<< HEAD
-		dmiInfo dmi.DMI,
-		disksInfo capacity.Disks,
-=======
 		// dmiInfo dmi.DMI,
 		// disksInfo capacity.Disks,
->>>>>>> 07e2d40... more progress
 		hypervisor []string,
 	) error
 
