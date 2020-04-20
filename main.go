@@ -32,6 +32,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads"
 	_ "github.com/threefoldtech/tfexplorer/statik"
+	"github.com/threefoldtech/zos/pkg/version"
 )
 
 // Pkg is a shorthand type for func
@@ -64,7 +65,7 @@ func main() {
 	flag.Parse()
 
 	if ver {
-		// version.ShowAndExit(false)
+		version.ShowAndExit(false)
 	}
 
 	if err := config.Valid(); err != nil {

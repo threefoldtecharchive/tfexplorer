@@ -1,13 +1,12 @@
 branch = $(shell git symbolic-ref -q --short HEAD || git describe --tags --exact-match)
 revision = $(shell git rev-parse HEAD)
 dirty = $(shell test -n "`git diff --shortstat 2> /dev/null | tail -n1`" && echo "*")
-# version = github.com/threefoldtech/zos/pkg/version
-# ldflags = '-w -s -X $(version).Branch=$(branch) -X $(version).Revision=$(revision) -X $(version).Dirty=$(dirty)'
-ldflags = ''
+version = github.com/threefoldtech/zos/pkg/version
+ldflags = '-w -s -X $(version).Branch=$(branch) -X $(version).Revision=$(revision) -X $(version).Dirty=$(dirty)'
 
-.PHONY: output clean
+.PHONY: frontend server package
 
-all: explorer
+all: package
 
 getdeps:
 	@echo "Installing golint" && go install golang.org/x/lint/golint
@@ -16,7 +15,7 @@ getdeps:
 	@echo "Installing ineffassign" && go install github.com/gordonklaus/ineffassign
 	@echo "Installing statik" && go install github.com/rakyll/statik
 
-verifiers: vet fmt lint cyclo spelling static
+verifiers: vet fmt lint cyclo spelling staticcheck
 
 vet:
 	@echo "Running $@"
@@ -42,7 +41,7 @@ cyclo:
 spelling:
 	misspell -i monitord -error $(shell ls **/*.go | grep -v statik)
 
-static:
+staticcheck:
 	go run honnef.co/go/tools/cmd/staticcheck -- ./...
 
 # Builds minio, runs the verifiers then runs the tests.
@@ -59,8 +58,13 @@ testrace: verifiers
 	# we already ran vet separately, so safe to turn it off here
 	@CGO_ENABLED=1 go test -v -vet=off -race ./...
 
-explorer: *.go output
-	cd $(shell dirname $<)/frontend && yarn install
-	cd $(shell dirname $<)/frontend && NODE_ENV=production yarn build
-	cd $(shell dirname $<) && go generate
-	cd $(shell dirname $<) && go build -ldflags $(ldflags)
+frontend:
+	cd frontend && yarn install
+	cd frontend && NODE_ENV=production yarn build
+
+server:
+	go generate
+	go build -ldflags $(ldflags)
+
+package: frontend server
+	
