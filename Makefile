@@ -60,13 +60,13 @@ testrace: verifiers
 	# we already ran vet separately, so safe to turn it off here
 	@CGO_ENABLED=1 go test -v -vet=off -race ./...
 
-frontend:
+frontend: frontend/src/*
 	cd frontend && yarn install
-	cd frontend && NODE_ENV=production yarn build
+	cd frontend && NODE_ENV=production yarn build --dest ../dist
 
 server:
-	cd cmds/tffarmer && go generate
-	cd cmds/tffarmer && go build -ldflags $(ldflags) -o $(OUT)/tfexplorer
+	cd cmds/tfexplorer && go generate
+	cd cmds/tfexplorer && go build -ldflags $(ldflags) -o $(OUT)/tfexplorer
 
 tfexplorer: frontend server
 

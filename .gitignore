@@ -2,4 +2,5 @@
 tfexplorer
 
 # generated code
-statik
+dist/ # the output of the frontend build
+statik/ # the embeding generated code from the disk folder
