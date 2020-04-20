@@ -37,6 +37,7 @@ func (n *gatewayQuery) Parse(r *http.Request) mw.Response {
 	return nil
 }
 
+// List all gateways
 func (s *GatewayAPI) List(ctx context.Context, db *mongo.Database, q gatewayQuery, opts ...*options.FindOptions) ([]directory.Gateway, int64, error) {
 	var filter directory.GatewayFilter
 	// if q.FarmID > 0 {
