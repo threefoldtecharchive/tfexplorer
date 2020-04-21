@@ -190,7 +190,7 @@ func GatewayUpdateReservedResources(ctx context.Context, db *mongo.Database, nod
 }
 
 // GatewayUpdateWorkloadsAmount sets the node reserved resources
-func GatewayUpdateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads generated.GatewayResourceWorkloads) error {
+func GatewayUpdateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads generated.WorkloadAmount) error {
 	return gwUpdate(ctx, db, nodeID, bson.M{"workloads": workloads})
 }
 

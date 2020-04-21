@@ -29,6 +29,8 @@ type Directory interface {
 	GatewayRegister(Gateway directory.Gateway) error
 	GatewayList(tid schema.ID, name string, page *Pager) (farms []directory.Gateway, err error)
 	GatewayGet(id string) (farm directory.Gateway, err error)
+	GatewayUpdateUptime(id string, uptime uint64) error
+	GatewayUpdateReservedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error
 
 	NodeRegister(node directory.Node) error
 	NodeList(filter NodeFilter) (nodes []directory.Node, err error)

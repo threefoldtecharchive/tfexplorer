@@ -76,3 +76,7 @@ tfuser:
 tffarmer:
 	cd cmds/tffarmer && go build -ldflags $(ldflags) -o $(OUT)/tffarmer
 	
+
+
+clean:
+	rm -rf dist statik bin/*

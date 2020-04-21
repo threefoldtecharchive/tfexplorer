@@ -98,7 +98,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	//data_reservation.{containers, volumes, zdbs, networks, kubernetes}.node_id
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomain", "domain_delegate"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -183,7 +183,7 @@ func (r *Reservation) validate() error {
 		len(r.DataReservation.Proxies) +
 		len(r.DataReservation.ReserveProxy) +
 		len(r.DataReservation.Subdomains) +
-		len(r.DataReservation.DomainDelegate)
+		len(r.DataReservation.DomainDelegates)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -214,7 +214,7 @@ func (r *Reservation) validate() error {
 	for _, w := range r.DataReservation.Subdomains {
 		workloaders = append(workloaders, w)
 	}
-	for _, w := range r.DataReservation.DomainDelegate {
+	for _, w := range r.DataReservation.DomainDelegates {
 		workloaders = append(workloaders, w)
 	}
 
@@ -397,7 +397,7 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			wl.NodeId,
 			wl))
 	}
-	for _, wl := range data.DomainDelegate {
+	for _, wl := range data.DomainDelegates {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
@@ -493,7 +493,7 @@ func (r *Reservation) GatewayIDs() []string {
 		ids[p.NodeId] = struct{}{}
 	}
 
-	for _, p := range r.DataReservation.DomainDelegate {
+	for _, p := range r.DataReservation.DomainDelegates {
 		ids[p.NodeId] = struct{}{}
 	}
 

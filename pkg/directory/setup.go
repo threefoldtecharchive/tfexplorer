@@ -50,10 +50,15 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 
 	var gwAPI GatewayAPI
 	gw := parent.PathPrefix("/gateways").Subrouter()
+	gwAuthenticated := parent.PathPrefix("/gateways").Subrouter()
+	gwAuthMW := mw.NewAuthMiddleware(httpsig.NewVerifier(mw.NewNodeKeyGetter()))
+	gwAuthenticated.Use(gwAuthMW.Middleware)
 
 	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.registerGateway)).Methods("POST").Name("gateway-register")
 	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.listGateways)).Methods("GET").Name("gateway-list")
 	gw.HandleFunc("/{node_id}", mw.AsHandlerFunc(gwAPI.gatewayDetail)).Methods("GET").Name(("gateway-get"))
+	gwAuthenticated.HandleFunc("/{node_id}/uptime", mw.AsHandlerFunc(gwAPI.Requires("node_id", gwAPI.updateUptimeHandler))).Methods("POST").Name("gateway-uptime")
+	gwAuthenticated.HandleFunc("/{node_id}/reserved_resources", mw.AsHandlerFunc(gwAPI.Requires("node_id", gwAPI.updateReservedResources))).Methods("POST").Name("gateway-reserved-resources")
 
 	return nil
 }

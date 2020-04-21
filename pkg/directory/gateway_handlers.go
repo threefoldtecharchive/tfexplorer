@@ -86,7 +86,7 @@ func (s *GatewayAPI) updateUptimeHandler(r *http.Request) (interface{}, mw.Respo
 	}
 
 	db := mw.Database(r)
-	log.Debug().Str("node", nodeID).Uint64("uptime", input.Uptime).Msg("node uptime received")
+	log.Debug().Str("gateway", nodeID).Uint64("uptime", input.Uptime).Msg("gateway uptime received")
 
 	if err := s.updateUptime(r.Context(), db, nodeID, int64(input.Uptime)); err != nil {
 		return nil, mw.NotFound(err)
@@ -105,8 +105,8 @@ func (s *GatewayAPI) updateReservedResources(r *http.Request) (interface{}, mw.R
 	}
 
 	input := struct {
-		// generated.ResourceAmount
-		generated.GatewayResourceWorkloads
+		generated.ResourceAmount
+		generated.WorkloadAmount
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -114,10 +114,10 @@ func (s *GatewayAPI) updateReservedResources(r *http.Request) (interface{}, mw.R
 	}
 
 	db := mw.Database(r)
-	// if err := s.updateReservedCapacity(r.Context(), db, nodeID, input.ResourceAmount); err != nil {
-	// 	return nil, mw.NotFound(err)
-	// }
-	if err := s.updateWorkloadsAmount(r.Context(), db, nodeID, input.GatewayResourceWorkloads); err != nil {
+	if err := s.updateReservedCapacity(r.Context(), db, nodeID, input.ResourceAmount); err != nil {
+		return nil, mw.NotFound(err)
+	}
+	if err := s.updateWorkloadsAmount(r.Context(), db, nodeID, input.WorkloadAmount); err != nil {
 		return nil, mw.NotFound(err)
 	}
 

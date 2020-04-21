@@ -2,8 +2,10 @@ package directory
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
@@ -72,18 +74,18 @@ func (s *GatewayAPI) Get(ctx context.Context, db *mongo.Database, gwID string, i
 	return filter.Get(ctx, db, includeProofs)
 }
 
-// // Exists tests if node exists
-// func (s *GatewayAPI) Exists(ctx context.Context, db *mongo.Database, gwID string) (bool, error) {
-// 	var filter directory.NodeFilter
-// 	filter = filter.WithgwID(gwID)
+// Exists tests if node exists
+func (s *GatewayAPI) Exists(ctx context.Context, db *mongo.Database, gwID string) (bool, error) {
+	var filter directory.GatewayFilter
+	filter = filter.WithGWID(gwID)
 
-// 	count, err := filter.Count(ctx, db)
-// 	if err != nil {
-// 		return false, err
-// 	}
+	count, err := filter.Count(ctx, db)
+	if err != nil {
+		return false, err
+	}
 
-// 	return count > 0, nil
-// }
+	return count > 0, nil
+}
 
 // Count counts the number of document in the collection
 func (s *GatewayAPI) Count(ctx context.Context, db *mongo.Database, filter directory.NodeFilter) (int64, error) {
@@ -99,9 +101,9 @@ func (s *GatewayAPI) Add(ctx context.Context, db *mongo.Database, gw directory.G
 // 	return directory.NodeUpdateTotalResources(ctx, db, gwID, capacity)
 // }
 
-// func (s *GatewayAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, gwID string, capacity generated.ResourceAmount) error {
-// 	return directory.NodeUpdateReservedResources(ctx, db, gwID, capacity)
-// }
+func (s *GatewayAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, gwID string, capacity generated.ResourceAmount) error {
+	return directory.GatewayUpdateReservedResources(ctx, db, gwID, capacity)
+}
 
 func (s *GatewayAPI) updateUptime(ctx context.Context, db *mongo.Database, gwID string, uptime int64) error {
 	return directory.GatewayUpdateUptime(ctx, db, gwID, uptime)
@@ -111,29 +113,29 @@ func (s *GatewayAPI) updateUptime(ctx context.Context, db *mongo.Database, gwID 
 // 	return directory.NodeUpdateFreeToUse(ctx, db, gwID, freeToUse)
 // }
 
-func (s *GatewayAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, gwID string, workloads generated.GatewayResourceWorkloads) error {
+func (s *GatewayAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, gwID string, workloads generated.WorkloadAmount) error {
 	return directory.GatewayUpdateWorkloadsAmount(ctx, db, gwID, workloads)
 }
 
-// // Requires is a wrapper that makes sure node with that case exists before
-// // running the handler
-// func (s *GatewayAPI) Requires(key string, handler mw.Action) mw.Action {
-// 	return func(r *http.Request) (interface{}, mw.Response) {
-// 		gwID, ok := mux.Vars(r)[key]
-// 		if !ok {
-// 			// programming error, we should panic in this case
-// 			panic("invalid node-id key")
-// 		}
+// Requires is a wrapper that makes sure gateway with that key exists before
+// running the handler
+func (s *GatewayAPI) Requires(key string, handler mw.Action) mw.Action {
+	return func(r *http.Request) (interface{}, mw.Response) {
+		gwID, ok := mux.Vars(r)[key]
+		if !ok {
+			// programming error, we should panic in this case
+			panic("invalid node-id key")
+		}
 
-// 		db := mw.Database(r)
+		db := mw.Database(r)
 
-// 		exists, err := s.Exists(r.Context(), db, gwID)
-// 		if err != nil {
-// 			return nil, mw.Error(err)
-// 		} else if !exists {
-// 			return nil, mw.NotFound(fmt.Errorf("node '%s' not found", gwID))
-// 		}
+		exists, err := s.Exists(r.Context(), db, gwID)
+		if err != nil {
+			return nil, mw.Error(err)
+		} else if !exists {
+			return nil, mw.NotFound(fmt.Errorf("gateway '%s' not found", gwID))
+		}
 
-// 		return handler(r)
-// 	}
-// }
+		return handler(r)
+	}
+}

@@ -226,22 +226,17 @@ func (e PriceCurrencyEnum) String() string {
 }
 
 type Gateway struct {
-	ID             schema.ID                `bson:"_id" json:"id"`
-	NodeId         string                   `bson:"node_id" json:"node_id"`
-	OsVersion      string                   `bson:"os_version" json:"os_version"`
-	Created        schema.Date              `bson:"created" json:"created"`
-	Updated        schema.Date              `bson:"updated" json:"updated"`
-	Uptime         int64                    `bson:"uptime" json:"uptime"`
-	Address        string                   `bson:"address" json:"address"`
-	Location       Location                 `bson:"location" json:"location"`
-	PublicKeyHex   string                   `bson:"public_key_hex" json:"public_key_hex"`
-	Workloads      GatewayResourceWorkloads `bson:"workloads" json:"workloads"`
-	ManagedDomains []string                 `bson:"managed_domains" json:"managed_domains"`
-	TcpRouterPort  int64                    `bson:"tcp_router_port" json:"tcp_router_port"`
-	DnsNameserver  []string                 `bson:"dns_nameserver" json:"dns_nameserver"`
-}
-
-type GatewayResourceWorkloads struct {
-	Proxy  int64 `bson:"proxy" json:"proxy"`
-	Domain int64 `bson:"domain" json:"domain"`
+	ID             schema.ID      `bson:"_id" json:"id"`
+	NodeId         string         `bson:"node_id" json:"node_id"`
+	OsVersion      string         `bson:"os_version" json:"os_version"`
+	Created        schema.Date    `bson:"created" json:"created"`
+	Updated        schema.Date    `bson:"updated" json:"updated"`
+	Uptime         int64          `bson:"uptime" json:"uptime"`
+	Address        string         `bson:"address" json:"address"`
+	Location       Location       `bson:"location" json:"location"`
+	PublicKeyHex   string         `bson:"public_key_hex" json:"public_key_hex"`
+	Workloads      WorkloadAmount `bson:"workloads" json:"workloads"`
+	ManagedDomains []string       `bson:"managed_domains" json:"managed_domains"`
+	TcpRouterPort  int64          `bson:"tcp_router_port" json:"tcp_router_port"`
+	DnsNameserver  []string       `bson:"dns_nameserver" json:"dns_nameserver"`
 }

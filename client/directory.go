@@ -151,3 +151,24 @@ func (d *httpDirectory) GatewayGet(id string) (Gateway directory.Gateway, err er
 	err = d.get(d.url("gateways", id), nil, &Gateway, http.StatusOK)
 	return
 }
+
+func (d *httpDirectory) GatewayUpdateUptime(id string, uptime uint64) error {
+	input := struct {
+		U uint64 `json:"uptime"`
+	}{
+		U: uptime,
+	}
+
+	return d.post(d.url("gateways", id, "uptime"), input, nil, http.StatusOK)
+}
+
+func (d *httpDirectory) GatewayUpdateReservedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error {
+	input := struct {
+		directory.ResourceAmount
+		directory.WorkloadAmount
+	}{
+		resources,
+		workloads,
+	}
+	return d.post(d.url("gateways", id, "reserved_resources"), input, nil, http.StatusOK)
+}
