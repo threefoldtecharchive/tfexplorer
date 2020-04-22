@@ -637,21 +637,6 @@ func WorkloadPop(ctx context.Context, db *mongo.Database, id string) error {
 // Result is a wrapper around TfgridWorkloadsReservationResult1 type
 type Result generated.Result
 
-func (r *Result) encode() ([]byte, error) {
-	buf := &bytes.Buffer{}
-	if err := buf.WriteByte(byte(r.State)); err != nil {
-		return nil, err
-	}
-	if _, err := buf.WriteString(r.Message); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(r.DataJson); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
 // Verify that the signature matches the result data
 func (r *Result) Verify(pk string) error {
 	return nil

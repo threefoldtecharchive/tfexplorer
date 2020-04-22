@@ -12,6 +12,21 @@ import (
 	"github.com/threefoldtech/zos/pkg/versioned"
 )
 
+// Version History:
+//   1.0.0: seed binary directly encoded
+//   1.1.0: json with key mnemonic and threebot id
+
+// TODO: remove once zos have exposed those variable
+// https://github.com/threefoldtech/zos/blob/0ddc48e01b787893017095f71d5fd97efc42ef1a/pkg/identity/keys.go#L18
+var (
+	// SeedVersion1 (binary seed)
+	seedVersion1 = versioned.MustParse("1.0.0")
+	// SeedVersion11 (json mnemonic)
+	seedVersion11 = versioned.MustParse("1.1.0")
+	// SeedVersionLatest link to latest seed version
+	seedVersionLatest = seedVersion11
+)
+
 // UserIdentity defines serializable struct to identify a user
 type UserIdentity struct {
 	// Mnemonic words of Private Key
@@ -42,11 +57,11 @@ func (u *UserIdentity) Load(path string) error {
 		return err
 	}
 
-	if version.Compare(identity.SeedVersion1) == 0 {
+	if version.Compare(seedVersion1) == 0 {
 		return fmt.Errorf("seed file too old, please update it using 'tfuser id convert' command")
 	}
 
-	if version.NE(identity.SeedVersionLatest) {
+	if version.NE(seedVersionLatest) {
 		return fmt.Errorf("unsupported seed version")
 	}
 
@@ -94,7 +109,7 @@ func (u *UserIdentity) Save(path string) error {
 
 	// Saving json to file
 	log.Info().Str("filename", path).Msg("writing user identity")
-	versioned.WriteFile(path, identity.SeedVersion11, buf, 0400)
+	versioned.WriteFile(path, seedVersion11, buf, 0400)
 
 	return nil
 }
