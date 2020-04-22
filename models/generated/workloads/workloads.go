@@ -21,15 +21,6 @@ type Reservation struct {
 	Results             []Result           `bson:"results" json:"results"`
 }
 
-func NewReservation() (Reservation, error) {
-	const value = "{\"json\": \"\"}"
-	var object Reservation
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
-}
-
 type ReservationData struct {
 	Description             string                `bson:"description" json:"description"`
 	Currencies              []string              `bson:"currencies" json:"currencies"`
@@ -48,42 +39,15 @@ type ReservationData struct {
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
 }
 
-func NewReservationData() (ReservationData, error) {
-	const value = "{\"description\": \"\"}"
-	var object ReservationData
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
-}
-
 type SigningRequest struct {
 	Signers   []int64 `bson:"signers" json:"signers"`
 	QuorumMin int64   `bson:"quorum_min" json:"quorum_min"`
-}
-
-func NewSigningRequest() (SigningRequest, error) {
-	const value = "{}"
-	var object SigningRequest
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type SigningSignature struct {
 	Tid       int64       `bson:"tid" json:"tid"`
 	Signature string      `bson:"signature" json:"signature"`
 	Epoch     schema.Date `bson:"epoch" json:"epoch"`
-}
-
-func NewSigningSignature() (SigningSignature, error) {
-	const value = "{}"
-	var object SigningSignature
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type Container struct {
@@ -122,42 +86,15 @@ type LogsRedis struct {
 	Stderr string `bson:"stderr" json:"stderr"`
 }
 
-func NewContainer() (Container, error) {
-	const value = "{\"interactive\": true}"
-	var object Container
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
-}
-
 type ContainerMount struct {
 	VolumeId   string `bson:"volume_id" json:"volume_id"`
 	Mountpoint string `bson:"mountpoint" json:"mountpoint"`
-}
-
-func NewContainerMount1() (ContainerMount, error) {
-	const value = "{}"
-	var object ContainerMount
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type NetworkConnection struct {
 	NetworkId string `bson:"network_id" json:"network_id"`
 	Ipaddress net.IP `bson:"ipaddress" json:"ipaddress"`
 	PublicIp6 bool   `bson:"public_ip6" json:"public_ip6"`
-}
-
-func NewNetworkConnection() (NetworkConnection, error) {
-	const value = "{}"
-	var object NetworkConnection
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type K8S struct {
@@ -199,29 +136,11 @@ type NetworkNetResource struct {
 	Peers                        []WireguardPeer `bson:"peers" json:"peers"`
 }
 
-func NewNetworkNetResource() (NetworkNetResource, error) {
-	const value = "{\"wireguard_private_key_encrypted\": \"\", \"wireguard_public_key\": \"\", \"iprange\": \"10.10.10.0/24\"}"
-	var object NetworkNetResource
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
-}
-
 type WireguardPeer struct {
 	PublicKey      string           `bson:"public_key" json:"public_key"`
 	AllowedIprange []schema.IPRange `bson:"allowed_iprange" json:"allowed_iprange"`
 	Endpoint       string           `bson:"endpoint" json:"endpoint"`
 	Iprange        schema.IPRange   `bson:"iprange" json:"iprange"`
-}
-
-func NewPeer() (WireguardPeer, error) {
-	const value = "{\"public_key\": \"\", \"allowed_iprange\": [], \"endpoint\": \"\", \"iprange\": \"10.10.11.0/24\"}"
-	var object WireguardPeer
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type Result struct {
@@ -235,15 +154,6 @@ type Result struct {
 	NodeId     string             `bson:"node_id" json:"node_id"`
 }
 
-func NewResult() (Result, error) {
-	const value = "{\"message\": \"\"}"
-	var object Result
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
-}
-
 type StatsAggregator struct {
 	Type string     `bson:"type" json:"type"`
 	Data StatsRedis `bson:"data" json:"data"`
@@ -251,15 +161,6 @@ type StatsAggregator struct {
 
 type StatsRedis struct {
 	Endpoint string `bson:"stdout" json:"endpoint"`
-}
-
-func NewStatsAggregator() (StatsAggregator, error) {
-	const value = "{}"
-	var object StatsAggregator
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type Volume struct {
@@ -286,15 +187,6 @@ type ReservationWorkload struct {
 	Duration   int64            `bson:"duration" json:"duration"`
 	Signature  string           `bson:"signature" json:"signature"`
 	ToDelete   bool             `bson:"to_delete" json:"to_delete"`
-}
-
-func NewReservationWorkload() (ReservationWorkload, error) {
-	const value = "{}"
-	var object ReservationWorkload
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }
 
 type ZDB struct {

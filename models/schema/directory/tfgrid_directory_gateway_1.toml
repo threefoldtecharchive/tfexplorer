@@ -1,5 +1,5 @@
 
-@url = tfgrid.directory.gateway.2
+@url = tfgrid.directory.gateway.1
 node_id** = (S)
 os_version** = (S)
 created = (T)
