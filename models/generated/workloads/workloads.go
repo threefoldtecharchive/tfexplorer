@@ -395,7 +395,7 @@ func (e ResultCategoryEnum) String() string {
 	case ResultCategorySubDomain:
 		return "subdomain"
 	case ResultCategoryDomainDelegate:
-		return "domain-deletate"
+		return "domain-delegate"
 	}
 	return "UNKNOWN"
 }
@@ -470,7 +470,7 @@ func (e WorkloadTypeEnum) String() string {
 	case WorkloadTypeSubDomain:
 		return "subdomain"
 	case WorkloadTypeDomainDelegate:
-		return "domain-deletate"
+		return "domain-delegate"
 
 	}
 	return "UNKNOWN"

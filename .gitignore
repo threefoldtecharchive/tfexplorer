@@ -4,3 +4,20 @@ tfexplorer
 # generated code
 dist/ # the output of the frontend build
 statik/ # the embeding generated code from the disk folder
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories
+vendor/
+
