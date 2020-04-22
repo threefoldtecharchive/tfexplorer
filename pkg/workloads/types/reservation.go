@@ -309,13 +309,12 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 
 	data := &r.DataReservation
 
-	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string, wl interface{}) Workload {
+	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string) Workload {
 		return Workload{
 			ReservationWorkload: generated.ReservationWorkload{
 				WorkloadId: wid,
 				User:       fmt.Sprint(r.CustomerTid),
 				Type:       t,
-				Content:    wl,
 				Created:    r.Epoch,
 				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
 				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
@@ -329,82 +328,98 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeContainer,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 
 	for _, wl := range data.Volumes {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeVolume,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.Zdbs {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeZDB,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.Kubernetes {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeKubernetes,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.Proxies {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeProxy,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.ReserveProxy {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeReverseProxy,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.Subdomains {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeSubDomain,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.DomainDelegates {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		workloads = append(workloads, newWrkl(
+		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeDomainDelegate,
-			wl.NodeId,
-			wl))
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
 	}
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
@@ -417,11 +432,12 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			// when the node report their results. because it means only last
 			// result is what is gonna be visible. We need to (may be) change
 			// the workload id to have the network resource index
-			workloads = append(workloads, newWrkl(
+			wrkl := newWrkl(
 				fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 				generated.WorkloadTypeNetwork,
-				nr.NodeId,
-				wl))
+				nr.NodeId)
+			wrkl.Content = wl
+			workloads = append(workloads, wrkl)
 		}
 	}
 
