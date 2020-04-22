@@ -7,6 +7,8 @@ import (
 
 	"github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/threefoldtech/zos/pkg/capacity"
+	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 )
 
 type httpDirectory struct {
@@ -82,19 +84,19 @@ func (d *httpDirectory) NodeSetPublic(id string, pub directory.PublicIface) erro
 func (d *httpDirectory) NodeSetCapacity(
 	id string,
 	resources directory.ResourceAmount,
-	// dmiInfo dmi.DMI,
-	// disksInfo capacity.Disks,
+	dmiInfo dmi.DMI,
+	disksInfo capacity.Disks,
 	hypervisor []string) error {
 
 	payload := struct {
-		Capacity directory.ResourceAmount `json:"capacity"`
-		// DMI dmi.DMI `json:"dmi"`
-		// Disks      capacity.Disks           `json:"disks"`
-		Hypervisor []string `json:"hypervisor"`
+		Capacity   directory.ResourceAmount `json:"capacity"`
+		DMI        dmi.DMI                  `json:"dmi"`
+		Disks      capacity.Disks           `json:"disks"`
+		Hypervisor []string                 `json:"hypervisor"`
 	}{
-		Capacity: resources,
-		// DMI:        dmiInfo,
-		// Disks:      disksInfo,
+		Capacity:   resources,
+		DMI:        dmiInfo,
+		Disks:      disksInfo,
 		Hypervisor: hypervisor,
 	}
 
@@ -137,9 +139,6 @@ func (d *httpDirectory) GatewayRegister(Gateway directory.Gateway) error {
 func (d *httpDirectory) GatewayList(tid schema.ID, name string, page *Pager) (Gateways []directory.Gateway, err error) {
 	query := url.Values{}
 	page.apply(query)
-	// if tid > 0 {
-	// 	query.Set("owner", fmt.Sprint(tid))
-	// }
 	if len(name) != 0 {
 		query.Set("name", name)
 	}

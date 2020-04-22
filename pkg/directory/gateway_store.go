@@ -19,21 +19,11 @@ import (
 type GatewayAPI struct{}
 
 type gatewayQuery struct {
-	// FarmID  int64
 	Country string
 	City    string
-	// CRU     int64
-	// MRU     int64
-	// SRU     int64
-	// HRU     int64
-	// Proofs  bool
 }
 
 func (n *gatewayQuery) Parse(r *http.Request) mw.Response {
-	// n.FarmID, err = models.QueryInt(r, "farm")
-	// if err != nil {
-	// 	return mw.BadRequest(errors.Wrap(err, "invalid farm id"))
-	// }
 	n.Country = r.URL.Query().Get("country")
 	n.City = r.URL.Query().Get("city")
 	return nil
@@ -42,10 +32,6 @@ func (n *gatewayQuery) Parse(r *http.Request) mw.Response {
 // List all gateways
 func (s *GatewayAPI) List(ctx context.Context, db *mongo.Database, q gatewayQuery, opts ...*options.FindOptions) ([]directory.Gateway, int64, error) {
 	var filter directory.GatewayFilter
-	// if q.FarmID > 0 {
-	// 	filter = filter.WithFarmID(schema.ID(q.FarmID))
-	// }
-	// filter = filter.WithTotalCap(q.CRU, q.MRU, q.HRU, q.SRU)
 	filter = filter.WithLocation(q.Country, q.City)
 
 	cur, err := filter.Find(ctx, db, opts...)
@@ -97,10 +83,6 @@ func (s *GatewayAPI) Add(ctx context.Context, db *mongo.Database, gw directory.G
 	return directory.GatewayCreate(ctx, db, gw)
 }
 
-// func (s *GatewayAPI) updateTotalCapacity(ctx context.Context, db *mongo.Database, gwID string, capacity generated.ResourceAmount) error {
-// 	return directory.NodeUpdateTotalResources(ctx, db, gwID, capacity)
-// }
-
 func (s *GatewayAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, gwID string, capacity generated.ResourceAmount) error {
 	return directory.GatewayUpdateReservedResources(ctx, db, gwID, capacity)
 }
@@ -108,10 +90,6 @@ func (s *GatewayAPI) updateReservedCapacity(ctx context.Context, db *mongo.Datab
 func (s *GatewayAPI) updateUptime(ctx context.Context, db *mongo.Database, gwID string, uptime int64) error {
 	return directory.GatewayUpdateUptime(ctx, db, gwID, uptime)
 }
-
-// func (s *GatewayAPI) updateFreeToUse(ctx context.Context, db *mongo.Database, gwID string, freeToUse bool) error {
-// 	return directory.NodeUpdateFreeToUse(ctx, db, gwID, freeToUse)
-// }
 
 func (s *GatewayAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, gwID string, workloads generated.WorkloadAmount) error {
 	return directory.GatewayUpdateWorkloadsAmount(ctx, db, gwID, workloads)

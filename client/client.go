@@ -10,6 +10,8 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/threefoldtech/zos/pkg/capacity"
+	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 )
 
 // Client structure
@@ -46,8 +48,8 @@ type Directory interface {
 	NodeSetCapacity(
 		id string,
 		resources directory.ResourceAmount,
-		// dmiInfo dmi.DMI,
-		// disksInfo capacity.Disks,
+		dmiInfo dmi.DMI,
+		disksInfo capacity.Disks,
 		hypervisor []string,
 	) error
 
