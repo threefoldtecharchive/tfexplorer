@@ -12,6 +12,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/phonebook"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/threefoldtech/zos/pkg/crypto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,6 +28,8 @@ var (
 	ErrUserExists = errors.New("user with same name or email exists")
 	// ErrUserNotFound is returned if user is not found
 	ErrUserNotFound = errors.New("user not found")
+	// ErrBadUserUpdate is returned when invalid data is passed to update
+	ErrBadUserUpdate = errors.New("bad data during user update")
 	// ErrAuthorization returned if user is not allowed to do an operation
 	ErrAuthorization = errors.New("operation not allowed")
 )
@@ -38,6 +41,9 @@ type User generated.User
 func (u User) Validate() error {
 	if strings.ToLower(u.Name) != u.Name {
 		return fmt.Errorf("name should be all lower case")
+	}
+	if strings.ToLower(u.Email) != u.Email {
+		return fmt.Errorf("email should be all lower case")
 	}
 
 	if len(u.Name) < 3 {
@@ -130,9 +136,9 @@ func UserCreate(ctx context.Context, db *mongo.Database, name, email, pubkey str
 		return user, fmt.Errorf("invalid name, can't be empty")
 	}
 
-	// if _, err := crypto.KeyFromHex(pubkey); err != nil {
-	// 	return user, errors.Wrapf(err, "invalid public key %s", pubkey)
-	// }
+	if _, err := crypto.KeyFromHex(pubkey); err != nil {
+		return user, errors.Wrapf(err, "invalid public key %s", pubkey)
+	}
 
 	var filter UserFilter
 	filter = filter.WithName(name)
@@ -182,34 +188,34 @@ func UserUpdate(ctx context.Context, db *mongo.Database, id schema.ID, signature
 
 	// user need to always sign with current stored public key
 	// even to update new key
-	// key, err := crypto.KeyFromHex(current.Pubkey)
-	// if err != nil {
-	// 	return err
-	// }
+	key, err := crypto.KeyFromHex(current.Pubkey)
+	if err != nil {
+		return err
+	}
 
 	// NOTE: verification here is done over the update request
 	// data. We make sure that the signature is indeed done
 	// with the priv key part of the user
 	encoded := update.Encode()
 	log.Debug().Str("encoded", string(encoded)).Msg("encoded message")
-	// if err := crypto.Verify(key, encoded, signature); err != nil {
-	// 	return errors.Wrap(err, "payload verification failed")
-	// }
+	if err := crypto.Verify(key, encoded, signature); err != nil {
+		return errors.Wrap(ErrBadUserUpdate, "payload verification failed")
+	}
 
 	// if public key update is required, we make sure
 	// that is valid key.
 	if len(update.Pubkey) != 0 {
-		// _, err := crypto.KeyFromHex(update.Pubkey)
-		// if err != nil {
-		// 	return fmt.Errorf("invalid public key")
-		// }
+		_, err := crypto.KeyFromHex(update.Pubkey)
+		if err != nil {
+			return errors.Wrap(ErrBadUserUpdate, "invalid public key")
+		}
 
 		current.Pubkey = update.Pubkey
 	}
 
 	// sanity check make sure user is not trying to update his name
 	if len(update.Name) != 0 && current.Name != update.Name {
-		return fmt.Errorf("can not update name")
+		return errors.Wrap(ErrBadUserUpdate, "can not update name")
 	}
 
 	// copy all modified fields.
