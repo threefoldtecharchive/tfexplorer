@@ -3,6 +3,7 @@ import capacityMap from '../../components/capacitymap'
 import nodesTable from '../../components/nodestable'
 import scrollablecard from '../../components/scrollablecard'
 import { mapGetters, mapActions } from 'vuex'
+
 export default {
   name: 'capacity',
   components: { miniGraph, capacityMap, nodesTable, scrollablecard },
@@ -27,22 +28,13 @@ export default {
     ])
   },
   mounted () {
-    this.getRegisteredNodes()
-    this.getRegisteredFarms()
-    // this.initialiseRefresh()
+    this.refreshData()
   },
 
   methods: {
-    ...mapActions(['getRegisteredNodes', 'getRegisteredFarms']),
+    ...mapActions(['refreshData']),
     changeSelectedNode (data) {
       this.selectedNode = data
-    },
-    initialiseRefresh () {
-      const that = this
-      this.refreshInterval = setInterval(() => {
-        that.getRegisteredNodes()
-        that.getRegisteredFarms()
-      }, 60000) // refresh every 10 minutes
     }
   }
 }
