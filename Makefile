@@ -46,14 +46,10 @@ spelling:
 staticcheck:
 	go run honnef.co/go/tools/cmd/staticcheck -- ./...
 
-# Builds minio, runs the verifiers then runs the tests.
 check: test
 test: verifiers
 	# we already ran vet separately, so safe to turn it off here
-	@echo "Running unit tests"
-	for pkg in $(shell go list ./... ); do \
-		go test -v -vet=off $$pkg; \
-	done
+	@CGO_ENABLED=1 go test -v -vet=off ./...
 
 testrace: verifiers
 	@echo "Running unit tests with -race flag"
