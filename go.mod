@@ -15,7 +15,7 @@ require (
 	github.com/rusart/muxprom v0.0.0-20200323164249-36ea051efbe6
 	github.com/stellar/go v0.0.0-20200325172527-9cabbc6b9388
 	github.com/stretchr/testify v1.5.1
-	github.com/threefoldtech/zos v0.2.3
+	github.com/threefoldtech/zos v0.2.4-rc2
 	github.com/tyler-smith/go-bip39 v1.0.2
 	github.com/urfave/cli v1.22.3
 	github.com/zaibon/httpsig v0.0.0-20200401133919-ea9cb57b0946
@@ -25,7 +25,3 @@ require (
 )
 
 replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
-
-replace github.com/threefoldtech/zos => ../zos
-
-replace github.com/threefoldtech/tfexplorer => ../tfexplorer
