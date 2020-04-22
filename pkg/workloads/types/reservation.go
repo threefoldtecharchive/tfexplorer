@@ -14,6 +14,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/threefoldtech/zos/pkg/crypto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -232,34 +233,32 @@ func (r *Reservation) validate() error {
 // pk is the public key used as verification key in hex encoded format
 // the signature is the signature to verify (in raw binary format)
 func (r *Reservation) Verify(pk string, sig []byte) error {
-	return nil
-	// key, err := crypto.KeyFromHex(pk)
-	// if err != nil {
-	// 	return errors.Wrap(err, "invalid verification key")
-	// }
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
 
-	// return crypto.Verify(key, []byte(r.Json), sig)
+	return crypto.Verify(key, []byte(r.Json), sig)
 }
 
 // SignatureVerify is similar to Verify but the verification is done
 // against `str(Reservation.ID) + Reservation.JSON`
 func (r *Reservation) SignatureVerify(pk string, sig []byte) error {
-	return nil
-	// key, err := crypto.KeyFromHex(pk)
-	// if err != nil {
-	// 	return errors.Wrap(err, "invalid verification key")
-	// }
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
 
-	// var buf bytes.Buffer
-	// if _, err := buf.WriteString(fmt.Sprint(int64(r.ID))); err != nil {
-	// 	return errors.Wrap(err, "failed to write id to buffer")
-	// }
+	var buf bytes.Buffer
+	if _, err := buf.WriteString(fmt.Sprint(int64(r.ID))); err != nil {
+		return errors.Wrap(err, "failed to write id to buffer")
+	}
 
-	// if _, err := buf.WriteString(r.Json); err != nil {
-	// 	return errors.Wrap(err, "failed to write json to buffer")
-	// }
+	if _, err := buf.WriteString(r.Json); err != nil {
+		return errors.Wrap(err, "failed to write json to buffer")
+	}
 
-	// return crypto.Verify(key, buf.Bytes(), sig)
+	return crypto.Verify(key, buf.Bytes(), sig)
 }
 
 // Expired checks if this reservation has expired
