@@ -29,6 +29,10 @@ volumes = (LO) !tfgrid.workloads.reservation.volume.1
 zdbs = (LO) !tfgrid.workloads.reservation.zdb.1
 networks = (LO) !tfgrid.workloads.reservation.network.1
 kubernetes = (LO) !tfgrid.workloads.reservation.k8s.1
+proxies = (LO) !tfgrid.workloads.reservation.gateway.proxy.1
+reserve_proxies = (LO) !tfgrid.workloads.reservation.gateway.reserve_proxy.1
+subdomain = (LO) !tfgrid.workloads.reservation.gateway.subdomain.1
+domain_delegate = (LO) !tfgrid.workloads.reservation.gateway.delegate.1
 #till whe is request for provisioning valid, if not signed in required time then obsolete
 expiration_provisioning = (T)
 #till whe is reservation valid

@@ -131,3 +131,43 @@ func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 
 	return d.post(d.url("nodes", id, "configure_free"), choice, nil, http.StatusOK)
 }
+
+func (d *httpDirectory) GatewayRegister(Gateway directory.Gateway) error {
+	return d.post(d.url("gateways"), Gateway, nil, http.StatusCreated)
+}
+
+func (d *httpDirectory) GatewayList(tid schema.ID, name string, page *Pager) (Gateways []directory.Gateway, err error) {
+	query := url.Values{}
+	page.apply(query)
+	if len(name) != 0 {
+		query.Set("name", name)
+	}
+	err = d.get(d.url("gateways"), query, &Gateways, http.StatusOK)
+	return
+}
+
+func (d *httpDirectory) GatewayGet(id string) (Gateway directory.Gateway, err error) {
+	err = d.get(d.url("gateways", id), nil, &Gateway, http.StatusOK)
+	return
+}
+
+func (d *httpDirectory) GatewayUpdateUptime(id string, uptime uint64) error {
+	input := struct {
+		U uint64 `json:"uptime"`
+	}{
+		U: uptime,
+	}
+
+	return d.post(d.url("gateways", id, "uptime"), input, nil, http.StatusOK)
+}
+
+func (d *httpDirectory) GatewayUpdateReservedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error {
+	input := struct {
+		directory.ResourceAmount
+		directory.WorkloadAmount
+	}{
+		resources,
+		workloads,
+	}
+	return d.post(d.url("gateways", id, "reserved_resources"), input, nil, http.StatusOK)
+}

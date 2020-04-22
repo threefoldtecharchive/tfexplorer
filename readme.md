@@ -1,4 +1,4 @@
-# Explorer
+# Explorer ![Tests and Build](https://github.com/threefoldtech/tfexplorer/workflows/Tests%20and%20Build/badge.svg)
 
 The explorer is the component that is responsible to host all the public information about the nodes running 0-OS, the farms, the users identity and the capacity reservations.
 

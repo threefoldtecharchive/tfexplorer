@@ -322,12 +322,12 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 			WorkloadId: wl.WorkloadID,
 			User:       wl.User,
 			Type:       wl.Type,
-			// Content:    wl.Content,
-			Created:   wl.Created,
-			Duration:  wl.Duration,
-			Signature: wl.Signature,
-			ToDelete:  wl.ToDelete,
+			Created:    wl.Created,
+			Duration:   wl.Duration,
+			Signature:  wl.Signature,
+			ToDelete:   wl.ToDelete,
 		}
+
 		switch wl.Type {
 		case generated.WorkloadTypeContainer:
 			var data generated.Container
@@ -363,6 +363,32 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 				return nil, err
 			}
 			obj.Content = data
+
+		case generated.WorkloadTypeDomainDelegate:
+			var data generated.GatewayDelegate
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
+		case generated.WorkloadTypeSubDomain:
+			var data generated.GatewaySubdomain
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
+		case generated.WorkloadTypeProxy:
+			var data generated.GatewayProxy
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
+		case generated.WorkloadTypeReverseProxy:
+			var data generated.GatewayReserveProxy
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
+
 		}
 
 		workloads = append(workloads, types.Workload{
@@ -388,6 +414,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 	if err != nil {
 		return nil, mw.Error(err)
 	}
+	log.Debug().Msgf("%d queue", len(workloads))
 
 	if len(workloads) > maxPageSize {
 		return workloads, nil
