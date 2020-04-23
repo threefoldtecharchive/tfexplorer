@@ -132,7 +132,9 @@ export default {
     this.start = new Date()
 
     // refresh every 10 minutes
-    this.refreshInterval = setInterval(this.refreshData(), 60000)
+    this.refreshInterval = setInterval(function () {
+      this.refresh()
+    }, 60000)
 
     // if user loses focus, clear the refreshing interval
     // we don't refresh data if the page is not focused.
@@ -155,16 +157,17 @@ export default {
       // if 10 minutes are passed since last focus, refresh data.
       if (seconds >= 600) {
         this.start = new Date()
-        this.refreshData()
-        this.refreshInterval = setInterval(this.refreshData(), 60000)
+        this.refresh()
+        this.refreshInterval = setInterval(function () {
+          this.refresh()
+        }, 60000)
       }
     }
   },
   methods: {
-    ...mapActions(['refreshData']),
-    refresh () {
-      this.refreshData()
-    }
+    ...mapActions({
+      refresh: 'refreshData'
+    })
   }
 }
 </script>
