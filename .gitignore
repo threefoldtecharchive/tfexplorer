@@ -1,5 +1,5 @@
 # binary
-tfexplorer
+bin/
 
 # generated code
 dist/ # the output of the frontend build

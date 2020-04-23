@@ -1,3 +1,4 @@
+root = $(shell pwd)
 OUT = $(shell realpath -m bin)
 GOPATH := $(shell go env GOPATH)
 branch = $(shell git symbolic-ref -q --short HEAD || git describe --tags --exact-match)
@@ -29,7 +30,7 @@ fmt:
 
 lint:
 	@echo "Running $@"
-	golint -set_exit_status $(shell go list ./... | grep -v stubs | grep -v generated| grep -v migrations | grep -v statik)
+	golint -set_exit_status $(shell go list ./... | grep -v generated| grep -v statik | grep -v tfuser|  grep -v migrations)
 
 ineffassign:
 	@echo "Running $@"
