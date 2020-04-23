@@ -22,7 +22,7 @@ verifiers: vet fmt lint cyclo spelling staticcheck
 
 vet:
 	@echo "Running $@"
-	@go vet -atomic -bool -copylocks -nilfunc -printf -rangeloops -unreachable -unsafeptr -unusedresult ./...
+	@go vet -atomic -bool -copylocks -nilfunc -printf -rangeloops -unreachable -unsafeptr -unusedresult $(shell go list ./... | grep -v generated| grep -v statik | grep -v tfuser|  grep -v migrations)
 
 fmt:
 	@echo "Running $@"
@@ -73,7 +73,8 @@ tfuser:
 tffarmer:
 	cd cmds/tffarmer && go build -ldflags $(ldflags) -o $(OUT)/tffarmer
 	
-
+stellar:
+	cd cmds/stellar && go build -ldflags $(ldflags) -o $(OUT)/stellar
 
 clean:
 	rm -rf dist statik bin/*
