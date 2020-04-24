@@ -67,7 +67,7 @@ type ReservationData struct {
 	ReserveProxy            []GatewayReserveProxy `bson:"reserve_proxies" json:"reserve_proxies"`
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
 	DomainDelegates         []GatewayDelegate     `bson:"domain_delegates" json:"domain_delegates"`
-	Gateway4To6s            []Gateway4To6         `bson:"gateway_4to6" json:"gateway_4to6"`
+	Gateway4To6s            []Gateway4To6         `bson:"gateway4to6" json:"gateway4to6"`
 	ExpirationProvisioning  schema.Date           `bson:"expiration_provisioning" json:"expiration_provisioning"`
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
 }
@@ -140,29 +140,24 @@ const (
 	WorkloadTypeGateway4To6
 )
 
-func (e WorkloadTypeEnum) String() string {
-	switch e {
-	case WorkloadTypeZDB:
-		return "zdb"
-	case WorkloadTypeContainer:
-		return "container"
-	case WorkloadTypeVolume:
-		return "volume"
-	case WorkloadTypeNetwork:
-		return "network"
-	case WorkloadTypeKubernetes:
-		return "kubernetes"
-	case WorkloadTypeProxy:
-		return "proxy"
-	case WorkloadTypeReverseProxy:
-		return "reverse-proxy"
-	case WorkloadTypeSubDomain:
-		return "subdomain"
-	case WorkloadTypeDomainDelegate:
-		return "domain-delegate"
-	case WorkloadTypeGateway4To6:
-		return "gateway4to6"
+// WorkloadTypes is a map of all the supported workload type
+var WorkloadTypes = map[WorkloadTypeEnum]string{
+	WorkloadTypeZDB:            "zdb",
+	WorkloadTypeContainer:      "container",
+	WorkloadTypeVolume:         "volume",
+	WorkloadTypeNetwork:        "network",
+	WorkloadTypeKubernetes:     "kubernetes",
+	WorkloadTypeProxy:          "proxy",
+	WorkloadTypeReverseProxy:   "reverse-proxy",
+	WorkloadTypeSubDomain:      "subdomain",
+	WorkloadTypeDomainDelegate: "domain-delegate",
+	WorkloadTypeGateway4To6:    "gateway4to6",
+}
 
+func (e WorkloadTypeEnum) String() string {
+	s, ok := WorkloadTypes[e]
+	if !ok {
+		return "UNKNOWN"
 	}
-	return "UNKNOWN"
+	return s
 }

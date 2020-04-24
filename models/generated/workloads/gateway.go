@@ -54,6 +54,7 @@ func (g GatewayDelegate) WorkloadID() int64 {
 type Gateway4To6 struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
+	NodeId     string    `bson:"node_id" json:"node_id"`
 	PublicKey  string    `bson:"public_key" json:"public_key"`
 }
 

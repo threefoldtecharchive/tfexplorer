@@ -125,6 +125,12 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 			return result, err
 		}
 		result.Content = o
+	case workloads.WorkloadTypeGateway4To6:
+		var o workloads.Gateway4To6
+		if err := json.Unmarshal(wl.Content, &o); err != nil {
+			return result, err
+		}
+		result.Content = o
 	default:
 		return result, fmt.Errorf("unknown workload type")
 	}

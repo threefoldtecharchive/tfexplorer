@@ -1,7 +1,0 @@
-
-
-@url = tfgrid.workloads.reservation.gateway4to6.1
-#unique id inside the reservation is an autoincrement
-workload_id = (I)
-node_id = (S)
-public_key = (S) the wireguard public key of the user

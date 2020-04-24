@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -99,7 +100,14 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	//data_reservation.{containers, volumes, zdbs, networks, kubernetes}.node_id
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates"} {
+
+	// gather all supported workloads types
+	workloadsTypes := make([]string, len(workloads.WorkloadTypes))
+	for w := range generated.WorkloadTypes {
+		workloadsTypes = append(workloadsTypes, w.String())
+	}
+
+	for _, typ := range workloadsTypes {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -188,7 +196,8 @@ func (r *Reservation) validate() error {
 		len(r.DataReservation.Proxies) +
 		len(r.DataReservation.ReserveProxy) +
 		len(r.DataReservation.Subdomains) +
-		len(r.DataReservation.DomainDelegates)
+		len(r.DataReservation.DomainDelegates) +
+		len(r.DataReservation.Gateway4To6s)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -220,6 +229,9 @@ func (r *Reservation) validate() error {
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.DomainDelegates {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Gateway4To6s {
 		workloaders = append(workloaders, w)
 	}
 
@@ -423,7 +435,17 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			wl.NodeId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
-
+	}
+	for _, wl := range data.Gateway4To6s {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		wrkl := newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeGateway4To6,
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
 	}
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
@@ -488,6 +510,9 @@ func (r *Reservation) NodeIDs() []string {
 	for _, w := range r.DataReservation.Kubernetes {
 		ids[w.NodeId] = struct{}{}
 	}
+	for _, w := range r.DataReservation.Proxies {
+		ids[w.NodeId] = struct{}{}
+	}
 
 	nodeIDs := make([]string, 0, len(ids))
 	for nid := range ids {
@@ -513,6 +538,10 @@ func (r *Reservation) GatewayIDs() []string {
 	}
 
 	for _, p := range r.DataReservation.DomainDelegates {
+		ids[p.NodeId] = struct{}{}
+	}
+
+	for _, p := range r.DataReservation.Gateway4To6s {
 		ids[p.NodeId] = struct{}{}
 	}
 
