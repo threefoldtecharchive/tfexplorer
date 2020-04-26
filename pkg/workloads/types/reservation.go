@@ -177,6 +177,10 @@ func (r *Reservation) validate() error {
 		return fmt.Errorf("json data does not match the reservation data")
 	}
 
+	if len(r.Metadata) > 1024 {
+		return fmt.Errorf("metadata can not be bigger than 1024 bytes")
+	}
+
 	totalWl := len(r.DataReservation.Containers) +
 		len(r.DataReservation.Networks) +
 		len(r.DataReservation.Volumes) +
