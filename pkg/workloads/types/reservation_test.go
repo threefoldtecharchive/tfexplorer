@@ -46,4 +46,7 @@ func TestValidation(t *testing.T) {
 
 	err = reservation.validate()
 	require.NoError(t, err)
+	reservation.Metadata = string(make([]byte, 1025))
+	err = reservation.validate()
+	require.Error(t, err)
 }
