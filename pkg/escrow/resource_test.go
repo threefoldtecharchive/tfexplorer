@@ -521,11 +521,11 @@ func TestCalculateReservationCost(t *testing.T) {
 
 	assert.True(t, len(res) == 2)
 	// cru: 11, sru: 1000, hru: 1000, mru: 17
-	// 4.037 * 66.667 + 11.904 * 53.334
-	assert.Equal(t, xdr.Int64(904.022615*precision), res[1])
+	// 4.037 * 100.000 + 11.904 * 66.667
+	assert.Equal(t, xdr.Int64(1197.303968*precision), res[1])
 	// cru: 17, sru: 650, hru: 4000, mru: 21.8829
-	// 5.197 * 66.667 + 10.803 * 53.334
-	assert.Equal(t, xdr.Int64(922.635601*precision), res[3])
+	// 5.197 * 100.000 + 10.803 * 66.667
+	assert.Equal(t, xdr.Int64(1239.903601*precision), res[3])
 }
 
 func TestResourceUnitsToCloudUnits(t *testing.T) {
