@@ -29,14 +29,14 @@ type (
 )
 
 // cost price of cloud units:
-// - $10 for a compute unit
-// - $8 for a storage unit
+// - $15 for a compute unit
+// - $10 for a storage unit
 // TFT price is fixed at $0.15 / TFT
 // since this means neither compute unit nor cloud unit returns a nice value when
 // expressed in TFT, we fix this to 3 digit precision.
 const (
-	computeUnitTFTCost = 66.667 // 10 / 0.15
-	storageUnitTFTCost = 53.334 // 10 / 0.15
+	computeUnitTFTCost = 100.000 // 15 / 0.15
+	storageUnitTFTCost = 66.667  // 10 / 0.15
 )
 
 // calculateReservationCost calculates the cost of reservation based on a resource per farmer map

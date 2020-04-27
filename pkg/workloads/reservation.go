@@ -45,6 +45,9 @@ type (
 // freeTFT currency code
 const freeTFT = "FreeTFT"
 
+// oneMonth is the amount of seconds in a 31 day month
+const oneMonth = 31 * 24 * 60 * 60 // 31 days / month  * 24 hours / day * 60 minutes / hour * 60 seconds / minute
+
 func (a *API) validAddresses(ctx context.Context, db *mongo.Database, res *types.Reservation) error {
 	if config.Config.Network == "" {
 		log.Info().Msg("escrow disabled, no validation of farmer wallet address needed")
@@ -91,6 +94,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	if reservation.Expired() {
 		return nil, mw.BadRequest(fmt.Errorf("creating for a reservation that expires in the past"))
+	}
+
+	// For now limit reservation duration to 1 month max
+	if reservation.DataReservation.ExpirationReservation.After(time.Now().Add(oneMonth * time.Second)) {
+		return nil, mw.BadRequest(errors.New("reservation can have a max duration of 1 month"))
 	}
 
 	// we make sure those arrays are initialized correctly
