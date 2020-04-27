@@ -123,7 +123,7 @@ export default ({
   mutations: {
     setRegisteredNodes (state, response) {
       const pages = parseInt(response.headers.pages, 10)
-      if (pages == response.config.params.page) {
+      if (pages === response.config.params.page) {
         state.nodePage = undefined
         state.registeredNodes = state.registeredNodes.concat(response.data)
         // all nodes are loaded, clear the interval
@@ -142,7 +142,7 @@ export default ({
     },
     setRegisteredFarms (state, response) {
       const pages = parseInt(response.headers.pages, 10)
-      if (pages == response.config.params.page) {
+      if (pages === response.config.params.page) {
         state.farmPage = undefined
         state.registeredFarms = state.registeredFarms.concat(response.data)
 
@@ -162,7 +162,7 @@ export default ({
     },
     setRegisteredGateways (state, response) {
       const pages = parseInt(response.headers.pages, 10)
-      if (pages == response.config.params.page) {
+      if (pages === response.config.params.page) {
         state.gatewayPage = undefined
         state.registeredGateways = state.registeredGateways.concat(response.data)
 
