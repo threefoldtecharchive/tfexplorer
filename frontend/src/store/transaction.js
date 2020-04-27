@@ -1,6 +1,6 @@
 import tfService from '../services/tfService'
 import lodash from 'lodash'
-/* eslint-disable */
+
 // keep the interval object locally to clear them afterwards
 let nodesLoadingInterval, farmsLoadingInterval, gatewaysLoadingInvertal
 
