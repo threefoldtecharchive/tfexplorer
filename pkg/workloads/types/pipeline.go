@@ -3,7 +3,6 @@ package types
 import (
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
@@ -18,10 +17,6 @@ type Pipeline struct {
 // through the pipeline before any action is taken. This will always make sure
 // that reservation is in the right state.
 func NewPipeline(R Reservation) (*Pipeline, error) {
-	if err := R.validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid reservation object")
-	}
-
 	return &Pipeline{R}, nil
 }
 

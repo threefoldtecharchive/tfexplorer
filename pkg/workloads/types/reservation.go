@@ -159,7 +159,7 @@ func (f ReservationFilter) Count(ctx context.Context, db *mongo.Database) (int64
 type Reservation generated.Reservation
 
 // Validate that the reservation is valid
-func (r *Reservation) validate() error {
+func (r *Reservation) Validate() error {
 	if r.CustomerTid == 0 {
 		return fmt.Errorf("customer_tid is required")
 	}

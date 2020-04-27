@@ -20,6 +20,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	pprof "net/http/pprof"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
@@ -196,6 +198,8 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 		phonebook.Setup,
 		directory.Setup,
 	}
+
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
 	apiRouter := router.PathPrefix("/explorer").Subrouter()
 	for _, pkg := range pkgs {
