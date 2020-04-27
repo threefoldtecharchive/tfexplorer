@@ -29,10 +29,9 @@ export default {
       expanded: [],
 
       headers: [
-        { text: 'Name', value: 'name' },
+        { text: 'ID', value: 'node_id' },
         { text: 'Uptime', value: 'uptime' },
         { text: 'Version', value: 'version' },
-        { text: 'Gateway ID', value: 'id' },
         { text: 'Status', value: 'status', align: 'center' }
       ]
     }
@@ -48,7 +47,7 @@ export default {
           version: gateway.os_version,
           id: gateway.id,
           farm_id: gateway.farm_id,
-          name: 'gateway ' + gateway.id,
+          node_id: gateway.node_id,
           workloads: gateway.workloads,
           updated: new Date(gateway.updated * 1000),
           status: this.getStatus(gateway),
