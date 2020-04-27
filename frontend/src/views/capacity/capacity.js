@@ -1,12 +1,14 @@
 import miniGraph from '../../components/minigraph'
 import capacityMap from '../../components/capacitymap'
 import nodesTable from '../../components/nodestable'
+import gatewaysTable from '../../components/gatewaystable'
+
 import scrollablecard from '../../components/scrollablecard'
 import { mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'capacity',
-  components: { miniGraph, capacityMap, nodesTable, scrollablecard },
+  components: { miniGraph, capacityMap, nodesTable, scrollablecard, gatewaysTable },
   props: [],
   data () {
     return {
@@ -18,13 +20,16 @@ export default {
       block: null,
       showBadge: true,
       menu: false,
-      selectedNode: ''
+      selectedNode: '',
+      selectedGateway: ''
     }
   },
   computed: {
     ...mapGetters([
       'nodeSpecs',
-      'registeredNodes'
+      'registeredNodes',
+      'registeredGateways',
+      'gatewaySpecs'
     ])
   },
   mounted () {
@@ -37,6 +42,9 @@ export default {
     }),
     changeSelectedNode (data) {
       this.selectedNode = data
+    },
+    changeSelectedGateway (data) {
+      this.selectedGateway = data
     }
   }
 }
