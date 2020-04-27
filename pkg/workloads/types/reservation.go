@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -101,13 +100,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
 
-	// gather all supported workloads types
-	workloadsTypes := make([]string, len(workloads.WorkloadTypes))
-	for w := range generated.WorkloadTypes {
-		workloadsTypes = append(workloadsTypes, w.String())
-	}
-
-	for _, typ := range workloadsTypes {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
