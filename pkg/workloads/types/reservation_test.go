@@ -44,9 +44,9 @@ func TestValidation(t *testing.T) {
 	err := json.Unmarshal([]byte(input), &reservation)
 	require.NoError(t, err)
 
-	err = reservation.validate()
+	err = reservation.Validate()
 	require.NoError(t, err)
 	reservation.Metadata = string(make([]byte, 1025))
-	err = reservation.validate()
+	err = reservation.Validate()
 	require.Error(t, err)
 }
