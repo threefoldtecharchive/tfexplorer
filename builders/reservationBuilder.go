@@ -163,6 +163,8 @@ func (r *ReservationBuilder) WithDuration(duration string) (*ReservationBuilder,
 	}
 	timein := time.Now().Local().Add(d)
 	r.Reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
+	r.Reservation.DataReservation.ExpirationProvisioning = schema.Date{Time: timein}
+
 	return r, nil
 }
 

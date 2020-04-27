@@ -24,6 +24,7 @@ func cmdsProvision(c *cli.Context) error {
 		zdbs       = c.StringSlice("zdb")
 		kubes      = c.StringSlice("kube")
 		networks   = c.StringSlice("network")
+		dryRun     = c.Bool("dry-run")
 		err        error
 	)
 
@@ -99,7 +100,7 @@ func cmdsProvision(c *cli.Context) error {
 		return errors.Wrap(err, "failed to set the reservation builder duration")
 	}
 
-	reservationBuilder.WithDryRun(true).WithSeedPath(seedPath).WithAssets(assets)
+	reservationBuilder.WithDryRun(dryRun).WithSeedPath(seedPath).WithAssets(assets)
 
 	response, err := reservationBuilder.Deploy()
 	if err != nil {
