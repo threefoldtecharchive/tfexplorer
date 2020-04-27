@@ -18,6 +18,7 @@ type Reservation struct {
 	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
+	Metadata            string             `bson:"metadata" json:"metadata"`
 	Results             []Result           `bson:"results" json:"results"`
 }
 

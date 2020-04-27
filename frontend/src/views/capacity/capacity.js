@@ -28,11 +28,13 @@ export default {
     ])
   },
   mounted () {
-    this.refreshData()
+    this.refresh()
   },
 
   methods: {
-    ...mapActions(['refreshData']),
+    ...mapActions({
+      refresh: 'refreshData'
+    }),
     changeSelectedNode (data) {
       this.selectedNode = data
     }

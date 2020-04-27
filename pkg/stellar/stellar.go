@@ -195,31 +195,25 @@ func (w *Wallet) setupEscrow(newKp *keypair.Full, sourceAccount hProtocol.Accoun
 	trustlineOperation := w.setupTrustline(sourceAccount)
 	operations = append(operations, trustlineOperation...)
 
-	addSignerOperations := w.setupEscrowMultisig()
+	addSignerOperations := w.setupEscrowMultisig(sourceAccount)
 	if addSignerOperations != nil {
 		operations = append(operations, addSignerOperations...)
 	}
 
 	tx := txnbuild.Transaction{
-		SourceAccount: &sourceAccount,
-		Operations:    operations,
-		Timebounds:    txnbuild.NewTimeout(300),
-		Network:       w.GetNetworkPassPhrase(),
+		Operations: operations,
+		Timebounds: txnbuild.NewTimeout(300),
+		Network:    w.GetNetworkPassPhrase(),
 	}
 
-	txeBase64, err := tx.BuildSignEncode(newKp)
+	fundedTx, err := w.fundTransaction(&tx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get build transaction")
+		return errors.Wrap(err, "failed to fund transaction")
 	}
 
-	// Submit the transaction
-	_, err = client.SubmitTransactionXDR(txeBase64)
+	err = w.signAndSubmitTx(newKp, fundedTx)
 	if err != nil {
-		hError := err.(*horizonclient.Error)
-		for _, extra := range hError.Problem.Extras {
-			log.Debug().Msgf("%+v", extra)
-		}
-		return errors.Wrap(hError.Problem, "error submitting transaction")
+		return errors.Wrap(err, "failed to sign and submit transaction")
 	}
 	return nil
 }
@@ -238,7 +232,7 @@ func (w *Wallet) setupTrustline(sourceAccount hProtocol.Account) []txnbuild.Oper
 	return ops
 }
 
-func (w *Wallet) setupEscrowMultisig() []txnbuild.Operation {
+func (w *Wallet) setupEscrowMultisig(sourceAccount hProtocol.Account) []txnbuild.Operation {
 	if len(w.signers) < 3 {
 		// not enough signers, don't add multisig
 		return nil
@@ -255,6 +249,7 @@ func (w *Wallet) setupEscrowMultisig() []txnbuild.Operation {
 	var operations []txnbuild.Operation
 	// add the signing options
 	addSignersOp := txnbuild.SetOptions{
+		SourceAccount:   &sourceAccount,
 		LowThreshold:    txnbuild.NewThreshold(0),
 		MediumThreshold: txnbuild.NewThreshold(txThreshold),
 		HighThreshold:   txnbuild.NewThreshold(txThreshold),
@@ -265,6 +260,7 @@ func (w *Wallet) setupEscrowMultisig() []txnbuild.Operation {
 	// add the signers
 	for _, signer := range w.signers {
 		addSignerOperation := txnbuild.SetOptions{
+			SourceAccount: &sourceAccount,
 			Signer: &txnbuild.Signer{
 				Address: signer,
 				Weight:  1,

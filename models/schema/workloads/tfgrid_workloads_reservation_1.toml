@@ -14,6 +14,7 @@ signatures_provision = (LO) !tfgrid.workloads.reservation.signing.signature.1
 signatures_farmer = (LO) !tfgrid.workloads.reservation.signing.signature.1
 signatures_delete = (LO) !tfgrid.workloads.reservation.signing.signature.1
 epoch = (T)
+metadata = (S)
 results = (LO) !tfgrid.workloads.reservation.result.1
 
 @url = tfgrid.workloads.reservation.data.1
