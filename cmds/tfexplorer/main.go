@@ -213,6 +213,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	r = handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowedHeaders([]string{"Content-Type"}),
+		handlers.ExposedHeaders([]string{"Pages"}),
 	)(r)
 
 	return &http.Server{
