@@ -370,25 +370,33 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 				return nil, err
 			}
 			obj.Content = data
+
 		case generated.WorkloadTypeSubDomain:
 			var data generated.GatewaySubdomain
 			if err := bson.Unmarshal(wl.Content, &data); err != nil {
 				return nil, err
 			}
 			obj.Content = data
+
 		case generated.WorkloadTypeProxy:
 			var data generated.GatewayProxy
 			if err := bson.Unmarshal(wl.Content, &data); err != nil {
 				return nil, err
 			}
 			obj.Content = data
+
 		case generated.WorkloadTypeReverseProxy:
 			var data generated.GatewayReserveProxy
 			if err := bson.Unmarshal(wl.Content, &data); err != nil {
 				return nil, err
 			}
 			obj.Content = data
-
+		case generated.WorkloadTypeGateway4To6:
+			var data generated.Gateway4To6
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
 		}
 
 		workloads = append(workloads, types.Workload{

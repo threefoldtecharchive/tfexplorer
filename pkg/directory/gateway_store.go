@@ -54,10 +54,10 @@ func (s *GatewayAPI) List(ctx context.Context, db *mongo.Database, q gatewayQuer
 }
 
 // Get a single gateway
-func (s *GatewayAPI) Get(ctx context.Context, db *mongo.Database, gwID string, includeProofs bool) (directory.Node, error) {
+func (s *GatewayAPI) Get(ctx context.Context, db *mongo.Database, gwID string) (directory.Gateway, error) {
 	var filter directory.GatewayFilter
 	filter = filter.WithGWID(gwID)
-	return filter.Get(ctx, db, includeProofs)
+	return filter.Get(ctx, db)
 }
 
 // Exists tests if node exists
@@ -74,7 +74,7 @@ func (s *GatewayAPI) Exists(ctx context.Context, db *mongo.Database, gwID string
 }
 
 // Count counts the number of document in the collection
-func (s *GatewayAPI) Count(ctx context.Context, db *mongo.Database, filter directory.NodeFilter) (int64, error) {
+func (s *GatewayAPI) Count(ctx context.Context, db *mongo.Database, filter directory.GatewayFilter) (int64, error) {
 	return filter.Count(ctx, db)
 }
 

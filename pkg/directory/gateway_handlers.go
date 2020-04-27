@@ -38,13 +38,13 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 
 func (s *GatewayAPI) gatewayDetail(r *http.Request) (interface{}, mw.Response) {
 	nodeID := mux.Vars(r)["node_id"]
-	q := nodeQuery{}
+	q := gatewayQuery{}
 	if err := q.Parse(r); err != nil {
 		return nil, err
 	}
 	db := mw.Database(r)
 
-	node, err := s.Get(r.Context(), db, nodeID, q.Proofs)
+	node, err := s.Get(r.Context(), db, nodeID)
 	if err != nil {
 		return nil, mw.NotFound(err)
 	}

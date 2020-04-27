@@ -93,7 +93,7 @@ func (f GatewayFilter) Find(ctx context.Context, db *mongo.Database, opts ...*op
 }
 
 // Get one farm that matches the filter
-func (f GatewayFilter) Get(ctx context.Context, db *mongo.Database, includeproofs bool) (node Node, err error) {
+func (f GatewayFilter) Get(ctx context.Context, db *mongo.Database) (gateway Gateway, err error) {
 	if f == nil {
 		f = GatewayFilter{}
 	}
@@ -107,7 +107,7 @@ func (f GatewayFilter) Get(ctx context.Context, db *mongo.Database, includeproof
 		return
 	}
 
-	err = result.Decode(&node)
+	err = result.Decode(&gateway)
 	return
 }
 
@@ -141,7 +141,7 @@ func GatewayCreate(ctx context.Context, db *mongo.Database, gw Gateway) (schema.
 	filter = filter.WithGWID(gw.NodeId)
 
 	var id schema.ID
-	current, err := filter.Get(ctx, db, false)
+	current, err := filter.Get(ctx, db)
 	if err != nil {
 		//TODO: check that this is a NOT FOUND error
 		id, err = models.NextID(ctx, db, GatewayCollection)
