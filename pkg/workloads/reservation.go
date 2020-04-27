@@ -101,6 +101,10 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	reservation.SignaturesFarmer = make([]generated.SigningSignature, 0)
 	reservation.Results = make([]generated.Result, 0)
 
+	if err := reservation.Validate(); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
 	reservation, err := a.pipeline(reservation, nil)
 	if err != nil {
 		// if failed to create pipeline, then
