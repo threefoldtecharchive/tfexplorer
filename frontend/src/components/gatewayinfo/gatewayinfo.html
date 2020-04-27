@@ -1,0 +1,98 @@
+<section class="gatewayinfo">
+  <v-col>
+    <div class="title">
+      <v-icon small left>fa-info-circle</v-icon>
+      Gateway Information
+    </div>
+    <v-container fluid>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">gateway ID </v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.id}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">gateway version</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.version}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Location</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.location.country}}, {{gateway.location.city}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Uptime</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.uptime}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Status</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.status.status}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Updated</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.updated}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Public key hex</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.publicKeyHex}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Managed Domains</v-flex>
+        <v-flex v-for="md in gateway.managedDomains" class="text-truncate font-weight-bold">
+          <span>{{md}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">Tcp Router Port</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.tcpRouterPort}}</span>
+        </v-flex>
+      </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">DNS Nameserver</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <span>{{gateway.dnsNameserver}}</span>
+        </v-flex>
+      </v-row>
+    </v-container>
+  </v-col>
+  <v-col>
+    <div class="title">
+      <v-icon small left>fa-chart-bar</v-icon>Provisioned workloads
+    </div>
+    <v-container fluid>
+      <v-row>
+        <v-col>
+          <v-row>
+            <v-col>Proxy:</v-col> <v-col><span class="font-weight-bold text-right">{{gateway.workloads.proxy}}</span></v-col>
+          </v-row>
+          <v-row>
+            <v-col>Reverse Proxy:</v-col> <v-col><span class="font-weight-bold text-right">{{gateway.workloads.reverse_proxy}}</span></v-col>
+          </v-row>
+        </v-col>
+        <v-col>
+          <v-row>
+            <v-col>Subdomain:</v-col> <v-col><span class="font-weight-bold text-right">{{gateway.workloads.subdomain}}</span></v-col>
+          </v-row>
+          <v-row>
+            <v-col>Delegate domain:</v-col> <v-col><span class="font-weight-bold text-right">{{gateway.workloads.delegate_domain}}</span></v-col>
+          </v-row>
+        </v-col>
+      </v-row>
+    </v-container>
+    </div>
+  </v-col>
+  </v-row>
+  </v-col>
+</section>

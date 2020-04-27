@@ -53,6 +53,14 @@ export default {
       }
     })
   },
+  getGateways (size, page) {
+    return axios.get(`${config.tfApiUrl}/gateways`, {
+      params: {
+        size,
+        page
+      }
+    })
+  },
   news () {
     return axios.get(`${config.tfApiUrl}/news`)
   },

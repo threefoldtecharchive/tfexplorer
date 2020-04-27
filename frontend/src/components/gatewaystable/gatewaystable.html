@@ -1,0 +1,68 @@
+
+<section class="gatewaystable">     
+    <v-card style="width: 100%; height: 100%;">
+        <v-card-title primary-title class="primary py-3 mb-5 white--text">
+            <v-icon small color="white" left>fas fa-network-wired</v-icon>
+          <p class="title">Gateways</p>
+          <v-spacer></v-spacer>
+
+        <v-text-field dark class="pt-0" v-model="searchgateways" append-icon="fa-search" label="Search" single-line hide-details>
+        </v-text-field>
+        <v-spacer></v-spacer>
+        
+        <v-tooltip top>
+          <template v-slot:activator="{ on }">
+            <v-switch v-on="on" inset color="white" v-model="showOffline" hide-details></v-switch>
+          </template>
+          <span>Show offline gateways</span>
+        </v-tooltip>
+
+        <v-tooltip top>
+          <template v-slot:activator="{ on }">
+            <v-btn icon  v-on="on" v-if="othersHidden" @click="showOthers"><v-icon small color="white" right>fas fa-compress-arrows-alt </v-icon></v-btn>
+            <v-btn icon  v-on="on" v-else @click="hideOthers"><v-icon small color="white" right>fas fa-expand</v-icon></v-btn>
+          </template>
+          <span>Full screen</span>
+        </v-tooltip>
+
+        </v-card-title>
+        <v-card-text>
+          <v-flex class="ml-3">
+            <v-layout column justify-space-around>
+              <v-data-table show-expand item-key="name" :search="searchgateways" :headers="headers" :items="parsedGateways" :items-per-page="10" single-expand :expanded.sync="expanded" @click:row="openGatewayDetails">
+
+                <template v-slot:item.version="{ item }">
+                  <v-tooltip top>
+                    <template v-slot:activator="{ on }">
+                      <span v-on="on">{{ truncateString(item.version) }}</span>
+                    </template>
+                    <span>{{ item.version }}</span>
+                  </v-tooltip>
+                </template>
+
+                <template v-slot:item.uptime="{ item }">
+                  <v-tooltip top>
+                    <template v-slot:activator="{ on }">
+                      <span v-on="on">{{ truncateString(item.uptime) }}</span>
+                    </template>
+                    <span>{{ item.uptime }}</span>
+                  </v-tooltip>
+                </template>
+
+                <template v-slot:item.status="{ item }">
+                  <p class="text-center mt-1 mb-0 ">
+                    <v-chip :color="item.status.color" dark>{{ item.status.status }}</v-chip>
+                  </p>
+                </template>
+
+                <template v-slot:expanded-item="{ headers, item }">
+                  <td :colspan="headers.length">
+                    <gatewayInfo :key="item.id" :gateway=item />
+                  </td>
+                </template>
+              </v-data-table>
+            </v-layout>
+          </v-flex>
+        </v-card-text>
+      </v-card>
+    </section>

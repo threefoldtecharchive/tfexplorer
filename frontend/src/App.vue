@@ -131,9 +131,10 @@ export default {
     // keep track when the user opened this app
     this.start = new Date()
 
+    const _this = this
     // refresh every 10 minutes
     this.refreshInterval = setInterval(function () {
-      this.refresh()
+      _this.refresh()
     }, 60000)
 
     // if user loses focus, clear the refreshing interval
@@ -159,7 +160,7 @@ export default {
         this.start = new Date()
         this.refresh()
         this.refreshInterval = setInterval(function () {
-          this.refresh()
+          _this.refresh()
         }, 60000)
       }
     }
