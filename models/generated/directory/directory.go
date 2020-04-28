@@ -228,6 +228,7 @@ func (e PriceCurrencyEnum) String() string {
 type Gateway struct {
 	ID             schema.ID      `bson:"_id" json:"id"`
 	NodeId         string         `bson:"node_id" json:"node_id"`
+	FarmId         int64          `bson:"farm_id" json:"farm_id"`
 	OsVersion      string         `bson:"os_version" json:"os_version"`
 	Created        schema.Date    `bson:"created" json:"created"`
 	Updated        schema.Date    `bson:"updated" json:"updated"`
@@ -239,4 +240,5 @@ type Gateway struct {
 	ManagedDomains []string       `bson:"managed_domains" json:"managed_domains"`
 	TcpRouterPort  int64          `bson:"tcp_router_port" json:"tcp_router_port"`
 	DnsNameserver  []string       `bson:"dns_nameserver" json:"dns_nameserver"`
+	FreeToUse      bool           `bson:"free_to_use" json:"free_to_use"`
 }
