@@ -144,6 +144,19 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
+	usedGateways := reservation.GatewayIDs()
+	for _, nodeID := range usedGateways {
+		node, err := directory.GatewayFilter{}.WithGWID(nodeID).Get(r.Context(), db)
+		if err != nil {
+			return nil, mw.Error(err, http.StatusInternalServerError)
+		}
+		if node.FreeToUse {
+			freeNodes++
+		} else {
+			paidNodes++
+		}
+	}
+
 	// don't allow mixed nodes
 	if freeNodes > 0 && paidNodes > 0 {
 		return nil, mw.Error(errors.New("reservation can only contain either free nodes or paid nodes, not both"), http.StatusBadRequest)
