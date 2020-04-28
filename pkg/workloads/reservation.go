@@ -422,6 +422,12 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 				return nil, err
 			}
 			obj.Content = data
+		case generated.WorkloadTypeQemu:
+			var data generated.Qemu
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
 		}
 
 		workloads = append(workloads, types.Workload{

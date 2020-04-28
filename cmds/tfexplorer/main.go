@@ -33,7 +33,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads"
-	_ "github.com/threefoldtech/tfexplorer/statik"
 	"github.com/threefoldtech/zos/pkg/app"
 	"github.com/threefoldtech/zos/pkg/version"
 )

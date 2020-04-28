@@ -1,0 +1,15 @@
+@url = tfgrid.workloads.reservation.qemu.1
+#unique id inside the reservation is an autoincrement
+workload_id = (I)
+#links to unique node on the TFGrid
+node_id = (S)
+ipaddress = (ipaddress)
+image = (S)
+
+@url = tfgrid.workloads.reservation.qemu.capacity.1
+# Number of vCPU
+cpu = (I)
+# memory in MiB
+memory = (I)
+# HDD in GB
+hdd = (I)

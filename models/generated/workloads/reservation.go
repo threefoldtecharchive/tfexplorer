@@ -63,6 +63,7 @@ type ReservationData struct {
 	Zdbs                    []ZDB                 `bson:"zdbs" json:"zdbs"`
 	Networks                []Network             `bson:"networks" json:"networks"`
 	Kubernetes              []K8S                 `bson:"kubernetes" json:"kubernetes"`
+	Qemus                   []Qemu                `bson:"qemu" json:"qemu"`
 	Proxies                 []GatewayProxy        `bson:"proxies" json:"proxies"`
 	ReserveProxy            []GatewayReserveProxy `bson:"reserve_proxies" json:"reserve_proxies"`
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
@@ -138,6 +139,7 @@ const (
 	WorkloadTypeSubDomain
 	WorkloadTypeDomainDelegate
 	WorkloadTypeGateway4To6
+	WorkloadTypeQemu
 )
 
 // WorkloadTypes is a map of all the supported workload type
@@ -152,6 +154,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeSubDomain:      "subdomain",
 	WorkloadTypeDomainDelegate: "domain-delegate",
 	WorkloadTypeGateway4To6:    "gateway4to6",
+	WorkloadTypeQemu:           "qemu",
 }
 
 func (e WorkloadTypeEnum) String() string {
