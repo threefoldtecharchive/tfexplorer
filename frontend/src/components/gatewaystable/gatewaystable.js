@@ -42,10 +42,15 @@ export default {
     parsedGateways: function () {
       const gatewayList = this.gateways ? this.gateways : this.registeredgateways
       const gateways = gatewayList.filter(gateway => this.showGateway(gateway)).map(gateway => {
+        const farm = find(this.registeredFarms, farmer => {
+          return farmer.id === gateway.farm_id
+        })
+
         return {
           uptime: moment.duration(gateway.uptime, 'seconds').format(),
           version: gateway.os_version,
           id: gateway.id,
+          farm_name: farm ? farm.name : gateway.farm_id,
           farm_id: gateway.farm_id,
           node_id: gateway.node_id,
           workloads: gateway.workloads,
