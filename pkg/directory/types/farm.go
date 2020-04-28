@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/tfexplorer/config"
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
@@ -57,7 +58,9 @@ func (f *Farm) Validate() error {
 
 			found = true
 			if err := validator.Valid(a.Address); err != nil {
-				return err
+				// log the internal error, then return a nice user facing error
+				log.Debug().Err(err).Msg("address validation error")
+				return fmt.Errorf("invalid wallet address. Please make sure you provide a valid stellar address, with a trustline for your chosen asset %s", a.Asset)
 			}
 		}
 
