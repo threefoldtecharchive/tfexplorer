@@ -55,7 +55,7 @@
       </v-row>
       <v-row>
         <v-flex xs3 class="text-left pr-2">Managed Domains</v-flex>
-        <v-flex v-for="md in gateway.managedDomains" class="text-truncate font-weight-bold">
+        <v-flex :key="gateway.id" v-for="md in gateway.managedDomains" class="text-truncate font-weight-bold">
           <span>{{md}}</span>
         </v-flex>
       </v-row>
@@ -68,7 +68,9 @@
       <v-row>
         <v-flex xs3 class="text-left pr-2">DNS Nameserver</v-flex>
         <v-flex class="text-truncate font-weight-bold">
-          <span>{{gateway.dnsNameserver}}</span>
+          <v-flex :key="gateway.id" v-for="dns in gateway.dnsNameServer" class="text-truncate font-weight-bold">
+            <span>{{dns}}</span>
+          </v-flex>
         </v-flex>
       </v-row>
     </v-container>

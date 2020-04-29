@@ -29,7 +29,7 @@
         <v-card-text>
           <v-flex class="ml-3">
             <v-layout column justify-space-around>
-              <v-data-table show-expand item-key="name" :search="searchgateways" :headers="headers" :items="parsedGateways" :items-per-page="10" single-expand :expanded.sync="expanded" @click:row="openGatewayDetails">
+              <v-data-table show-expand item-key="id" :search="searchgateways" :headers="headers" :items="parsedGateways" :items-per-page="10" single-expand :expanded.sync="expanded" @click:row="openGatewayDetails">
 
                 <template v-slot:item.version="{ item }">
                   <v-tooltip top>
