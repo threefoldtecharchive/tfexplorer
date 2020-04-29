@@ -458,6 +458,12 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	// store last reservation ID
+	lastID, err := types.ReservationLastID(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
 	filter := types.ReservationFilter{}.WithIDGE(from)
 	filter = filter.WithNodeID(nodeID)
 
@@ -496,6 +502,10 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		if len(workloads) >= maxPageSize {
 			break
 		}
+	}
+
+	if len(workloads) == 0 {
+		workloads = append(workloads, types.NOOPWorkload(nodeID, lastID))
 	}
 
 	return workloads, nil

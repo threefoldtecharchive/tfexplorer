@@ -560,6 +560,11 @@ func ReservationCreate(ctx context.Context, db *mongo.Database, r Reservation) (
 	return id, nil
 }
 
+// ReservationLastID get the current last ID number in the reservations collection
+func ReservationLastID(ctx context.Context, db *mongo.Database) (schema.ID, error) {
+	return models.LastID(ctx, db, ReservationCollection)
+}
+
 // ReservationSetNextAction update the reservation next action in db
 func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action generated.NextActionEnum) error {
 	var filter ReservationFilter
@@ -712,4 +717,16 @@ func ResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result Re
 	})
 
 	return err
+}
+
+// NOOPWorkload creates a noop workload
+func NOOPWorkload(nodeID string, id schema.ID) Workload {
+	return Workload{
+		NodeID: nodeID,
+		ReservationWorkload: generated.ReservationWorkload{
+			WorkloadId: fmt.Sprintf("%d-0", id),
+			Type:       generated.WorkloadTypeNOOP,
+			Created:    schema.Date{Time: time.Now()},
+		},
+	}
 }

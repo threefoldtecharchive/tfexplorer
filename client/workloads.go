@@ -131,6 +131,8 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 			return result, err
 		}
 		result.Content = o
+	case workloads.WorkloadTypeNOOP:
+		//do nothing so result.Content will be nil
 	default:
 		return result, fmt.Errorf("unknown workload type")
 	}

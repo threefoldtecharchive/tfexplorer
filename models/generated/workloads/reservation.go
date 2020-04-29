@@ -138,6 +138,9 @@ const (
 	WorkloadTypeSubDomain
 	WorkloadTypeDomainDelegate
 	WorkloadTypeGateway4To6
+	// WorkloadTypeNOOP a NOOP reservation is a reservation that does nothing
+	// but used mainly to tell the node about the next poll cursor
+	WorkloadTypeNOOP
 )
 
 // WorkloadTypes is a map of all the supported workload type
@@ -152,6 +155,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeSubDomain:      "subdomain",
 	WorkloadTypeDomainDelegate: "domain-delegate",
 	WorkloadTypeGateway4To6:    "gateway4to6",
+	WorkloadTypeNOOP:           "noop",
 }
 
 func (e WorkloadTypeEnum) String() string {
