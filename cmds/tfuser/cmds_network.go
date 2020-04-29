@@ -53,8 +53,8 @@ func cmdCreateNetwork(c *cli.Context) error {
 		errors.Wrap(err, "invalid ip range")
 	}
 
-	networkBuilder := builders.NewNetworkBuilder(name)
-	networkBuilder.WithIPRange(schema.IPRange{IPNet: ipnet.IPNet}).WithNetworkResources([]workloads.NetworkNetResource{})
+	networkBuilder := builders.NewNetworkBuilder(name, schema.IPRange{IPNet: ipnet.IPNet})
+	networkBuilder.WithNetworkResources([]workloads.NetworkNetResource{})
 
 	return writeWorkload(c.GlobalString("schema"), networkBuilder.Build())
 }

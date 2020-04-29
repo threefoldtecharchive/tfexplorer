@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -17,11 +16,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg"
 	"github.com/threefoldtech/zos/pkg/crypto"
-)
-
-var (
-	day             = time.Hour * 24
-	defaultDuration = day * 30
 )
 
 // ReservationBuilder is a struct that can build reservations
@@ -147,25 +141,11 @@ func (r *ReservationBuilder) WithDryRun(dryRun bool) *ReservationBuilder {
 }
 
 // WithDuration sets the duration to the reservation
-func (r *ReservationBuilder) WithDuration(duration string) (*ReservationBuilder, error) {
-	if duration == "" {
-		timein := time.Now().Local().Add(defaultDuration)
-		r.Reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
-		return r, nil
-	}
-	d, err := time.ParseDuration(duration)
-	if err != nil {
-		nrDays, err := strconv.Atoi(duration)
-		if err != nil {
-			return r, errors.Wrap(err, "unsupported duration format")
-		}
-		d = time.Duration(nrDays) * day
-	}
-	timein := time.Now().Local().Add(d)
+func (r *ReservationBuilder) WithDuration(duration time.Duration) *ReservationBuilder {
+	timein := time.Now().Local().Add(duration)
 	r.Reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
 	r.Reservation.DataReservation.ExpirationProvisioning = schema.Date{Time: timein}
-
-	return r, nil
+	return r
 }
 
 // WithAssets sets the assets to the reservation

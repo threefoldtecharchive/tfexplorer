@@ -13,11 +13,11 @@ type ZdbBuilder struct {
 }
 
 // NewZdbBuilder creates a new zdb builder and initializes some default values
-func NewZdbBuilder(nodeID string, size int64, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZdbBuilder {
+func NewZdbBuilder(nodeID string, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZdbBuilder {
 	return &ZdbBuilder{
 		ZDB: workloads.ZDB{
 			NodeId:   nodeID,
-			Size:     size,
+			Size:     1,
 			Mode:     mode,
 			DiskType: diskType,
 		},

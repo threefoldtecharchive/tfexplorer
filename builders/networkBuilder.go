@@ -58,10 +58,11 @@ type AccessPoint struct {
 }
 
 // NewNetworkBuilder creates a new network builder
-func NewNetworkBuilder(name string) *NetworkBuilder {
+func NewNetworkBuilder(name string, iprange schema.IPRange) *NetworkBuilder {
 	return &NetworkBuilder{
 		Network: workloads.Network{
-			Name: name,
+			Name:    name,
+			Iprange: iprange,
 		},
 	}
 }

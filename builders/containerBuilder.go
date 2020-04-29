@@ -14,10 +14,17 @@ type ContainerBuilder struct {
 }
 
 // NewContainerBuilder creates a new container builder
-func NewContainerBuilder(nodeID string) *ContainerBuilder {
+func NewContainerBuilder(nodeID, flist, flistStorage string, networkConnection []workloads.NetworkConnection) *ContainerBuilder {
 	return &ContainerBuilder{
 		Container: workloads.Container{
-			NodeId: nodeID,
+			NodeId:            nodeID,
+			Flist:             flist,
+			HubUrl:            flistStorage,
+			NetworkConnection: networkConnection,
+			Capacity: workloads.ContainerCapacity{
+				Cpu:    1,
+				Memory: 512,
+			},
 		},
 	}
 }

@@ -62,7 +62,7 @@ func TestBuildNetwork(t *testing.T) {
 	require.NoError(t, err)
 	assert := assert.New(t)
 
-	networkBuilder := NewNetworkBuilder("test")
+	networkBuilder := NewNetworkBuilder("test", network.Iprange)
 
 	networkBuilder.WithIPRange(network.Iprange).WithNetworkResources(network.NetworkResources)
 

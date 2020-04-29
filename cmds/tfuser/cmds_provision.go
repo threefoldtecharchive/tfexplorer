@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
@@ -12,6 +14,11 @@ import (
 	"github.com/threefoldtech/zos/pkg/provision"
 
 	"github.com/urfave/cli"
+)
+
+var (
+	day             = time.Hour * 24
+	defaultDuration = day * 30
 )
 
 func cmdsProvision(c *cli.Context) error {
@@ -95,12 +102,21 @@ func cmdsProvision(c *cli.Context) error {
 		reservationBuilder.AddNetwork(*networkBuilder)
 	}
 
-	_, err = reservationBuilder.WithDuration(d)
-	if err != nil {
-		return errors.Wrap(err, "failed to set the reservation builder duration")
+	var duration time.Duration
+	if d == "" {
+		duration = defaultDuration
 	}
 
-	reservationBuilder.WithDryRun(dryRun).WithSeedPath(seedPath).WithAssets(assets)
+	duration, err = time.ParseDuration(d)
+	if err != nil {
+		nrDays, err := strconv.Atoi(d)
+		if err != nil {
+			return errors.Wrap(err, "unsupported duration format")
+		}
+		duration = time.Duration(nrDays) * day
+	}
+
+	reservationBuilder.WithDuration(duration).WithDryRun(dryRun).WithSeedPath(seedPath).WithAssets(assets)
 
 	response, err := reservationBuilder.Deploy()
 	if err != nil {
