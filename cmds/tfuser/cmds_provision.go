@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/builders"
-	"github.com/threefoldtech/zos/pkg/provision"
 
 	"github.com/urfave/cli"
 )
@@ -105,15 +103,15 @@ func cmdsProvision(c *cli.Context) error {
 	var duration time.Duration
 	if d == "" {
 		duration = defaultDuration
-	}
-
-	duration, err = time.ParseDuration(d)
-	if err != nil {
-		nrDays, err := strconv.Atoi(d)
+	} else {
+		duration, err = time.ParseDuration(d)
 		if err != nil {
-			return errors.Wrap(err, "unsupported duration format")
+			nrDays, err := strconv.Atoi(d)
+			if err != nil {
+				return errors.Wrap(err, "unsupported duration format")
+			}
+			duration = time.Duration(nrDays) * day
 		}
-		duration = time.Duration(nrDays) * day
 	}
 
 	reservationBuilder.WithDuration(duration).WithDryRun(dryRun).WithSeedPath(seedPath).WithAssets(assets)
@@ -149,20 +147,6 @@ func cmdsProvision(c *cli.Context) error {
 func formatCurrency(amount xdr.Int64) string {
 	currency := big.NewRat(int64(amount), 1e7)
 	return currency.FloatString(7)
-}
-
-func embed(schema interface{}, t provision.ReservationType, node string) (*provision.Reservation, error) {
-	raw, err := json.Marshal(schema)
-	if err != nil {
-		return nil, err
-	}
-	r := &provision.Reservation{
-		NodeID: node,
-		Type:   t,
-		Data:   raw,
-	}
-
-	return r, nil
 }
 
 func cmdsDeleteReservation(c *cli.Context) error {
