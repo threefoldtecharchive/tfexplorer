@@ -1,4 +1,4 @@
-package builders
+package provision
 
 import (
 	"encoding/json"
@@ -50,7 +50,7 @@ func (r *ReservationClient) Deploy(reservation workloads.Reservation, currencies
 	return response, nil
 }
 
-// DryRun will return the reservation to deploy as JSOM
+// DryRun will return the reservation to deploy as JSON
 func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies []string) ([]byte, error) {
 	userID := int64(r.userID.ThreebotID)
 	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
@@ -59,9 +59,6 @@ func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies
 	}
 
 	reservation.CustomerTid = userID
-	// we always allow user to delete his own reservations
-	reservation.DataReservation.SigningRequestDelete.QuorumMin = 1
-	reservation.DataReservation.SigningRequestDelete.Signers = []int64{userID}
 
 	// set allowed the currencies as provided by the user
 	reservation.DataReservation.Currencies = currencies

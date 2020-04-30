@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/tfexplorer/builders"
+	"github.com/threefoldtech/tfexplorer/provision/builders"
 	"github.com/threefoldtech/zos/pkg"
 	"github.com/threefoldtech/zos/pkg/crypto"
 	"github.com/urfave/cli"

@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
-	"github.com/threefoldtech/tfexplorer/builders"
-
+	"github.com/threefoldtech/tfexplorer/provision"
+	"github.com/threefoldtech/tfexplorer/provision/builders"
 	"github.com/urfave/cli"
 )
 
@@ -114,9 +114,12 @@ func cmdsProvision(c *cli.Context) error {
 		}
 	}
 
-	reservationBuilder.WithDuration(duration)
+	reservationBuilder.
+		WithDuration(duration).
+		WithSigningRequestDeleteQuorumMin(1).
+		WithSigningRequestDeleteSigners([]int64{int64(mainui.ThreebotID)})
 
-	reservationClient := builders.NewReservationClient(bcdb, mainui)
+	reservationClient := provision.NewReservationClient(bcdb, mainui)
 	if dryRun {
 		res, err := reservationClient.DryRun(reservationBuilder.Build(), assets)
 		if err != nil {
@@ -161,6 +164,6 @@ func formatCurrency(amount xdr.Int64) string {
 }
 
 func cmdsDeleteReservation(c *cli.Context) error {
-	reservationClient := builders.NewReservationClient(bcdb, mainui)
+	reservationClient := provision.NewReservationClient(bcdb, mainui)
 	return reservationClient.DeleteReservation(c.Int64("reservation"))
 }

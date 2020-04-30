@@ -57,7 +57,24 @@ func (r *ReservationBuilder) Build() workloads.Reservation {
 func (r *ReservationBuilder) WithDuration(duration time.Duration) *ReservationBuilder {
 	timein := time.Now().Local().Add(duration)
 	r.reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
-	r.reservation.DataReservation.ExpirationProvisioning = schema.Date{Time: timein}
+	return r
+}
+
+// WithExpirationProvisioning sets the expiration of the provisioning
+func (r *ReservationBuilder) WithExpirationProvisioning(expiration schema.Date) *ReservationBuilder {
+	r.reservation.DataReservation.ExpirationProvisioning = expiration
+	return r
+}
+
+// WithSigningRequestDeleteQuorumMin sets the signing request delete quorum minimum
+func (r *ReservationBuilder) WithSigningRequestDeleteQuorumMin(quorumMin int64) *ReservationBuilder {
+	r.reservation.DataReservation.SigningRequestProvision.QuorumMin = quorumMin
+	return r
+}
+
+// WithSigningRequestDeleteSigners sets the signing request delete signers
+func (r *ReservationBuilder) WithSigningRequestDeleteSigners(signerIDs []int64) *ReservationBuilder {
+	r.reservation.DataReservation.SigningRequestProvision.Signers = signerIDs
 	return r
 }
 

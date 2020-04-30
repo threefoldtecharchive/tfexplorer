@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/threefoldtech/tfexplorer/builders"
+	"github.com/threefoldtech/tfexplorer/provision/builders"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/network/types"
 
