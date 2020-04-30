@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -115,8 +116,18 @@ func cmdsProvision(c *cli.Context) error {
 
 	reservationBuilder.WithDuration(duration)
 
-	reservationClient := builders.NewReservationClient(bcdb, mainui, dryRun, assets)
-	response, err := reservationClient.Deploy()
+	reservationClient := builders.NewReservationClient(bcdb, mainui)
+	if dryRun {
+		res, err := reservationClient.DryRun(reservationBuilder.Build(), assets)
+		if err != nil {
+			return errors.Wrap(err, "failed to deploy reservation")
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(res)
+	}
+
+	response, err := reservationClient.Deploy(reservationBuilder.Build(), assets)
 	if err != nil {
 		return errors.Wrap(err, "failed to deploy reservation")
 	}
@@ -150,6 +161,6 @@ func formatCurrency(amount xdr.Int64) string {
 }
 
 func cmdsDeleteReservation(c *cli.Context) error {
-	reservationClient := builders.NewReservationClient(bcdb, mainui, false, nil)
+	reservationClient := builders.NewReservationClient(bcdb, mainui)
 	return reservationClient.DeleteReservation(c.Int64("reservation"))
 }

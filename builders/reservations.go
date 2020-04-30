@@ -3,7 +3,6 @@ package builders
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer"
@@ -15,64 +14,77 @@ import (
 
 // ReservationClient is a client to deploy and delete reservations
 type ReservationClient struct {
-	reservation workloads.Reservation
-	explorer    *client.Client
-	userID      *tfexplorer.UserIdentity
-	dryRun      bool
-	currencies  []string
+	explorer *client.Client
+	userID   *tfexplorer.UserIdentity
 }
 
 // NewReservationClient creates a new reservation client
-func NewReservationClient(explorer *client.Client, userID *tfexplorer.UserIdentity, dryRun bool, currencies []string) *ReservationClient {
+func NewReservationClient(explorer *client.Client, userID *tfexplorer.UserIdentity) *ReservationClient {
 	return &ReservationClient{
-		explorer:   explorer,
-		userID:     userID,
-		dryRun:     dryRun,
-		currencies: currencies,
+		explorer: explorer,
+		userID:   userID,
 	}
 }
 
 // Deploy deploys the reservation
-func (r *ReservationClient) Deploy() (wrklds.ReservationCreateResponse, error) {
-	userID := int64(r.userID.ThreebotID)
-	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
+func (r *ReservationClient) Deploy(reservation workloads.Reservation, currencies []string) (wrklds.ReservationCreateResponse, error) {
+	res, err := r.DryRun(reservation, currencies)
 	if err != nil {
-		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "could not load signer")
+		return wrklds.ReservationCreateResponse{}, nil
 	}
 
-	r.reservation.CustomerTid = userID
-	// we always allow user to delete his own reservations
-	r.reservation.DataReservation.SigningRequestDelete.QuorumMin = 1
-	r.reservation.DataReservation.SigningRequestDelete.Signers = []int64{userID}
+	var reservationToCreate workloads.Reservation
 
-	// set allowed the currencies as provided by the user
-	r.reservation.DataReservation.Currencies = r.currencies
-
-	bytes, err := json.Marshal(r.reservation.DataReservation)
+	err = json.Unmarshal(res, &reservationToCreate)
 	if err != nil {
-		return wrklds.ReservationCreateResponse{}, err
+		return wrklds.ReservationCreateResponse{}, nil
 	}
 
-	r.reservation.Json = string(bytes)
-	_, signature, err := signer.SignHex(r.reservation.Json)
-	if err != nil {
-		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to sign the reservation")
-	}
+	fmt.Printf("%+v", reservationToCreate)
 
-	r.reservation.CustomerSignature = signature
-
-	if r.dryRun {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		return wrklds.ReservationCreateResponse{}, enc.Encode(r.reservation)
-	}
-
-	response, err := r.explorer.Workloads.Create(r.reservation)
+	response, err := r.explorer.Workloads.Create(reservationToCreate)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send reservation")
 	}
 
 	return response, nil
+}
+
+// DryRun will return the reservation to deploy as JSOM
+func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies []string) ([]byte, error) {
+	userID := int64(r.userID.ThreebotID)
+	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
+	if err != nil {
+		return nil, errors.Wrap(err, "could not load signer")
+	}
+
+	reservation.CustomerTid = userID
+	// we always allow user to delete his own reservations
+	reservation.DataReservation.SigningRequestDelete.QuorumMin = 1
+	reservation.DataReservation.SigningRequestDelete.Signers = []int64{userID}
+
+	// set allowed the currencies as provided by the user
+	reservation.DataReservation.Currencies = currencies
+
+	bytes, err := json.Marshal(reservation.DataReservation)
+	if err != nil {
+		return nil, err
+	}
+
+	reservation.Json = string(bytes)
+	_, signature, err := signer.SignHex(reservation.Json)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to sign the reservation")
+	}
+
+	reservation.CustomerSignature = signature
+
+	res, err := json.Marshal(reservation)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal reservaiton")
+	}
+
+	return res, nil
 }
 
 // DeleteReservation deletes a reservation by id
