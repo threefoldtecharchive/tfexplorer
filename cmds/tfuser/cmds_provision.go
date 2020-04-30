@@ -32,7 +32,7 @@ func cmdsProvision(c *cli.Context) error {
 		err        error
 	)
 
-	reservationBuilder := builders.NewReservationBuilder(bcdb, mainui)
+	reservationBuilder := builders.NewReservationBuilder()
 
 	for _, vol := range volumes {
 		f, err := os.Open(vol)
@@ -113,9 +113,10 @@ func cmdsProvision(c *cli.Context) error {
 		}
 	}
 
-	reservationBuilder.WithDuration(duration).WithDryRun(dryRun).WithCurrencies(assets)
+	reservationBuilder.WithDuration(duration)
 
-	response, err := reservationBuilder.Deploy()
+	reservationClient := builders.NewReservationClient(bcdb, mainui, dryRun, assets)
+	response, err := reservationClient.Deploy()
 	if err != nil {
 		return errors.Wrap(err, "failed to deploy reservation")
 	}
@@ -149,6 +150,6 @@ func formatCurrency(amount xdr.Int64) string {
 }
 
 func cmdsDeleteReservation(c *cli.Context) error {
-	reservationBuilder := builders.NewReservationBuilder(bcdb, mainui)
-	return reservationBuilder.DeleteReservation(c.Int64("reservation"))
+	reservationClient := builders.NewReservationClient(bcdb, mainui, false, nil)
+	return reservationClient.DeleteReservation(c.Int64("reservation"))
 }
