@@ -341,7 +341,8 @@ func (e *Stellar) processReservation(reservation workloads.Reservation, offeredC
 		return customerInfo, ErrNoCurrencyShared
 	}
 
-	res, err := e.calculateReservationCost(rsuPerFarmer)
+	duration := time.Until(reservation.DataReservation.ExpirationProvisioning.Time)
+	res, err := e.calculateReservationCost(rsuPerFarmer, duration)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to process reservation resources costs")
 	}
