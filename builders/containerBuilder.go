@@ -2,6 +2,7 @@ package builders
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -14,13 +15,13 @@ type ContainerBuilder struct {
 }
 
 // NewContainerBuilder creates a new container builder
-func NewContainerBuilder(nodeID, flist, flistStorage string, networkConnection []workloads.NetworkConnection) *ContainerBuilder {
+func NewContainerBuilder(nodeID, flist string, network []workloads.NetworkConnection) *ContainerBuilder {
 	return &ContainerBuilder{
 		Container: workloads.Container{
 			NodeId:            nodeID,
 			Flist:             flist,
-			HubUrl:            flistStorage,
-			NetworkConnection: networkConnection,
+			HubUrl:            "zdb://hub.grid.tf:9900",
+			NetworkConnection: network,
 			Capacity: workloads.ContainerCapacity{
 				Cpu:    1,
 				Memory: 512,
@@ -52,7 +53,9 @@ func (c *ContainerBuilder) Save(writer io.Writer) error {
 
 // Build validates and encrypts the secret environment of the container
 func (c *ContainerBuilder) Build() (workloads.Container, error) {
-	// TODO check validity fields
+	if c.Container.Flist == "" {
+		return workloads.Container{}, fmt.Errorf("flist cannot be an empty string")
+	}
 
 	if c.Container.SecretEnvironment == nil {
 		c.Container.SecretEnvironment = make(map[string]string)
@@ -120,12 +123,6 @@ func (c *ContainerBuilder) WithEntrypoint(entrypoint string) *ContainerBuilder {
 // WithVolumes sets the volumes to the container
 func (c *ContainerBuilder) WithVolumes(mounts []workloads.ContainerMount) *ContainerBuilder {
 	c.Container.Volumes = mounts
-	return c
-}
-
-// WithConnection sets the conntections to the container
-func (c *ContainerBuilder) WithConnection(connections []workloads.NetworkConnection) *ContainerBuilder {
-	c.Container.NetworkConnection = connections
 	return c
 }
 

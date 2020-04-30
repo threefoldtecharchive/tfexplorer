@@ -45,7 +45,7 @@ func generateZDB(c *cli.Context) error {
 		zdbDiskType = workloads.DiskTypeSSD
 	}
 
-	zdbBuilder := builders.NewZdbBuilder(c.String("node"), zdbMode, zdbDiskType)
+	zdbBuilder := builders.NewZdbBuilder(c.String("node"), size, zdbMode, zdbDiskType)
 	zdbBuilder.WithSize(size)
 	zdbBuilder.WithPassword(password).WithPublic(public)
 

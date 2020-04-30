@@ -14,14 +14,14 @@ type K8sBuilder struct {
 }
 
 // NewK8sBuilder creates a new K8S builder
-func NewK8sBuilder(nodeID, networkID, secret string, IP net.IP) *K8sBuilder {
+func NewK8sBuilder(nodeID, networkID, secret string, size int64, IP net.IP) *K8sBuilder {
 	return &K8sBuilder{
 		K8S: workloads.K8S{
 			NodeId:        nodeID,
 			NetworkId:     networkID,
 			Ipaddress:     IP,
 			ClusterSecret: secret,
-			Size:          1,
+			Size:          size,
 		},
 	}
 }

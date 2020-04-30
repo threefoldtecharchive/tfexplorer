@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/threefoldtech/tfexplorer/builders"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/network/types"
 
@@ -53,8 +52,7 @@ func cmdCreateNetwork(c *cli.Context) error {
 		errors.Wrap(err, "invalid ip range")
 	}
 
-	networkBuilder := builders.NewNetworkBuilder(name, schema.IPRange{IPNet: ipnet.IPNet})
-	networkBuilder.WithNetworkResources([]workloads.NetworkNetResource{})
+	networkBuilder := builders.NewNetworkBuilder(name, schema.IPRange{IPNet: ipnet.IPNet}, bcdb)
 
 	return writeWorkload(c.GlobalString("schema"), networkBuilder.Build())
 }
@@ -72,15 +70,25 @@ func cmdsAddNode(c *cli.Context) error {
 
 	network, err := builders.LoadNetwork(schema)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to load network schema")
 	}
 
-	return network.AddNode(schema, nodeID, subnet, port, forceHidden)
+	network, err = network.AddNode(nodeID, subnet, port, forceHidden)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add a node to the network %s", network.Name)
+	}
+
+	f, err := os.Open(schema)
+	if err != nil {
+		return errors.Wrap(err, "failed to open networks schema")
+	}
+
+	return network.Save(f)
 }
 
 func cmdsAddAccess(c *cli.Context) error {
 	var (
-		schema = c.GlobalString("schema")
+		networkSchema = c.GlobalString("schema")
 
 		nodeID   = c.String("node")
 		subnet   = c.String("subnet")
@@ -89,19 +97,36 @@ func cmdsAddAccess(c *cli.Context) error {
 		ip4 = c.Bool("ip4")
 	)
 
-	network, err := builders.LoadNetwork(schema)
+	network, err := builders.LoadNetwork(networkSchema)
 	if err != nil {
 		return err
 	}
 
-	wgSchema, err := network.AddAccess(schema, nodeID, subnet, wgPubKey, ip4)
+	if nodeID == "" {
+		return fmt.Errorf("nodeID cannot be empty")
+	}
+	if subnet == "" {
+		return fmt.Errorf("subnet cannot be empty")
+	}
+
+	ipnet, err := types.ParseIPNet(subnet)
+	if err != nil {
+		return errors.Wrap(err, "invalid subnet")
+	}
+
+	network, wgSchema, err := network.AddAccess(nodeID, schema.IPRange{ipnet.IPNet}, wgPubKey, ip4)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println(wgSchema)
 
-	return nil
+	f, err := os.Open(networkSchema)
+	if err != nil {
+		return errors.Wrap(err, "failed to open networks schema")
+	}
+
+	return network.Save(f)
 }
 
 func cmdsRemoveNode(c *cli.Context) error {

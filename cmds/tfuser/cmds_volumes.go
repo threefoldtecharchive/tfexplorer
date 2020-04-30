@@ -29,7 +29,7 @@ func generateVolume(c *cli.Context) error {
 		volumeType = workloads.VolumeTypeEnum(workloads.VolumeTypeHDD)
 	}
 
-	volumeBuilder := builders.NewVolumeBuilder(c.String("node"), volumeType)
+	volumeBuilder := builders.NewVolumeBuilder(c.String("node"), s, volumeType)
 	volumeBuilder.WithSize(s)
 	return writeWorkload(c.GlobalString("output"), volumeBuilder.Build())
 }

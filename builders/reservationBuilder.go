@@ -20,39 +20,41 @@ import (
 
 // ReservationBuilder is a struct that can build reservations
 type ReservationBuilder struct {
-	Reservation workloads.Reservation
-	Bcdb        *client.Client
-	Mainui      *tfexplorer.UserIdentity
-	assets      []string
-	seedPath    string
+	reservation workloads.Reservation
+	explorer    *client.Client
+	userID      *tfexplorer.UserIdentity
+	currencies  []string
 	dryRun      bool
 }
 
 // NewReservationBuilder creates a new ReservationBuilder
-func NewReservationBuilder(bcdb *client.Client, mainui *tfexplorer.UserIdentity) *ReservationBuilder {
+func NewReservationBuilder(explorer *client.Client, userID *tfexplorer.UserIdentity) *ReservationBuilder {
 	reservation := workloads.Reservation{}
-	reservation.Epoch = schema.Date{Time: time.Now()}
 	return &ReservationBuilder{
-		Reservation: reservation,
-		Bcdb:        bcdb,
-		Mainui:      mainui,
+		reservation: reservation,
+		explorer:    explorer,
+		userID:      userID,
 	}
 }
 
 // LoadReservationBuilder loads a reservation builder based on a file path
-func LoadReservationBuilder(reader io.Reader) (*ReservationBuilder, error) {
+func LoadReservationBuilder(reader io.Reader, explorer *client.Client, userID *tfexplorer.UserIdentity) (*ReservationBuilder, error) {
 	reservation := workloads.Reservation{}
 	err := json.NewDecoder(reader).Decode(&reservation)
 	if err != nil {
 		return &ReservationBuilder{}, err
 	}
 
-	return &ReservationBuilder{Reservation: reservation}, nil
+	return &ReservationBuilder{
+		reservation: reservation,
+		explorer:    explorer,
+		userID:      userID,
+	}, nil
 }
 
 // Save saves the reservation builder to an IO.Writer
 func (r *ReservationBuilder) Save(writer io.Writer) error {
-	err := json.NewEncoder(writer).Encode(r.Reservation)
+	err := json.NewEncoder(writer).Encode(r.reservation)
 	if err != nil {
 		return err
 	}
@@ -61,45 +63,46 @@ func (r *ReservationBuilder) Save(writer io.Writer) error {
 
 // Build returns the reservation
 func (r *ReservationBuilder) Build() workloads.Reservation {
-	return r.Reservation
+	r.reservation.Epoch = schema.Date{Time: time.Now()}
+	return r.reservation
 }
 
 // Deploy deploys the reservation
 func (r *ReservationBuilder) Deploy() (wrklds.ReservationCreateResponse, error) {
-	userID := int64(r.Mainui.ThreebotID)
-	signer, err := client.NewSigner(r.Mainui.Key().PrivateKey.Seed())
+	userID := int64(r.userID.ThreebotID)
+	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
 	if err != nil {
-		return wrklds.ReservationCreateResponse{}, errors.Wrapf(err, "could not find seed file at %s", r.seedPath)
+		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "could not load signer")
 	}
 
-	r.Reservation.CustomerTid = userID
+	r.reservation.CustomerTid = userID
 	// we always allow user to delete his own reservations
-	r.Reservation.DataReservation.SigningRequestDelete.QuorumMin = 1
-	r.Reservation.DataReservation.SigningRequestDelete.Signers = []int64{userID}
+	r.reservation.DataReservation.SigningRequestDelete.QuorumMin = 1
+	r.reservation.DataReservation.SigningRequestDelete.Signers = []int64{userID}
 
 	// set allowed the currencies as provided by the user
-	r.Reservation.DataReservation.Currencies = r.assets
+	r.reservation.DataReservation.Currencies = r.currencies
 
-	bytes, err := json.Marshal(r.Reservation.DataReservation)
+	bytes, err := json.Marshal(r.reservation.DataReservation)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, err
 	}
 
-	r.Reservation.Json = string(bytes)
-	_, signature, err := signer.SignHex(r.Reservation.Json)
+	r.reservation.Json = string(bytes)
+	_, signature, err := signer.SignHex(r.reservation.Json)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to sign the reservation")
 	}
 
-	r.Reservation.CustomerSignature = signature
+	r.reservation.CustomerSignature = signature
 
 	if r.dryRun {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		return wrklds.ReservationCreateResponse{}, enc.Encode(r.Reservation)
+		return wrklds.ReservationCreateResponse{}, enc.Encode(r.reservation)
 	}
 
-	response, err := r.Bcdb.Workloads.Create(r.Reservation)
+	response, err := r.explorer.Workloads.Create(r.reservation)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send reservation")
 	}
@@ -109,14 +112,14 @@ func (r *ReservationBuilder) Deploy() (wrklds.ReservationCreateResponse, error) 
 
 // DeleteReservation deletes a reservation by id
 func (r *ReservationBuilder) DeleteReservation(resID int64) error {
-	userID := int64(r.Mainui.ThreebotID)
+	userID := int64(r.userID.ThreebotID)
 
-	reservation, err := r.Bcdb.Workloads.Get(schema.ID(resID))
+	reservation, err := r.explorer.Workloads.Get(schema.ID(resID))
 	if err != nil {
 		return errors.Wrap(err, "failed to get reservation info")
 	}
 
-	signer, err := client.NewSigner(r.Mainui.Key().PrivateKey.Seed())
+	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
 	if err != nil {
 		return errors.Wrapf(err, "failed to load signer")
 	}
@@ -126,7 +129,7 @@ func (r *ReservationBuilder) DeleteReservation(resID int64) error {
 		return errors.Wrap(err, "failed to sign the reservation")
 	}
 
-	if err := r.Bcdb.Workloads.SignDelete(schema.ID(resID), schema.ID(userID), signature); err != nil {
+	if err := r.explorer.Workloads.SignDelete(schema.ID(resID), schema.ID(userID), signature); err != nil {
 		return errors.Wrapf(err, "failed to sign deletion of reservation: %d", resID)
 	}
 
@@ -143,50 +146,44 @@ func (r *ReservationBuilder) WithDryRun(dryRun bool) *ReservationBuilder {
 // WithDuration sets the duration to the reservation
 func (r *ReservationBuilder) WithDuration(duration time.Duration) *ReservationBuilder {
 	timein := time.Now().Local().Add(duration)
-	r.Reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
-	r.Reservation.DataReservation.ExpirationProvisioning = schema.Date{Time: timein}
+	r.reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
+	r.reservation.DataReservation.ExpirationProvisioning = schema.Date{Time: timein}
 	return r
 }
 
-// WithAssets sets the assets to the reservation
-func (r *ReservationBuilder) WithAssets(assets []string) *ReservationBuilder {
-	r.assets = assets
-	return r
-}
-
-// WithSeedPath sets the seed to the reservation
-func (r *ReservationBuilder) WithSeedPath(seedPath string) *ReservationBuilder {
-	r.seedPath = seedPath
+// WithCurrencies sets the currencies to the reservation
+func (r *ReservationBuilder) WithCurrencies(currencies []string) *ReservationBuilder {
+	r.currencies = currencies
 	return r
 }
 
 // AddVolume adds a volume builder to the reservation builder
 func (r *ReservationBuilder) AddVolume(volume VolumeBuilder) *ReservationBuilder {
-	r.Reservation.DataReservation.Volumes = append(r.Reservation.DataReservation.Volumes, volume.Volume)
+	r.reservation.DataReservation.Volumes = append(r.reservation.DataReservation.Volumes, volume.Volume)
 	return r
 }
 
 // AddNetwork adds a network builder to the reservation builder
 func (r *ReservationBuilder) AddNetwork(network NetworkBuilder) *ReservationBuilder {
-	r.Reservation.DataReservation.Networks = append(r.Reservation.DataReservation.Networks, network.Network)
+	r.reservation.DataReservation.Networks = append(r.reservation.DataReservation.Networks, network.Network)
 	return r
 }
 
 // AddZdb adds a zdb builder to the reservation builder
-func (r *ReservationBuilder) AddZdb(zdb ZdbBuilder) *ReservationBuilder {
-	r.Reservation.DataReservation.Zdbs = append(r.Reservation.DataReservation.Zdbs, zdb.ZDB)
+func (r *ReservationBuilder) AddZdb(zdb ZDBBuilder) *ReservationBuilder {
+	r.reservation.DataReservation.Zdbs = append(r.reservation.DataReservation.Zdbs, zdb.ZDB)
 	return r
 }
 
 // AddContainer adds a container builder to the reservation builder
 func (r *ReservationBuilder) AddContainer(container ContainerBuilder) *ReservationBuilder {
-	r.Reservation.DataReservation.Containers = append(r.Reservation.DataReservation.Containers, container.Container)
+	r.reservation.DataReservation.Containers = append(r.reservation.DataReservation.Containers, container.Container)
 	return r
 }
 
 // AddK8s adds a k8s builder to the reservation builder
 func (r *ReservationBuilder) AddK8s(k8s K8sBuilder) *ReservationBuilder {
-	r.Reservation.DataReservation.Kubernetes = append(r.Reservation.DataReservation.Kubernetes, k8s.K8S)
+	r.reservation.DataReservation.Kubernetes = append(r.reservation.DataReservation.Kubernetes, k8s.K8S)
 	return r
 }
 

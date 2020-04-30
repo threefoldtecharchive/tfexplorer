@@ -21,7 +21,6 @@ var (
 
 func cmdsProvision(c *cli.Context) error {
 	var (
-		seedPath   = mainSeed
 		d          = c.String("duration")
 		assets     = c.StringSlice("asset")
 		volumes    = c.StringSlice("volume")
@@ -114,7 +113,7 @@ func cmdsProvision(c *cli.Context) error {
 		}
 	}
 
-	reservationBuilder.WithDuration(duration).WithDryRun(dryRun).WithSeedPath(seedPath).WithAssets(assets)
+	reservationBuilder.WithDuration(duration).WithDryRun(dryRun).WithCurrencies(assets)
 
 	response, err := reservationBuilder.Deploy()
 	if err != nil {

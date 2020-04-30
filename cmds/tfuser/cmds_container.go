@@ -89,26 +89,21 @@ func generateContainer(c *cli.Context) error {
 		},
 	}
 
-	containerBuilder := builders.NewContainerBuilder(c.String("node"), c.String("flist"), c.String("storage"), network)
-	containerBuilder.WithEnvs(envs).WithEntrypoint(c.String("entrypoint")).WithVolumes(mounts).WithInteractive(c.Bool("corex"))
-	containerBuilder.WithContainerCapacity(cap).WithLogs(logs).WithStatsAggregator(sts)
+	containerBuilder := builders.NewContainerBuilder(c.String("node"), c.String("flist"), network)
 
-	if err := validateContainer(containerBuilder.Container); err != nil {
-		return err
-	}
+	containerBuilder.
+		WithEnvs(envs).
+		WithEntrypoint(c.String("entrypoint")).
+		WithVolumes(mounts).WithInteractive(c.Bool("corex")).
+		WithContainerCapacity(cap).
+		WithLogs(logs).
+		WithStatsAggregator(sts)
 
 	container, err := containerBuilder.Build()
 	if err != nil {
 		return errors.Wrap(err, "failed to build container")
 	}
 	return writeWorkload(c.GlobalString("output"), container)
-}
-
-func validateContainer(c workloads.Container) error {
-	if c.Flist == "" {
-		return fmt.Errorf("flist cannot be empty")
-	}
-	return nil
 }
 
 func splitEnvs(envs []string) (map[string]string, error) {

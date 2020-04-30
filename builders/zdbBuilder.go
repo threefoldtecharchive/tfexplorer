@@ -7,17 +7,17 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
 
-// ZdbBuilder is a struct that can build ZDB's
-type ZdbBuilder struct {
+// ZDBBuilder is a struct that can build ZDB's
+type ZDBBuilder struct {
 	workloads.ZDB
 }
 
 // NewZdbBuilder creates a new zdb builder and initializes some default values
-func NewZdbBuilder(nodeID string, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZdbBuilder {
-	return &ZdbBuilder{
+func NewZdbBuilder(nodeID string, size int64, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZDBBuilder {
+	return &ZDBBuilder{
 		ZDB: workloads.ZDB{
 			NodeId:   nodeID,
-			Size:     1,
+			Size:     size,
 			Mode:     mode,
 			DiskType: diskType,
 		},
@@ -25,19 +25,19 @@ func NewZdbBuilder(nodeID string, mode workloads.ZDBModeEnum, diskType workloads
 }
 
 // LoadZdbBuilder loads a zdb builder based on a file path
-func LoadZdbBuilder(reader io.Reader) (*ZdbBuilder, error) {
+func LoadZdbBuilder(reader io.Reader) (*ZDBBuilder, error) {
 	zdb := workloads.ZDB{}
 
 	err := json.NewDecoder(reader).Decode(&zdb)
 	if err != nil {
-		return &ZdbBuilder{}, err
+		return &ZDBBuilder{}, err
 	}
 
-	return &ZdbBuilder{ZDB: zdb}, nil
+	return &ZDBBuilder{ZDB: zdb}, nil
 }
 
 // Save saves the zdb builder to an IO.Writer
-func (z *ZdbBuilder) Save(writer io.Writer) error {
+func (z *ZDBBuilder) Save(writer io.Writer) error {
 	err := json.NewEncoder(writer).Encode(z.ZDB)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (z *ZdbBuilder) Save(writer io.Writer) error {
 }
 
 // Build validates and encrypts the zdb secret
-func (z *ZdbBuilder) Build() (workloads.ZDB, error) {
+func (z *ZDBBuilder) Build() (workloads.ZDB, error) {
 	encrypted, err := encryptSecret(z.ZDB.Password, z.ZDB.NodeId)
 	if err != nil {
 		return workloads.ZDB{}, err
@@ -57,43 +57,43 @@ func (z *ZdbBuilder) Build() (workloads.ZDB, error) {
 }
 
 // WithNodeID sets the node ID to the zdb
-func (z *ZdbBuilder) WithNodeID(nodeID string) *ZdbBuilder {
+func (z *ZDBBuilder) WithNodeID(nodeID string) *ZDBBuilder {
 	z.ZDB.NodeId = nodeID
 	return z
 }
 
 // WithSize sets the size on the zdb
-func (z *ZdbBuilder) WithSize(size int64) *ZdbBuilder {
+func (z *ZDBBuilder) WithSize(size int64) *ZDBBuilder {
 	z.ZDB.Size = size
 	return z
 }
 
 // WithMode sets the mode to the zdb
-func (z *ZdbBuilder) WithMode(mode workloads.ZDBModeEnum) *ZdbBuilder {
+func (z *ZDBBuilder) WithMode(mode workloads.ZDBModeEnum) *ZDBBuilder {
 	z.ZDB.Mode = mode
 	return z
 }
 
 // WithPassword sets the password to the zdb
-func (z *ZdbBuilder) WithPassword(password string) *ZdbBuilder {
+func (z *ZDBBuilder) WithPassword(password string) *ZDBBuilder {
 	z.ZDB.Password = password
 	return z
 }
 
 // WithDiskType sets the disktype to the zdb
-func (z *ZdbBuilder) WithDiskType(diskType workloads.DiskTypeEnum) *ZdbBuilder {
+func (z *ZDBBuilder) WithDiskType(diskType workloads.DiskTypeEnum) *ZDBBuilder {
 	z.ZDB.DiskType = diskType
 	return z
 }
 
 // WithPublic sets if public to the zdb
-func (z *ZdbBuilder) WithPublic(public bool) *ZdbBuilder {
+func (z *ZDBBuilder) WithPublic(public bool) *ZDBBuilder {
 	z.ZDB.Public = public
 	return z
 }
 
 // WithStatsAggregator sets the stats aggregators to the zdb
-func (z *ZdbBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *ZdbBuilder {
+func (z *ZDBBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *ZDBBuilder {
 	z.ZDB.StatsAggregator = aggregators
 	return z
 }

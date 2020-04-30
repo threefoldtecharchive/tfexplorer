@@ -14,7 +14,6 @@ import (
 
 	"github.com/emicklei/dot"
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/tfexplorer"
 	"github.com/threefoldtech/tfexplorer/client"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -28,9 +27,8 @@ import (
 type NetworkBuilder struct {
 	workloads.Network
 
-	NodeID string
-	Bcdb   *client.Client
-	Mainui *tfexplorer.UserIdentity
+	NodeID   string
+	explorer *client.Client
 
 	AccessPoints []AccessPoint `json:"access_points,omitempty"`
 
@@ -58,12 +56,14 @@ type AccessPoint struct {
 }
 
 // NewNetworkBuilder creates a new network builder
-func NewNetworkBuilder(name string, iprange schema.IPRange) *NetworkBuilder {
+func NewNetworkBuilder(name string, iprange schema.IPRange, explorer *client.Client) *NetworkBuilder {
 	return &NetworkBuilder{
 		Network: workloads.Network{
-			Name:    name,
-			Iprange: iprange,
+			Name:             name,
+			Iprange:          iprange,
+			NetworkResources: []workloads.NetworkNetResource{},
 		},
+		explorer: explorer,
 	}
 }
 
@@ -93,9 +93,7 @@ func (n *NetworkBuilder) Build() workloads.Network {
 	return n.Network
 }
 
-// TODO ADD NODE ID TO NETWORK?
-
-// WithName sets the ip range to the network
+// WithName sets the name to the network
 func (n *NetworkBuilder) WithName(name string) *NetworkBuilder {
 	n.Network.Name = name
 	return n
@@ -119,44 +117,44 @@ func (n *NetworkBuilder) WithNetworkResources(netResources []workloads.NetworkNe
 	return n
 }
 
-// AddNode adds a node
-func (n *NetworkBuilder) AddNode(networkSchema string, nodeID string, subnet string, port uint, forceHidden bool) error {
+// AddNode adds a node to the network
+func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceHidden bool) (*NetworkBuilder, error) {
 	n.NodeID = nodeID
 
 	if subnet == "" {
-		return fmt.Errorf("subnet cannot be empty")
+		return n, fmt.Errorf("subnet cannot be empty")
 	}
 	ipnet, err := types.ParseIPNet(subnet)
 	if err != nil {
-		return errors.Wrap(err, "invalid subnet")
+		return n, errors.Wrap(err, "invalid subnet")
 	}
 
 	if port == 0 {
 		port, err = n.pickPort()
 		if err != nil {
-			return errors.Wrap(err, "failed to pick wireguard port")
+			return n, errors.Wrap(err, "failed to pick wireguard port")
 		}
 	}
 
 	privateKey, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
-		return errors.Wrap(err, "error during wireguard key generation")
+		return n, errors.Wrap(err, "error during wireguard key generation")
 	}
 	sk := privateKey.String()
 
 	pk, err := crypto.KeyFromID(pkg.StrIdentifier(nodeID))
 	if err != nil {
-		return errors.Wrap(err, "failed to parse nodeID")
+		return n, errors.Wrap(err, "failed to parse nodeID")
 	}
 
 	encrypted, err := crypto.Encrypt([]byte(sk), pk)
 	if err != nil {
-		return errors.Wrap(err, "failed to encrypt private key")
+		return n, errors.Wrap(err, "failed to encrypt private key")
 	}
 
 	pubSubnets, err := n.getEndPointAddrs(pkg.StrIdentifier(nodeID))
 	if err != nil {
-		return errors.Wrap(err, "failed to get node public endpoints")
+		return n, errors.Wrap(err, "failed to get node public endpoints")
 	}
 	var endpoints []net.IP
 	if !forceHidden {
@@ -179,28 +177,16 @@ func (n *NetworkBuilder) AddNode(networkSchema string, nodeID string, subnet str
 	n.NetResources = append(n.NetResources, nr)
 
 	if err = n.generatePeers(); err != nil {
-		return errors.Wrap(err, "failed to generate peers")
+		return n, errors.Wrap(err, "failed to generate peers")
 	}
 
-	f, err := os.Open(networkSchema)
-	if err != nil {
-		return errors.Wrap(err, "failed to open network schema")
-	}
-	return n.Save(f)
+	return n, nil
 }
 
-// AddAccess adds access to a network node
-func (n *NetworkBuilder) AddAccess(networkSchema string, nodeID string, subnet string, wgPubKey string, ip4 bool) (string, error) {
+// AddAccess adds access to a node in the network
+func (n *NetworkBuilder) AddAccess(nodeID string, subnet schema.IPRange, wgPubKey string, ip4 bool) (*NetworkBuilder, string, error) {
 	if nodeID == "" {
-		return "", fmt.Errorf("nodeID cannot be empty")
-	}
-
-	if subnet == "" {
-		return "", fmt.Errorf("subnet cannot be empty")
-	}
-	ipnet, err := types.ParseIPNet(subnet)
-	if err != nil {
-		return "", errors.Wrap(err, "invalid subnet")
+		return n, "", fmt.Errorf("nodeID cannot be empty")
 	}
 
 	var nodeExists bool
@@ -214,11 +200,11 @@ func (n *NetworkBuilder) AddAccess(networkSchema string, nodeID string, subnet s
 	}
 
 	if !nodeExists {
-		return "", errors.New("can not add access through a node which is not in the network")
+		return n, "", errors.New("can not add access through a node which is not in the network")
 	}
 
 	if len(node.PubEndpoints) == 0 {
-		return "", errors.New("access node must have at least 1 public endpoint")
+		return n, "", errors.New("access node must have at least 1 public endpoint")
 	}
 
 	var endpoint string
@@ -243,41 +229,37 @@ func (n *NetworkBuilder) AddAccess(networkSchema string, nodeID string, subnet s
 		}
 	}
 	if endpoint == "" {
-		return "", errors.New("access node has no public endpoint of the requested type")
+		return n, "", errors.New("access node has no public endpoint of the requested type")
 	}
 
 	var privateKey wgtypes.Key
 	if wgPubKey == "" {
-		privateKey, err = wgtypes.GeneratePrivateKey()
+		privateKey, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
-			return "", errors.Wrap(err, "error during wireguard key generation")
+			return n, "", errors.Wrap(err, "error during wireguard key generation")
 		}
 		wgPubKey = privateKey.PublicKey().String()
 	}
 
 	ap := AccessPoint{
 		NodeID:      nodeID,
-		Subnet:      schema.IPRange{ipnet.IPNet},
+		Subnet:      subnet,
 		WGPublicKey: wgPubKey,
 		IP4:         ip4,
 	}
 
 	n.AccessPoints = append(n.AccessPoints, ap)
 
-	if err = n.generatePeers(); err != nil {
-		return "", errors.Wrap(err, "failed to generate peers")
+	if err := n.generatePeers(); err != nil {
+		return n, "", errors.Wrap(err, "failed to generate peers")
 	}
 
-	wgConf, err := genWGQuick(privateKey.String(), ipnet, node.WireguardPublicKey, n.Network.Iprange, endpoint)
+	wgConf, err := genWGQuick(privateKey.String(), subnet, node.WireguardPublicKey, n.Network.Iprange, endpoint)
 	if err != nil {
-		return "", err
+		return n, "", err
 	}
 
-	f, err := os.Open(networkSchema)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to open network schema")
-	}
-	return wgConf, n.Save(f)
+	return n, wgConf, nil
 }
 
 // RemoveNode removes a node
@@ -359,7 +341,7 @@ func LoadNetwork(name string) (*NetworkBuilder, error) {
 }
 
 func (n *NetworkBuilder) pickPort() (uint, error) {
-	node, err := n.Bcdb.Directory.NodeGet(n.NodeID, false)
+	node, err := n.explorer.Directory.NodeGet(n.NodeID, false)
 	if err != nil {
 		return 0, err
 	}
@@ -588,7 +570,7 @@ func (n *NetworkBuilder) generatePeers() error {
 	return nil
 }
 
-func isIPv4Subnet(n types.IPNet) bool {
+func isIPv4Subnet(n schema.IPRange) bool {
 	ones, bits := n.IPNet.Mask.Size()
 	if bits != 32 {
 		return false
@@ -596,7 +578,7 @@ func isIPv4Subnet(n types.IPNet) bool {
 	return ones <= 30
 }
 
-func genWGQuick(wgPrivateKey string, localSubnet types.IPNet, peerWgPubKey string, allowedSubnet schema.IPRange, peerEndpoint string) (string, error) {
+func genWGQuick(wgPrivateKey string, localSubnet schema.IPRange, peerWgPubKey string, allowedSubnet schema.IPRange, peerEndpoint string) (string, error) {
 	type data struct {
 		PrivateKey    string
 		Address       string
@@ -790,7 +772,7 @@ func (n *NetworkBuilder) extractAccessPoints() {
 // some interface has received a SLAAC addr
 // which has been registered in BCDB
 func (n *NetworkBuilder) getEndPointAddrs(nodeID pkg.Identifier) ([]types.IPNet, error) {
-	schemaNode, err := n.Bcdb.Directory.NodeGet(nodeID.Identity(), false)
+	schemaNode, err := n.explorer.Directory.NodeGet(nodeID.Identity(), false)
 	if err != nil {
 		return nil, err
 	}
