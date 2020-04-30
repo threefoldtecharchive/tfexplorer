@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
@@ -514,18 +515,86 @@ func TestCalculateReservationCost(t *testing.T) {
 	farmRsu, err := escrow.processReservationResources(data)
 	assert.NoError(t, err)
 
-	res, err := escrow.calculateReservationCost(farmRsu)
-	if ok := assert.NoError(t, err); !ok {
-		t.Fatal()
-	}
+	t.Run("1_month", func(t *testing.T) {
+		duration := month
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
 
-	assert.True(t, len(res) == 2)
-	// cru: 11, sru: 1000, hru: 1000, mru: 17
-	// 4.037 * 100.000 + 11.904 * 66.667
-	assert.Equal(t, xdr.Int64(1197.303968*precision), res[1])
-	// cru: 17, sru: 650, hru: 4000, mru: 21.8829
-	// 5.197 * 100.000 + 10.803 * 66.667
-	assert.Equal(t, xdr.Int64(1239.903601*precision), res[3])
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 100.000 + 11.904 * 66.667) * 1
+		assert.Equal(t, xdr.Int64(1197.303968*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 100.000 + 10.803 * 66.667) * 1
+		assert.Equal(t, xdr.Int64(1239.903601*precision), res[3])
+	})
+
+	t.Run("2_month", func(t *testing.T) {
+		duration := 2 * month
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
+
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 100.000 + 11.904 * 66.667) * 2
+		assert.Equal(t, xdr.Int64(2394.607936*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 100.000 + 10.803 * 66.667) * 2
+		assert.Equal(t, xdr.Int64(2479.807202*precision), res[3])
+	})
+
+	t.Run("17_days", func(t *testing.T) {
+		duration := 17 * day
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
+
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 100.000 + 11.904 * 66.667) * 1
+		assert.Equal(t, xdr.Int64(1197.303968*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 100.000 + 10.803 * 66.667) * 1
+		assert.Equal(t, xdr.Int64(1239.903601*precision), res[3])
+	})
+
+	t.Run("1h", func(t *testing.T) {
+		duration := time.Hour
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
+
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 100.000 + 11.904 * 66.667) * 4
+		assert.Equal(t, xdr.Int64(4789.215872*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 100.000 + 10.803 * 66.667) * 4
+		assert.Equal(t, xdr.Int64(4959.614404*precision), res[3])
+	})
+
+	t.Run("5days", func(t *testing.T) {
+		duration := 5 * day
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
+
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 100.000 + 11.904 * 66.667) * 2
+		assert.Equal(t, xdr.Int64(2394.607936*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 100.000 + 10.803 * 66.667) * 2
+		assert.Equal(t, xdr.Int64(2479.807202*precision), res[3])
+	})
+
 }
 
 func TestResourceUnitsToCloudUnits(t *testing.T) {
@@ -580,6 +649,20 @@ func TestResourceUnitsToCloudUnits(t *testing.T) {
 	for i := range rsus {
 		assert.Equal(t, rsuToCu(rsus[i]), expectedCUs[i])
 	}
+}
+
+func TestTimeMultiplier(t *testing.T) {
+	assert.Equal(t, float64(1), timeMultiplier(month))
+	assert.Equal(t, float64(2), timeMultiplier(2*month))
+
+	assert.Equal(t, float64(1), timeMultiplier(day*12))
+	assert.Equal(t, float64(2), timeMultiplier(day))
+
+	assert.Equal(t, float64(4), timeMultiplier(time.Hour*1))
+	assert.Equal(t, float64(4), timeMultiplier(time.Hour*23))
+
+	assert.Equal(t, float64(3), timeMultiplier(2*month+day*15))
+
 }
 
 func (napim *nodeAPIMock) Get(_ context.Context, _ *mongo.Database, nodeID string, _ bool) (directorytypes.Node, error) {

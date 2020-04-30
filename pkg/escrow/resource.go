@@ -3,6 +3,7 @@ package escrow
 import (
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellar/go/amount"
@@ -39,12 +40,35 @@ const (
 	storageUnitTFTCost = 66.667  // 10 / 0.15
 )
 
+const (
+	day   = 24 * time.Hour
+	week  = 7 * day
+	month = 31 * day
+)
+
+func timeMultiplier(d time.Duration) float64 {
+
+	// when < 1 week: price X 2
+	// when < 1 day: price X 4 (1h is smallest)
+	// 1.5 months is same as 2 months
+
+	multiplier := math.Ceil(d.Seconds() / month.Seconds())
+	switch {
+	case d < day:
+		multiplier *= 4
+	case day <= d && d < week:
+		multiplier *= 2
+	}
+	return multiplier
+}
+
 // calculateReservationCost calculates the cost of reservation based on a resource per farmer map
-func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer) (map[int64]xdr.Int64, error) {
+func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer, duration time.Duration) (map[int64]xdr.Int64, error) {
 	cloudUnitsPerFarmer := make(map[int64]cloudUnits)
 	for id, rsu := range rsuPerFarmerMap {
 		cloudUnitsPerFarmer[id] = rsuToCu(rsu)
 	}
+
 	costPerFarmerMap := make(map[int64]xdr.Int64)
 	for id, cu := range cloudUnitsPerFarmer {
 		// stellar does not have a nice type for currency, so use big.Float's during
@@ -61,6 +85,9 @@ func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer) (map[int
 			a.Mul(big.NewFloat(computeUnitTFTCost), big.NewFloat(cu.cu)),
 			b.Mul(big.NewFloat(storageUnitTFTCost), big.NewFloat(cu.su)),
 		)
+
+		total = total.Mul(total, big.NewFloat(timeMultiplier(duration)))
+
 		cost, err := amount.Parse(total.String())
 		if err != nil {
 			return nil, errors.Wrap(err, "could not parse calculated cost")
