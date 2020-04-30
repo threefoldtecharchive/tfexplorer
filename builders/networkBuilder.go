@@ -118,6 +118,8 @@ func (n *NetworkBuilder) WithNetworkResources(netResources []workloads.NetworkNe
 }
 
 // AddNode adds a node to the network
+// the subnet will be added as network resource to the node
+// forceHidden will set no public endpoints to the node
 func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceHidden bool) (*NetworkBuilder, error) {
 	n.NodeID = nodeID
 
@@ -184,6 +186,7 @@ func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceH
 }
 
 // AddAccess adds access to a node in the network
+// the subnet will be routed through the accesspoint of the node
 func (n *NetworkBuilder) AddAccess(nodeID string, subnet schema.IPRange, wgPubKey string, ip4 bool) (*NetworkBuilder, string, error) {
 	if nodeID == "" {
 		return n, "", fmt.Errorf("nodeID cannot be empty")
