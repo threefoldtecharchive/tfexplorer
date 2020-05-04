@@ -2,6 +2,7 @@ package directory
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
 	schema "github.com/threefoldtech/tfexplorer/schema"
@@ -127,13 +128,62 @@ type PublicIface struct {
 	Version int64          `bson:"version" json:"version"`
 }
 
-func NewPublicIface() (PublicIface, error) {
-	const value = "{}"
-	var object PublicIface
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
+// Validate check if all the value of the object are valid
+func (p PublicIface) Validate() error {
+	if p.Master == "" {
+		return fmt.Errorf("master field cannot be empty")
 	}
-	return object, nil
+	if len(p.Master) > 16 {
+		return fmt.Errorf("master field should contain the name of a network interface. A network interface cannot be longer than 16 characters")
+	}
+
+	if p.Type != IfaceTypeMacvlan {
+		return fmt.Errorf("type can only be of type macvlan")
+	}
+
+	if p.Ipv4.IP == nil || p.Ipv4.Mask == nil {
+		return fmt.Errorf("ipv4 cannot be empty")
+	}
+
+	if p.Gw4 == nil {
+		return fmt.Errorf("gw4 cannot be empty")
+	}
+
+	if p.Ipv6.IP == nil || p.Ipv6.Mask == nil {
+		return fmt.Errorf("ipv6 cannot be empty")
+	}
+
+	if p.Gw6 == nil {
+		return fmt.Errorf("gw6 cannot be empty")
+	}
+
+	if p.Ipv4.IP.To4() == nil {
+		return fmt.Errorf("%s is not a valid IPv4 address", p.Ipv4.IP.String())
+	}
+
+	_, bits := p.Ipv4.Mask.Size()
+	if bits != 32 {
+		return fmt.Errorf("%s is not a valid IPv4 net mask", p.Ipv4.Mask.String())
+	}
+
+	if p.Gw4.To4() == nil {
+		return fmt.Errorf("%s is not a valid IPv4 address", p.Gw4.String())
+	}
+
+	if p.Ipv6.IP.To4() != nil {
+		return fmt.Errorf("%s is not a valid IPv6 address", p.Ipv6.IP.String())
+	}
+
+	_, bits = p.Ipv6.Mask.Size()
+	if bits != 128 {
+		return fmt.Errorf("%s is not a valid IPv6 net mask", p.Ipv6.Mask.String())
+	}
+
+	if p.Gw6.To4() != nil {
+		return fmt.Errorf("%s is not a valid IPv6 address", p.Gw6.String())
+	}
+
+	return nil
 }
 
 type ResourceAmount struct {
