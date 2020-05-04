@@ -24,9 +24,9 @@ func generateVolume(c *cli.Context) error {
 
 	var volumeType workloads.VolumeTypeEnum
 	if t == workloads.DiskTypeHDD.String() {
-		volumeType = workloads.VolumeTypeEnum(workloads.VolumeTypeSSD)
-	} else if t == workloads.DiskTypeSSD.String() {
 		volumeType = workloads.VolumeTypeEnum(workloads.VolumeTypeHDD)
+	} else if t == workloads.DiskTypeSSD.String() {
+		volumeType = workloads.VolumeTypeEnum(workloads.VolumeTypeSSD)
 	}
 
 	volumeBuilder := builders.NewVolumeBuilder(c.String("node"), s, volumeType)

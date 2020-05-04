@@ -68,7 +68,7 @@ func NewNetworkBuilder(name string, iprange schema.IPRange, explorer *client.Cli
 }
 
 // LoadNetworkBuilder loads a network builder based on a file path
-func LoadNetworkBuilder(reader io.Reader) (*NetworkBuilder, error) {
+func LoadNetworkBuilder(reader io.Reader, explorer *client.Client) (*NetworkBuilder, error) {
 	network := workloads.Network{}
 
 	err := json.NewDecoder(reader).Decode(&network)
@@ -76,7 +76,18 @@ func LoadNetworkBuilder(reader io.Reader) (*NetworkBuilder, error) {
 		return &NetworkBuilder{}, err
 	}
 
-	return &NetworkBuilder{Network: network}, nil
+	networkBuilder := &NetworkBuilder{
+		Network:  network,
+		explorer: explorer,
+	}
+
+	if err = networkBuilder.setPubEndpoints(); err != nil {
+		return nil, err
+	}
+
+	networkBuilder.extractAccessPoints()
+
+	return networkBuilder, nil
 }
 
 // Save saves the network builder to an IO.Writer
@@ -316,31 +327,6 @@ func (n *NetworkBuilder) setPubEndpoints() error {
 	}
 
 	return nil
-}
-
-// LoadNetwork loads the network builder and does some extra operations first
-func LoadNetwork(name string) (*NetworkBuilder, error) {
-	if name == "" {
-		return nil, fmt.Errorf("schema name cannot be empty")
-	}
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	networkBuilder, err := LoadNetworkBuilder(f)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load network builder")
-	}
-
-	if err = networkBuilder.setPubEndpoints(); err != nil {
-		return nil, err
-	}
-
-	networkBuilder.extractAccessPoints()
-
-	return networkBuilder, nil
 }
 
 func (n *NetworkBuilder) pickPort() (uint, error) {

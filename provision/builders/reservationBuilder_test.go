@@ -31,7 +31,7 @@ func TestLoadNetwork(t *testing.T) {
 	assert := assert.New(t)
 
 	networkAsReader := strings.NewReader(input)
-	networkBuilder, err := LoadNetworkBuilder(networkAsReader)
+	networkBuilder, err := LoadNetworkBuilder(networkAsReader, nil)
 	require.NoError(t, err)
 
 	assert.Equal(networkBuilder.Network.Iprange, network.Iprange)

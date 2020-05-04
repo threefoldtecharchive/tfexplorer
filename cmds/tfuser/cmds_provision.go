@@ -103,7 +103,7 @@ func cmdsProvision(c *cli.Context) error {
 			return errors.Wrap(err, "failed to open reservation")
 		}
 
-		networkBuilder, err := builders.LoadNetworkBuilder(f)
+		networkBuilder, err := builders.LoadNetworkBuilder(f, bcdb)
 		if err != nil {
 			return errors.Wrap(err, "failed to load the network builder")
 		}

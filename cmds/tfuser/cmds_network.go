@@ -20,16 +20,25 @@ func init() {
 
 func cmdGraphNetwork(c *cli.Context) error {
 	var (
-		schema = c.GlobalString("schema")
-		err    error
+		networkSchema = c.GlobalString("schema")
+		err           error
 	)
 
-	network, err := builders.LoadNetwork(schema)
+	if networkSchema == "" {
+		return fmt.Errorf("schema name cannot be empty")
+	}
+	f, err := os.Open(networkSchema)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	network, err := builders.LoadNetworkBuilder(f, bcdb)
 	if err != nil {
 		return err
 	}
 
-	outfile, err := os.Create(schema + ".dot")
+	outfile, err := os.Create(networkSchema + ".dot")
 	if err != nil {
 		return err
 	}
@@ -59,7 +68,7 @@ func cmdCreateNetwork(c *cli.Context) error {
 
 func cmdsAddNode(c *cli.Context) error {
 	var (
-		schema = c.GlobalString("schema")
+		networkSchema = c.GlobalString("schema")
 
 		nodeID = c.String("node")
 		subnet = c.String("subnet")
@@ -68,9 +77,18 @@ func cmdsAddNode(c *cli.Context) error {
 		forceHidden = c.Bool("force-hidden")
 	)
 
-	network, err := builders.LoadNetwork(schema)
+	if networkSchema == "" {
+		return fmt.Errorf("schema name cannot be empty")
+	}
+	f, err := os.Open(networkSchema)
 	if err != nil {
-		return errors.Wrap(err, "failed to load network schema")
+		return err
+	}
+	defer f.Close()
+
+	network, err := builders.LoadNetworkBuilder(f, bcdb)
+	if err != nil {
+		return err
 	}
 
 	network, err = network.AddNode(nodeID, subnet, port, forceHidden)
@@ -78,7 +96,7 @@ func cmdsAddNode(c *cli.Context) error {
 		return errors.Wrapf(err, "failed to add a node to the network %s", network.Name)
 	}
 
-	f, err := os.Open(schema)
+	f, err = os.Open(networkSchema)
 	if err != nil {
 		return errors.Wrap(err, "failed to open networks schema")
 	}
@@ -97,7 +115,16 @@ func cmdsAddAccess(c *cli.Context) error {
 		ip4 = c.Bool("ip4")
 	)
 
-	network, err := builders.LoadNetwork(networkSchema)
+	if networkSchema == "" {
+		return fmt.Errorf("schema name cannot be empty")
+	}
+	f, err := os.Open(networkSchema)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	network, err := builders.LoadNetworkBuilder(f, bcdb)
 	if err != nil {
 		return err
 	}
@@ -121,7 +148,7 @@ func cmdsAddAccess(c *cli.Context) error {
 
 	fmt.Println(wgSchema)
 
-	f, err := os.Open(networkSchema)
+	f, err = os.Open(networkSchema)
 	if err != nil {
 		return errors.Wrap(err, "failed to open networks schema")
 	}
@@ -131,14 +158,23 @@ func cmdsAddAccess(c *cli.Context) error {
 
 func cmdsRemoveNode(c *cli.Context) error {
 	var (
-		schema = c.GlobalString("schema")
-		nodeID = c.String("node")
+		networkSchema = c.GlobalString("schema")
+		nodeID        = c.String("node")
 	)
 
-	network, err := builders.LoadNetwork(schema)
+	if networkSchema == "" {
+		return fmt.Errorf("schema name cannot be empty")
+	}
+	f, err := os.Open(networkSchema)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	network, err := builders.LoadNetworkBuilder(f, bcdb)
 	if err != nil {
 		return err
 	}
 
-	return network.RemoveNode(schema, nodeID)
+	return network.RemoveNode(networkSchema, nodeID)
 }
