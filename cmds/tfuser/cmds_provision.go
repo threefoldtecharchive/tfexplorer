@@ -12,6 +12,7 @@ import (
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/provision"
 	"github.com/threefoldtech/tfexplorer/provision/builders"
+	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/urfave/cli"
 )
 
@@ -34,6 +35,7 @@ func cmdsProvision(c *cli.Context) error {
 	)
 
 	reservationBuilder := builders.NewReservationBuilder()
+	var workloadID int64 = 0
 
 	for _, vol := range volumes {
 		f, err := os.Open(vol)
@@ -45,6 +47,8 @@ func cmdsProvision(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load the reservation builder")
 		}
+		volumeBuilder.WorkloadId = workloadID
+		workloadID = +1
 		reservationBuilder.AddVolume(*volumeBuilder)
 	}
 
@@ -58,6 +62,8 @@ func cmdsProvision(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load the reservation builder")
 		}
+		containerBuilder.WorkloadId = workloadID
+		workloadID = +1
 		reservationBuilder.AddContainer(*containerBuilder)
 	}
 
@@ -71,6 +77,8 @@ func cmdsProvision(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load the zdb builder")
 		}
+		zdbBuilder.WorkloadId = workloadID
+		workloadID = +1
 		reservationBuilder.AddZdb(*zdbBuilder)
 	}
 
@@ -84,6 +92,8 @@ func cmdsProvision(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load the k8s builder")
 		}
+		k8sBuilder.WorkloadId = workloadID
+		workloadID = +1
 		reservationBuilder.AddK8s(*k8sBuilder)
 	}
 
@@ -97,6 +107,8 @@ func cmdsProvision(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load the network builder")
 		}
+		networkBuilder.WorkloadId = workloadID
+		workloadID = +1
 		reservationBuilder.AddNetwork(*networkBuilder)
 	}
 
@@ -114,8 +126,11 @@ func cmdsProvision(c *cli.Context) error {
 		}
 	}
 
+	timein := time.Now().Local().Add(duration)
+
 	reservationBuilder.
-		WithDuration(duration).
+		WithDuration(schema.Date{Time: timein}).
+		WithExpirationProvisioning(schema.Date{Time: timein}).
 		WithSigningRequestDeleteQuorumMin(1).
 		WithSigningRequestDeleteSigners([]int64{int64(mainui.ThreebotID)})
 
@@ -123,7 +138,7 @@ func cmdsProvision(c *cli.Context) error {
 	if dryRun {
 		res, err := reservationClient.DryRun(reservationBuilder.Build(), assets)
 		if err != nil {
-			return errors.Wrap(err, "failed to deploy reservation")
+			return errors.Wrap(err, "failed to parse reservation as JSON")
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")

@@ -28,14 +28,7 @@ func NewReservationClient(explorer *client.Client, userID *tfexplorer.UserIdenti
 
 // Deploy deploys the reservation
 func (r *ReservationClient) Deploy(reservation workloads.Reservation, currencies []string) (wrklds.ReservationCreateResponse, error) {
-	res, err := r.DryRun(reservation, currencies)
-	if err != nil {
-		return wrklds.ReservationCreateResponse{}, nil
-	}
-
-	var reservationToCreate workloads.Reservation
-
-	err = json.Unmarshal(res, &reservationToCreate)
+	reservationToCreate, err := r.DryRun(reservation, currencies)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, nil
 	}
@@ -50,12 +43,12 @@ func (r *ReservationClient) Deploy(reservation workloads.Reservation, currencies
 	return response, nil
 }
 
-// DryRun will return the reservation to deploy as JSON
-func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies []string) ([]byte, error) {
+// DryRun will return the reservation to deploy and marshals the data of the reservation
+func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies []string) (workloads.Reservation, error) {
 	userID := int64(r.userID.ThreebotID)
 	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
 	if err != nil {
-		return nil, errors.Wrap(err, "could not load signer")
+		return workloads.Reservation{}, errors.Wrap(err, "could not load signer")
 	}
 
 	reservation.CustomerTid = userID
@@ -65,23 +58,18 @@ func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies
 
 	bytes, err := json.Marshal(reservation.DataReservation)
 	if err != nil {
-		return nil, err
+		return workloads.Reservation{}, err
 	}
 
 	reservation.Json = string(bytes)
 	_, signature, err := signer.SignHex(reservation.Json)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign the reservation")
+		return workloads.Reservation{}, errors.Wrap(err, "failed to sign the reservation")
 	}
 
 	reservation.CustomerSignature = signature
 
-	res, err := json.Marshal(reservation)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal reservaiton")
-	}
-
-	return res, nil
+	return reservation, nil
 }
 
 // DeleteReservation deletes a reservation by id

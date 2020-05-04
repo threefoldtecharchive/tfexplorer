@@ -54,9 +54,8 @@ func (r *ReservationBuilder) Build() workloads.Reservation {
 }
 
 // WithDuration sets the duration to the reservation
-func (r *ReservationBuilder) WithDuration(duration time.Duration) *ReservationBuilder {
-	timein := time.Now().Local().Add(duration)
-	r.reservation.DataReservation.ExpirationReservation = schema.Date{Time: timein}
+func (r *ReservationBuilder) WithDuration(duration schema.Date) *ReservationBuilder {
+	r.reservation.DataReservation.ExpirationReservation = duration
 	return r
 }
 
