@@ -67,13 +67,13 @@ func (r *ReservationBuilder) WithExpirationProvisioning(expiration schema.Date) 
 
 // WithSigningRequestDeleteQuorumMin sets the signing request delete quorum minimum
 func (r *ReservationBuilder) WithSigningRequestDeleteQuorumMin(quorumMin int64) *ReservationBuilder {
-	r.reservation.DataReservation.SigningRequestProvision.QuorumMin = quorumMin
+	r.reservation.DataReservation.SigningRequestDelete.QuorumMin = quorumMin
 	return r
 }
 
 // WithSigningRequestDeleteSigners sets the signing request delete signers
 func (r *ReservationBuilder) WithSigningRequestDeleteSigners(signerIDs []int64) *ReservationBuilder {
-	r.reservation.DataReservation.SigningRequestProvision.Signers = signerIDs
+	r.reservation.DataReservation.SigningRequestDelete.Signers = signerIDs
 	return r
 }
 
