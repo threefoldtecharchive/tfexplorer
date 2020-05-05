@@ -190,7 +190,8 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.ReserveProxy) +
 		len(r.DataReservation.Subdomains) +
 		len(r.DataReservation.DomainDelegates) +
-		len(r.DataReservation.Gateway4To6s)
+		len(r.DataReservation.Gateway4To6s) +
+		len(r.DataReservation.Debug)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -225,6 +226,9 @@ func (r *Reservation) Validate() error {
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Gateway4To6s {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Debug {
 		workloaders = append(workloaders, w)
 	}
 
@@ -440,6 +444,17 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 	}
+	for _, wl := range data.Debug {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		wrkl := newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeDebug,
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+	}
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
 
@@ -504,6 +519,9 @@ func (r *Reservation) NodeIDs() []string {
 		ids[w.NodeId] = struct{}{}
 	}
 	for _, w := range r.DataReservation.Proxies {
+		ids[w.NodeId] = struct{}{}
+	}
+	for _, w := range r.DataReservation.Debug {
 		ids[w.NodeId] = struct{}{}
 	}
 
