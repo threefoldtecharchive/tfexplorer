@@ -68,7 +68,7 @@ server:
 tfexplorer: frontend server
 
 tfuser:
-	cd cmds/tffarmer && go build -ldflags $(ldflags) -o $(OUT)/tfuser
+	cd cmds/tfuser && go build -ldflags $(ldflags) -o $(OUT)/tfuser
 
 tffarmer:
 	cd cmds/tffarmer && go build -ldflags $(ldflags) -o $(OUT)/tffarmer
