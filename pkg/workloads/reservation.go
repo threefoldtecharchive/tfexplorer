@@ -73,7 +73,7 @@ func (a *API) validAddresses(ctx context.Context, db *mongo.Database, res *types
 				return errors.Wrap(err, "could not initialize address validator")
 			}
 			if err := validator.Valid(a.Address); err != nil {
-				return err
+				return fmt.Errorf("farm %s has an invalid address for currency %s: %w", farm.Name, a.Asset, err)
 			}
 		}
 
