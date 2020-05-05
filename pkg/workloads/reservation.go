@@ -504,11 +504,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
-	if len(workloads) == 0 {
-		workloads = append(workloads, types.NOOPWorkload(nodeID, lastID))
-	}
-
-	return workloads, nil
+	return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 }
 
 func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {

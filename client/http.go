@@ -128,89 +128,89 @@ func (c *httpClient) process(response *http.Response, output interface{}, expect
 	return nil
 }
 
-func (c *httpClient) post(u string, input interface{}, output interface{}, expect ...int) error {
+func (c *httpClient) post(u string, input interface{}, output interface{}, expect ...int) (*http.Response, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(input); err != nil {
-		return errors.Wrap(err, "failed to serialize request body")
+		return nil, errors.Wrap(err, "failed to serialize request body")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, u, &buf)
 	if err != nil {
-		return errors.Wrap(err, "failed to create new HTTP request")
+		return nil, errors.Wrap(err, "failed to create new HTTP request")
 	}
 
 	if err := c.sign(req); err != nil {
-		return errors.Wrap(err, "failed to sign HTTP request")
+		return nil, errors.Wrap(err, "failed to sign HTTP request")
 	}
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrap(err, "failed to send request")
 	}
 
-	return c.process(response, output, expect...)
+	return response, c.process(response, output, expect...)
 }
 
-func (c *httpClient) put(u string, input interface{}, output interface{}, expect ...int) error {
+func (c *httpClient) put(u string, input interface{}, output interface{}, expect ...int) (*http.Response, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(input); err != nil {
-		return errors.Wrap(err, "failed to serialize request body")
+		return nil, errors.Wrap(err, "failed to serialize request body")
 	}
 	req, err := http.NewRequest(http.MethodPut, u, &buf)
 	if err != nil {
-		return errors.Wrap(err, "failed to build request")
+		return nil, errors.Wrap(err, "failed to build request")
 	}
 
 	if err := c.sign(req); err != nil {
-		return errors.Wrap(err, "failed to sign HTTP request")
+		return nil, errors.Wrap(err, "failed to sign HTTP request")
 	}
 
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrap(err, "failed to send request")
 	}
 
-	return c.process(response, output, expect...)
+	return nil, c.process(response, output, expect...)
 }
 
-func (c *httpClient) get(u string, query url.Values, output interface{}, expect ...int) error {
+func (c *httpClient) get(u string, query url.Values, output interface{}, expect ...int) (*http.Response, error) {
 	if len(query) > 0 {
 		u = fmt.Sprintf("%s?%s", u, query.Encode())
 	}
 
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return errors.Wrap(err, "failed to create new HTTP request")
+		return nil, errors.Wrap(err, "failed to create new HTTP request")
 	}
 
 	if err := c.sign(req); err != nil {
-		return errors.Wrap(err, "failed to sign HTTP request")
+		return nil, errors.Wrap(err, "failed to sign HTTP request")
 	}
 
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrap(err, "failed to send request")
 	}
 
-	return c.process(response, output, expect...)
+	return response, c.process(response, output, expect...)
 }
 
-func (c *httpClient) delete(u string, query url.Values, output interface{}, expect ...int) error {
+func (c *httpClient) delete(u string, query url.Values, output interface{}, expect ...int) (*http.Response, error) {
 	if len(query) > 0 {
 		u = fmt.Sprintf("%s?%s", u, query.Encode())
 	}
 	req, err := http.NewRequest(http.MethodDelete, u, nil)
 	if err != nil {
-		return errors.Wrap(err, "failed to build request")
+		return nil, errors.Wrap(err, "failed to build request")
 	}
 
 	if err := c.sign(req); err != nil {
-		return errors.Wrap(err, "failed to sign HTTP request")
+		return nil, errors.Wrap(err, "failed to sign HTTP request")
 	}
 
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrap(err, "failed to send request")
 	}
 
-	return c.process(response, output, expect...)
+	return response, c.process(response, output, expect...)
 }

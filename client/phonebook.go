@@ -15,7 +15,7 @@ type httpPhonebook struct {
 
 func (p *httpPhonebook) Create(user phonebook.User) (schema.ID, error) {
 	var out phonebook.User
-	if err := p.post(p.url("users"), user, &out); err != nil {
+	if _, err := p.post(p.url("users"), user, &out); err != nil {
 		return 0, err
 	}
 
@@ -32,13 +32,13 @@ func (p *httpPhonebook) List(name, email string, page *Pager) (output []phoneboo
 		query.Set("email", email)
 	}
 
-	err = p.get(p.url("users"), query, &output, http.StatusOK)
+	_, err = p.get(p.url("users"), query, &output, http.StatusOK)
 
 	return
 }
 
 func (p *httpPhonebook) Get(id schema.ID) (user phonebook.User, err error) {
-	err = p.get(p.url("users", fmt.Sprint(id)), nil, &user, http.StatusOK)
+	_, err = p.get(p.url("users", fmt.Sprint(id)), nil, &user, http.StatusOK)
 	return
 }
 
@@ -55,7 +55,7 @@ func (p *httpPhonebook) Validate(id schema.ID, message, signature string) (bool,
 		V bool `json:"is_valid"`
 	}
 
-	err := p.post(p.url("users", fmt.Sprint(id), "validate"), input, &output, http.StatusOK)
+	_, err := p.post(p.url("users", fmt.Sprint(id), "validate"), input, &output, http.StatusOK)
 	if err != nil {
 		return false, err
 	}

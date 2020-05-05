@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 
+	"github.com/stellar/go/support/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -16,7 +18,7 @@ type httpWorkloads struct {
 }
 
 func (w *httpWorkloads) Create(reservation workloads.Reservation) (resp wrklds.ReservationCreateResponse, err error) {
-	err = w.post(w.url("reservations"), reservation, &resp, http.StatusCreated)
+	_, err = w.post(w.url("reservations"), reservation, &resp, http.StatusCreated)
 	return
 }
 
@@ -30,17 +32,17 @@ func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid i
 	}
 	page.apply(query)
 
-	err = w.get(w.url("reservations"), query, &reservation, http.StatusOK)
+	_, err = w.get(w.url("reservations"), query, &reservation, http.StatusOK)
 	return
 }
 
 func (w *httpWorkloads) Get(id schema.ID) (reservation workloads.Reservation, err error) {
-	err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &reservation, http.StatusOK)
+	_, err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &reservation, http.StatusOK)
 	return
 }
 
 func (w *httpWorkloads) SignProvision(id schema.ID, user schema.ID, signature string) error {
-	return w.post(
+	_, err := w.post(
 		w.url("reservations", fmt.Sprint(id), "sign", "provision"),
 		workloads.SigningSignature{
 			Tid:       int64(user),
@@ -49,10 +51,12 @@ func (w *httpWorkloads) SignProvision(id schema.ID, user schema.ID, signature st
 		nil,
 		http.StatusCreated,
 	)
+
+	return err
 }
 
 func (w *httpWorkloads) SignDelete(id schema.ID, user schema.ID, signature string) error {
-	return w.post(
+	_, err := w.post(
 		w.url("reservations", fmt.Sprint(id), "sign", "delete"),
 		workloads.SigningSignature{
 			Tid:       int64(user),
@@ -61,6 +65,8 @@ func (w *httpWorkloads) SignDelete(id schema.ID, user schema.ID, signature strin
 		nil,
 		http.StatusCreated,
 	)
+
+	return err
 }
 
 type intermediateWL struct {
@@ -131,8 +137,6 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 			return result, err
 		}
 		result.Content = o
-	case workloads.WorkloadTypeNOOP:
-		//do nothing so result.Content will be nil
 	default:
 		return result, fmt.Errorf("unknown workload type")
 	}
@@ -140,35 +144,46 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 	return
 }
 
-func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, error) {
+func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error) {
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
 	var list []intermediateWL
 
-	err := w.get(
+	response, err := w.get(
 		w.url("reservations", "workloads", nodeID),
 		query,
 		&list,
 		http.StatusOK,
 	)
-	if err != nil {
-		return nil, err
+
+	var lastID uint64
+	if idStr := response.Header.Get("x-last-id"); len(idStr) != 0 {
+		lastID, err = strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			return nil, lastID, errors.Wrap(err, "failed to extract last id value")
+		}
 	}
+
+	if err != nil {
+		return nil, lastID, err
+	}
+
 	results := make([]workloads.ReservationWorkload, 0, len(list))
 	for _, i := range list {
 		wl, err := i.Workload()
 		if err != nil {
-			return nil, err
+			return nil, lastID, err
 		}
 		results = append(results, wl)
 	}
-	return results, err
+
+	return results, lastID, err
 }
 
 func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error) {
 	var output intermediateWL
-	err = w.get(w.url("reservations", "workloads", gwid), nil, &output, http.StatusOK)
+	_, err = w.get(w.url("reservations", "workloads", gwid), nil, &output, http.StatusOK)
 	if err != nil {
 		return
 	}
@@ -177,9 +192,11 @@ func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.ReservationWo
 }
 
 func (w *httpWorkloads) WorkloadPutResult(nodeID, gwid string, result workloads.Result) error {
-	return w.put(w.url("reservations", "workloads", gwid, nodeID), result, nil, http.StatusCreated)
+	_, err := w.put(w.url("reservations", "workloads", gwid, nodeID), result, nil, http.StatusCreated)
+	return err
 }
 
 func (w *httpWorkloads) WorkloadPutDeleted(nodeID, gwid string) error {
-	return w.delete(w.url("reservations", "workloads", gwid, nodeID), nil, nil, http.StatusOK)
+	_, err := w.delete(w.url("reservations", "workloads", gwid, nodeID), nil, nil, http.StatusOK)
+	return err
 }
