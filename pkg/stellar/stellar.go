@@ -55,8 +55,8 @@ const (
 )
 
 var (
-	// ErrInsuficientBalance is an error that is used when there is insufficient balance
-	ErrInsuficientBalance = errors.New("insuficient balance")
+	// ErrInsufficientBalance is an error that is used when there is insufficient balance
+	ErrInsufficientBalance = errors.New("insufficient balance")
 	// ErrAssetCodeNotSupported indicated the given asset code is not supported by this wallet
 	ErrAssetCodeNotSupported = errors.New("asset code not supported")
 )
