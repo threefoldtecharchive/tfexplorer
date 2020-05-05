@@ -450,6 +450,12 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	// store last reservation ID
+	lastID, err := types.ReservationLastID(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
 	filter := types.ReservationFilter{}.WithIDGE(from)
 	filter = filter.WithNodeID(nodeID)
 
@@ -490,7 +496,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
-	return workloads, nil
+	return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 }
 
 func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
