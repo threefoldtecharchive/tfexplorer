@@ -46,19 +46,19 @@ func (h HTTPError) Response() http.Response {
 func newHTTPClient(raw string, id Identity) (*httpClient, error) {
 	u, err := url.Parse(raw)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid url")
+		return nil, fmt.Errorf("invalid url: %w", err)
 	}
 
-	var signer *httpsig.Signer
+	client := &httpClient{
+		u: u,
+	}
+
 	if id != nil {
-		signer = httpsig.NewSigner(id.Identity(), id.PrivateKey(), httpsig.Ed25519, []string{"(created)", "date", "threebot-id"})
+		client.signer = httpsig.NewSigner(id.Identity(), id.PrivateKey(), httpsig.Ed25519, []string{"(created)", "date", "threebot-id"})
+		client.identity = id.Identity()
 	}
 
-	return &httpClient{
-		u:        u,
-		signer:   signer,
-		identity: id.Identity(),
-	}, nil
+	return client, nil
 }
 
 func (c *httpClient) url(p ...string) string {
