@@ -450,7 +450,7 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		}
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeKubernetes,
+			generated.WorkloadTypeQemu,
 			wl.NodeId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
