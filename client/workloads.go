@@ -157,16 +157,16 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Reser
 		http.StatusOK,
 	)
 
+	if err != nil {
+		return nil, 0, err
+	}
+
 	var lastID uint64
 	if idStr := response.Header.Get("x-last-id"); len(idStr) != 0 {
 		lastID, err = strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			return nil, lastID, errors.Wrap(err, "failed to extract last id value")
 		}
-	}
-
-	if err != nil {
-		return nil, lastID, err
 	}
 
 	results := make([]workloads.ReservationWorkload, 0, len(list))
