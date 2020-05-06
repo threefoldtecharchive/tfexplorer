@@ -584,6 +584,22 @@ func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema
 	return nil
 }
 
+// ReservationToDeploy marks a reservation to deploy and schedule the workloads for the nodes
+// it's a short cut to SetNextAction then PushWorkloads
+func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *Reservation) error {
+	// update reservation
+	if err := ReservationSetNextAction(ctx, db, reservation.ID, Deploy); err != nil {
+		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
+	}
+
+	//queue for processing
+	if err := WorkloadPush(ctx, db, reservation.Workloads("")...); err != nil {
+		return errors.Wrap(err, "failed to schedule reservation for deploying")
+	}
+
+	return nil
+}
+
 // SignatureMode type
 type SignatureMode string
 
