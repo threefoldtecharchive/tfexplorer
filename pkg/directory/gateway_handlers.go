@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
 
+	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
@@ -16,8 +17,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var (
+	errFailedToRegisterGateway = errors.New("failed to register gateway")
+	errFailedToListGateways    = errors.New("failed to list gateways")
+)
+
 func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response) {
-	log.Info().Msg("node register request received")
+	log.Info().Msg("gateway register request received")
 
 	defer r.Body.Close()
 
@@ -28,7 +34,7 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 
 	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, gw); err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: errFailedToRegisterGateway.Error()})
 	}
 
 	log.Info().Msgf("gateway registered: %+v\n", gw)
@@ -37,45 +43,45 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 }
 
 func (s *GatewayAPI) gatewayDetail(r *http.Request) (interface{}, mw.Response) {
-	nodeID := mux.Vars(r)["node_id"]
+	gatewayID := mux.Vars(r)["gateway_id"]
 	q := gatewayQuery{}
 	if err := q.Parse(r); err != nil {
 		return nil, err
 	}
 	db := mw.Database(r)
 
-	node, err := s.Get(r.Context(), db, nodeID)
+	gateway, err := s.Get(r.Context(), db, gatewayID)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("gateway with id %s not found", gatewayID)})
 	}
 
-	return node, nil
+	return gateway, nil
 }
 
 func (s *GatewayAPI) listGateways(r *http.Request) (interface{}, mw.Response) {
 	q := gatewayQuery{}
 	if err := q.Parse(r); err != nil {
-		return nil, err
+		return nil, mw.Error(errFailedToListGateways)
 	}
 
 	db := mw.Database(r)
 	pager := models.PageFromRequest(r)
-	nodes, total, err := s.List(r.Context(), db, q, pager)
+	gateways, total, err := s.List(r.Context(), db, q, pager)
 	if err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: errFailedToListGateways.Error()})
 	}
 
 	pages := fmt.Sprintf("%d", models.Pages(pager, total))
-	return nodes, mw.Ok().WithHeader("Pages", pages)
+	return gateways, mw.Ok().WithHeader("Pages", pages)
 }
 
 func (s *GatewayAPI) updateUptimeHandler(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
-	nodeID := mux.Vars(r)["node_id"]
-	hNodeID := httpsig.KeyIDFromContext(r.Context())
-	if nodeID != hNodeID {
-		return nil, mw.Forbidden(fmt.Errorf("trying to register uptime for nodeID %s while you are %s", nodeID, hNodeID))
+	gatewayID := mux.Vars(r)["gateway_id"]
+	hGatewayID := httpsig.KeyIDFromContext(r.Context())
+	if gatewayID != hGatewayID {
+		return nil, mw.Forbidden(fmt.Errorf("trying to register uptime for gatewayID %s while you are %s", gatewayID, hGatewayID))
 	}
 
 	input := struct {
@@ -86,10 +92,10 @@ func (s *GatewayAPI) updateUptimeHandler(r *http.Request) (interface{}, mw.Respo
 	}
 
 	db := mw.Database(r)
-	log.Debug().Str("gateway", nodeID).Uint64("uptime", input.Uptime).Msg("gateway uptime received")
+	log.Debug().Str("gateway", gatewayID).Uint64("uptime", input.Uptime).Msg("gateway uptime received")
 
-	if err := s.updateUptime(r.Context(), db, nodeID, int64(input.Uptime)); err != nil {
-		return nil, mw.NotFound(err)
+	if err := s.updateUptime(r.Context(), db, gatewayID, int64(input.Uptime)); err != nil {
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update gateway with gatewayID %s", gatewayID)})
 	}
 
 	return nil, nil
@@ -98,10 +104,10 @@ func (s *GatewayAPI) updateUptimeHandler(r *http.Request) (interface{}, mw.Respo
 func (s *GatewayAPI) updateReservedResources(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
-	nodeID := mux.Vars(r)["node_id"]
-	hNodeID := httpsig.KeyIDFromContext(r.Context())
-	if nodeID != hNodeID {
-		return nil, mw.Forbidden(fmt.Errorf("trying to update reserved capacity for nodeID %s while you are %s", nodeID, hNodeID))
+	gatewayID := mux.Vars(r)["gateway_id"]
+	hGatewayID := httpsig.KeyIDFromContext(r.Context())
+	if gatewayID != hGatewayID {
+		return nil, mw.Forbidden(fmt.Errorf("trying to update reserved capacity for gatewayID %s while you are %s", gatewayID, hGatewayID))
 	}
 
 	input := struct {
@@ -114,11 +120,11 @@ func (s *GatewayAPI) updateReservedResources(r *http.Request) (interface{}, mw.R
 	}
 
 	db := mw.Database(r)
-	if err := s.updateReservedCapacity(r.Context(), db, nodeID, input.ResourceAmount); err != nil {
-		return nil, mw.NotFound(err)
+	if err := s.updateReservedCapacity(r.Context(), db, gatewayID, input.ResourceAmount); err != nil {
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update gateway reserved capacity with gatewayID %s", gatewayID)})
 	}
-	if err := s.updateWorkloadsAmount(r.Context(), db, nodeID, input.WorkloadAmount); err != nil {
-		return nil, mw.NotFound(err)
+	if err := s.updateWorkloadsAmount(r.Context(), db, gatewayID, input.WorkloadAmount); err != nil {
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update gateway workloads amount with gatewayID %s", gatewayID)})
 	}
 
 	return nil, nil

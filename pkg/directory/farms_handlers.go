@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
 
@@ -15,6 +16,11 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 
 	"github.com/gorilla/mux"
+)
+
+var (
+	errFailedToRegisterFarm = errors.New("failed to register farm")
+	errFailedToListFarms    = errors.New("failed to list farms")
 )
 
 func (s *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
@@ -34,7 +40,7 @@ func (s *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 
 	id, err := s.Add(r.Context(), db, info)
 	if err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: errFailedToRegisterFarm.Error()})
 	}
 
 	return struct {
@@ -56,7 +62,7 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 
 	farm, err := s.GetByID(r.Context(), db, id)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("farm with id %s not found", sid)})
 	}
 
 	sfarmerID := httpsig.KeyIDFromContext(r.Context())
@@ -78,7 +84,7 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 
 	err = s.Update(r.Context(), db, info.ID, info)
 	if err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update farm with farmID %s", sid)})
 	}
 
 	return nil, mw.Ok()
@@ -96,7 +102,7 @@ func (s *FarmAPI) listFarm(r *http.Request) (interface{}, mw.Response) {
 	pager := models.PageFromRequest(r)
 	farms, total, err := s.List(r.Context(), db, filter, pager)
 	if err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: errFailedToListFarms.Error()})
 	}
 
 	pages := fmt.Sprintf("%d", models.Pages(pager, total))
@@ -115,7 +121,7 @@ func (s *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 
 	farm, err := s.GetByID(r.Context(), db, id)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("farm with id %s not found", sid)})
 	}
 
 	return farm, nil

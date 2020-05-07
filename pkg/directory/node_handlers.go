@@ -24,6 +24,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var (
+	errFailedToRegisterNode       = errors.New("failed to register node")
+	errFailedToRegisterIfacesNode = errors.New("failed to register ifaces for node")
+	errFailedToListNodes          = errors.New("failed to list nodes")
+)
+
 func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 	log.Info().Msg("node register request received")
 
@@ -31,17 +37,14 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 
 	var n directory.Node
 	if err := json.NewDecoder(r.Body).Decode(&n); err != nil {
-		return nil, mw.BadRequest(err)
+		return nil, mw.BadRequest(errFailedToRegisterNode)
 	}
 
 	//make sure node can not set public config
 	n.PublicConfig = nil
 	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, n); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, mw.NotFound(fmt.Errorf("farm with id:%d does not exists", n.FarmId))
-		}
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("farm with id:%d does not exists", n.FarmId)})
 	}
 
 	log.Info().Msgf("node registered: %+v\n", n)
@@ -59,7 +62,7 @@ func (s *NodeAPI) nodeDetail(r *http.Request) (interface{}, mw.Response) {
 
 	node, err := s.Get(r.Context(), db, nodeID, q.Proofs)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("node with id %s not found", nodeID)})
 	}
 
 	return node, nil
@@ -75,7 +78,7 @@ func (s *NodeAPI) listNodes(r *http.Request) (interface{}, mw.Response) {
 	pager := models.PageFromRequest(r)
 	nodes, total, err := s.List(r.Context(), db, q, pager)
 	if err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: errFailedToListNodes.Error()})
 	}
 
 	pages := fmt.Sprintf("%d", models.Pages(pager, total))
@@ -89,6 +92,7 @@ func (s *NodeAPI) registerCapacity(r *http.Request) (interface{}, mw.Response) {
 		Disks      capacity.Disks           `json:"disks,omitempty"`
 		Hypervisor []string                 `json:"hypervisor,omitempty"`
 	}{}
+	nodeID := mux.Vars(r)["node_id"]
 
 	defer r.Body.Close()
 
@@ -96,7 +100,6 @@ func (s *NodeAPI) registerCapacity(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	nodeID := mux.Vars(r)["node_id"]
 	hNodeID := httpsig.KeyIDFromContext(r.Context())
 	if nodeID != hNodeID {
 		return nil, mw.Forbidden(fmt.Errorf("trying to register capacity for nodeID %s while you are %s", nodeID, hNodeID))
@@ -105,11 +108,11 @@ func (s *NodeAPI) registerCapacity(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 
 	if err := s.updateTotalCapacity(r.Context(), db, nodeID, x.Capacity); err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update node total capicity with nodeID %s", nodeID)})
 	}
 
 	if err := s.StoreProof(r.Context(), db, nodeID, x.DMI, x.Disks, x.Hypervisor); err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to store proof for node with nodeID %s", nodeID)})
 	}
 
 	return nil, nil
@@ -133,7 +136,7 @@ func (s *NodeAPI) registerIfaces(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	if err := s.SetInterfaces(r.Context(), db, nodeID, input); err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: errFailedToRegisterIfacesNode.Error()})
 	}
 
 	return nil, mw.Created()
@@ -156,7 +159,7 @@ func (s *NodeAPI) configurePublic(r *http.Request) (interface{}, mw.Response) {
 
 	node, err := s.Get(r.Context(), db, nodeID, false)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("node with id %s not found", nodeID)})
 	}
 
 	// ensure it is the farmer that does the call
@@ -170,7 +173,7 @@ func (s *NodeAPI) configurePublic(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if err := s.SetPublicConfig(r.Context(), db, nodeID, iface); err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to set public config for node with nodeID %s", nodeID)})
 	}
 
 	return nil, mw.Created()
@@ -182,7 +185,7 @@ func (s *NodeAPI) configureFreeToUse(r *http.Request) (interface{}, mw.Response)
 
 	node, err := s.Get(r.Context(), db, nodeID, false)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("node with id %s not found", nodeID)})
 	}
 
 	// ensure it is the farmer that does the call
@@ -205,7 +208,7 @@ func (s *NodeAPI) configureFreeToUse(r *http.Request) (interface{}, mw.Response)
 	}
 
 	if err := s.updateFreeToUse(r.Context(), db, node.NodeId, choice.FreeToUse); err != nil {
-		return nil, mw.Error(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update the free to use status for node with nodeID %s", nodeID)})
 	}
 
 	return nil, mw.Ok()
@@ -232,7 +235,7 @@ func (s *NodeAPI) registerPorts(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	if err := s.SetWGPorts(r.Context(), db, nodeID, input.Ports); err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to set the wireguard ports for node with nodeID %s", nodeID)})
 	}
 
 	return nil, nil
@@ -258,7 +261,7 @@ func (s *NodeAPI) updateUptimeHandler(r *http.Request) (interface{}, mw.Response
 	log.Debug().Str("node", nodeID).Uint64("uptime", input.Uptime).Msg("node uptime received")
 
 	if err := s.updateUptime(r.Context(), db, nodeID, int64(input.Uptime)); err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update the uptime for node with nodeID %s", nodeID)})
 	}
 
 	return nil, nil
@@ -284,10 +287,10 @@ func (s *NodeAPI) updateReservedResources(r *http.Request) (interface{}, mw.Resp
 
 	db := mw.Database(r)
 	if err := s.updateReservedCapacity(r.Context(), db, nodeID, input.ResourceAmount); err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update reserved capacity for node with nodeID %s", nodeID)})
 	}
 	if err := s.updateWorkloadsAmount(r.Context(), db, nodeID, input.WorkloadAmount); err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to update workloads amount for node with nodeID %s", nodeID)})
 	}
 
 	return nil, nil
@@ -299,7 +302,7 @@ func farmOwner(ctx context.Context, farmID int64, db *mongo.Database) (int64, mw
 
 	farm, err := ff.Get(ctx, db)
 	if err != nil {
-		return 0, mw.Error(err) //TODO
+		return 0, mw.MongoError(mw.MongoDBError{Cause: err, Message: fmt.Sprintf("failed to get farmer with farmID %d", farmID)})
 	}
 
 	return farm.ThreebotId, nil

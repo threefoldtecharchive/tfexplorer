@@ -56,9 +56,9 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 
 	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.registerGateway)).Methods("POST").Name("gateway-register")
 	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.listGateways)).Methods("GET").Name("gateway-list")
-	gw.HandleFunc("/{node_id}", mw.AsHandlerFunc(gwAPI.gatewayDetail)).Methods("GET").Name(("gateway-get"))
-	gwAuthenticated.HandleFunc("/{node_id}/uptime", mw.AsHandlerFunc(gwAPI.Requires("node_id", gwAPI.updateUptimeHandler))).Methods("POST").Name("gateway-uptime")
-	gwAuthenticated.HandleFunc("/{node_id}/reserved_resources", mw.AsHandlerFunc(gwAPI.Requires("node_id", gwAPI.updateReservedResources))).Methods("POST").Name("gateway-reserved-resources")
+	gw.HandleFunc("/{gateway_id}", mw.AsHandlerFunc(gwAPI.gatewayDetail)).Methods("GET").Name(("gateway-get"))
+	gwAuthenticated.HandleFunc("/{gateway_id}/uptime", mw.AsHandlerFunc(gwAPI.Requires("gateway_id", gwAPI.updateUptimeHandler))).Methods("POST").Name("gateway-uptime")
+	gwAuthenticated.HandleFunc("/{gateway_id}/reserved_resources", mw.AsHandlerFunc(gwAPI.Requires("gateway_id", gwAPI.updateReservedResources))).Methods("POST").Name("gateway-reserved-resources")
 
 	return nil
 }

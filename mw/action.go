@@ -2,10 +2,12 @@ package mw
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/rs/zerolog/log"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Response interface
@@ -109,6 +111,26 @@ func Error(err error, code ...int) Response {
 	}
 
 	return genericResponse{status: status, err: err}
+}
+
+// MongoDBError is a struct that wraps an error with a message
+type MongoDBError struct {
+	Cause   error
+	Message string
+}
+
+// MongoError generic mongo error response
+func MongoError(err MongoDBError, code ...int) Response {
+	status := http.StatusInternalServerError
+	if len(code) > 0 {
+		status = code[0]
+	}
+
+	if errors.Is(err.Cause, mongo.ErrNoDocuments) {
+		return NotFound(fmt.Errorf(err.Message))
+	}
+
+	return genericResponse{status: status, err: fmt.Errorf("no message")}
 }
 
 // BadRequest result
