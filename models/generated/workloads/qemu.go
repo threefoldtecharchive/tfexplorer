@@ -7,7 +7,7 @@ type Qemu struct {
 	NodeId            string       `bson:"node_id" json:"node_id"`
 	Ipaddress         net.IP       `bson:"ipaddress" json:"ipaddress"`
 	Image             string       `bson:"image" json:"image"`
-	ImageFlistStorage string       `bson: "image_flist_storage" json:"image_flist_storage"`
+	ImageFlistStorage string       `bson:"image_flist_storage" json:"image_flist_storage"`
 	Capacity          QemuCapacity `bson:"capacity" json:"capacity"`
 }
 

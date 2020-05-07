@@ -30,6 +30,7 @@ func cmdsProvision(c *cli.Context) error {
 		zdbs       = c.StringSlice("zdb")
 		kubes      = c.StringSlice("kube")
 		networks   = c.StringSlice("network")
+		qemus      = c.StringSlice("qemu")
 		dryRun     = c.Bool("dry-run")
 		err        error
 	)
@@ -95,6 +96,21 @@ func cmdsProvision(c *cli.Context) error {
 		k8sBuilder.WorkloadId = workloadID
 		workloadID = +1
 		reservationBuilder.AddK8s(*k8sBuilder)
+	}
+
+	for _, qemu := range qemus {
+		f, err := os.Open(qemu)
+		if err != nil {
+			return errors.Wrap(err, "failed to open qemu")
+		}
+
+		qemuBuilder, err := builders.LoadQemuBuilder(f)
+		if err != nil {
+			return errors.Wrap(err, "failed to load the qemu builder")
+		}
+		qemuBuilder.WorkloadId = workloadID
+		workloadID = +1
+		reservationBuilder.AddQemu(*qemuBuilder)
 	}
 
 	for _, network := range networks {

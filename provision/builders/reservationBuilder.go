@@ -107,6 +107,12 @@ func (r *ReservationBuilder) AddK8s(k8s K8sBuilder) *ReservationBuilder {
 	return r
 }
 
+// AddQemu adds a qemu builder to the reservation builder
+func (r *ReservationBuilder) AddQemu(qemu QemuBuilder) *ReservationBuilder {
+	r.reservation.DataReservation.Qemus = append(r.reservation.DataReservation.Qemus, qemu.Qemu)
+	return r
+}
+
 func encryptSecret(plain, nodeID string) (string, error) {
 	if len(plain) == 0 {
 		return "", nil
