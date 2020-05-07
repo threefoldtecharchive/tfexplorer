@@ -579,6 +579,11 @@ func ReservationCreate(ctx context.Context, db *mongo.Database, r Reservation) (
 	return id, nil
 }
 
+// ReservationLastID get the current last ID number in the reservations collection
+func ReservationLastID(ctx context.Context, db *mongo.Database) (schema.ID, error) {
+	return models.LastID(ctx, db, ReservationCollection)
+}
+
 // ReservationSetNextAction update the reservation next action in db
 func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action generated.NextActionEnum) error {
 	var filter ReservationFilter
@@ -593,6 +598,22 @@ func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ReservationToDeploy marks a reservation to deploy and schedule the workloads for the nodes
+// it's a short cut to SetNextAction then PushWorkloads
+func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *Reservation) error {
+	// update reservation
+	if err := ReservationSetNextAction(ctx, db, reservation.ID, Deploy); err != nil {
+		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
+	}
+
+	//queue for processing
+	if err := WorkloadPush(ctx, db, reservation.Workloads("")...); err != nil {
+		return errors.Wrap(err, "failed to schedule reservation for deploying")
 	}
 
 	return nil

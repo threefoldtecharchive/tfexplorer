@@ -12,6 +12,8 @@ var assetDistributions = map[stellar.Asset]payoutDistribution{
 	// load all assets
 	stellar.TFTMainnet:     {farmer: 90, burned: 0, foundation: 10},
 	stellar.TFTTestnet:     {farmer: 90, burned: 0, foundation: 10},
+	stellar.TFTAMainnet:    {farmer: 90, burned: 0, foundation: 10},
+	stellar.TFTATestnet:    {farmer: 90, burned: 0, foundation: 10},
 	stellar.FreeTFTMainnet: {farmer: 0, burned: 100, foundation: 0},
 	stellar.FreeTFTTestnet: {farmer: 0, burned: 100, foundation: 0},
 }

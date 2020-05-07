@@ -147,6 +147,10 @@ func (s *NodeAPI) configurePublic(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	if err := iface.Validate(); err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("error during validation of public config: %w", err))
+	}
+
 	db := mw.Database(r)
 	nodeID := mux.Vars(r)["node_id"]
 

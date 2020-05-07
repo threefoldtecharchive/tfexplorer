@@ -49,3 +49,20 @@ func MustID(ctx context.Context, db *mongo.Database, collection string) schema.I
 
 	return id
 }
+
+// LastID get the last max value in the collection
+func LastID(ctx context.Context, db *mongo.Database, collection string) (schema.ID, error) {
+	result := db.Collection(Counters).FindOne(ctx, bson.M{"_id": collection})
+
+	if result.Err() == mongo.ErrNoDocuments {
+		return 0, nil
+	} else if result.Err() != nil {
+		return 0, result.Err()
+	}
+
+	var value struct {
+		Sequence schema.ID `bson:"sequence"`
+	}
+	err := result.Decode(&value)
+	return value.Sequence, err
+}

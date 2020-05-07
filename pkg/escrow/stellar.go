@@ -266,9 +266,8 @@ func (e *Stellar) checkReservationPaid(escrowInfo types.ReservationPaymentInform
 
 	slog.Info().Msg("all farmer are paid, trying to move to deploy state")
 
-	// update reservation
-	if err = workloadtypes.ReservationSetNextAction(e.ctx, e.db, escrowInfo.ReservationID, workloadtypes.Deploy); err != nil {
-		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
+	if err := workloadtypes.ReservationToDeploy(e.ctx, e.db, &reservation); err != nil {
+		return errors.Wrap(err, "failed to schedule the reservation to deploy")
 	}
 
 	escrowInfo.Paid = true
@@ -341,7 +340,8 @@ func (e *Stellar) processReservation(reservation workloads.Reservation, offeredC
 		return customerInfo, ErrNoCurrencyShared
 	}
 
-	res, err := e.calculateReservationCost(rsuPerFarmer)
+	duration := time.Until(reservation.DataReservation.ExpirationReservation.Time)
+	res, err := e.calculateReservationCost(rsuPerFarmer, duration)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to process reservation resources costs")
 	}
