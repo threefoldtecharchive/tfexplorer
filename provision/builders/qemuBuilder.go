@@ -58,7 +58,7 @@ func (qemu *QemuBuilder) WithNodeID(nodeID string) *QemuBuilder {
 	return qemu
 }
 
-// WithIPAdress sets the ip address to the Qemu
+// WithIPAddress sets the ip address to the Qemu
 func (qemu *QemuBuilder) WithIPAddress(ip net.IP) *QemuBuilder {
 	qemu.Qemu.Ipaddress = ip
 	return qemu
