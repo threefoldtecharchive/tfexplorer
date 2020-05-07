@@ -113,14 +113,14 @@ func Error(err error, code ...int) Response {
 	return genericResponse{status: status, err: err}
 }
 
-// MongoDBError is a struct that wraps an error with a message
-type MongoDBError struct {
+// DBError is a struct that wraps an error with a message
+type DBError struct {
 	Cause   error
 	Message string
 }
 
-// MongoError generic mongo error response
-func MongoError(err MongoDBError, code ...int) Response {
+// GenericDBError generic db error response
+func GenericDBError(err DBError, code ...int) Response {
 	status := http.StatusInternalServerError
 	if len(code) > 0 {
 		status = code[0]
