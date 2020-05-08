@@ -32,6 +32,7 @@ import (
 	escrowdb "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
+	"github.com/threefoldtech/tfexplorer/pkg/threebotconnect"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads"
 	_ "github.com/threefoldtech/tfexplorer/statik"
 	"github.com/threefoldtech/zos/pkg/app"
@@ -197,6 +198,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	pkgs := []Pkg{
 		phonebook.Setup,
 		directory.Setup,
+		threebotconnect.Setup,
 	}
 
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)

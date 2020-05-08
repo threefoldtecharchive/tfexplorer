@@ -3,10 +3,12 @@ module github.com/threefoldtech/tfexplorer
 go 1.14
 
 require (
+	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/dave/jennifer v1.3.0
 	github.com/emicklei/dot v0.10.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/sessions v1.2.0
 	github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/pkg/errors v0.9.1
