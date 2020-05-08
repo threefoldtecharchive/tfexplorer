@@ -1,15 +1,16 @@
 import tfService from '../services/tfService'
 import lodash from 'lodash'
 
-// keep the interval object locally to clear them afterwards
-let nodesLoadingInterval, farmsLoadingInterval, gatewaysLoadingInvertal
-
 const getDefaultState = () => {
   return {
     user: {},
     registeredNodes: [],
     nodePage: 1,
+    nodesLoading: true,
     farmPage: 1,
+    farmsLoading: true,
+    gatewayPage: 1,
+    gatewaysLoading: true,
     nodes: undefined,
     registeredFarms: [],
     registeredGateways: [],
@@ -49,30 +50,84 @@ export default ({
       context.commit('setUser', response.data)
     },
     getRegisteredNodes (context, params) {
-      let page = params.page || context.state.nodePage
+      let page = context.state.nodePage
       if (!page) return
 
-      tfService.getNodes(undefined, params.size, page).then(response => {
+      const getNodes = (page) => {
+        return tfService.getNodes(undefined, params.size, page)
+      }
+
+      getNodes(page).then(response => {
         context.commit('setRegisteredNodes', response)
-        context.commit('setTotalSpecs', response.data)
+        const pages = parseInt(response.headers.pages, 10)
+        const promises = []
+        for (var index = context.state.nodePage; index <= pages; index++) {
+          promises.push(getNodes(index))
+        }
+        Promise.all(promises)
+          .then(res => {
+            res.map(response => {
+              context.commit('setRegisteredNodes', response)
+            })
+          })
+          .finally(() => {
+            context.commit('setTotalSpecs', context.state.registeredNodes)
+            context.commit('setNodesLoading', false)
+          })
       })
     },
     getRegisteredFarms (context, params) {
-      let page = params.page || context.state.farmPage
+      let page = context.state.nodePage
       if (!page) return
 
-      tfService.registeredfarms(params.size, page).then(response => {
-        context.commit('setAmountOfFarms', response.data)
+      const getFarms = (page) => {
+        return tfService.registeredfarms(params.size, page)
+      }
+
+      getFarms(page).then(response => {
         context.commit('setRegisteredFarms', response)
+        const pages = parseInt(response.headers.pages, 10)
+        const promises = []
+        for (var index = context.state.farmPage; index <= pages; index++) {
+          promises.push(getFarms(index))
+        }
+        Promise.all(promises)
+          .then(res => {
+            res.map(response => {
+              context.commit('setRegisteredFarms', response)
+            })
+          })
+          .finally(() => {
+            context.commit('setAmountOfFarms', context.state.registeredFarms)
+            context.commit('setFarmsLoading', false)
+          })
       })
     },
     getRegisteredGateways (context, params) {
       let page = params.page || context.state.gatewayPage
       if (!page) return
 
-      tfService.getGateways(params.size, page).then(response => {
+      const getGateways = (page) => {
+        return tfService.getGateways(params.size, page)
+      }
+
+      getGateways(page).then(response => {
         context.commit('setRegisteredGateways', response)
-        context.commit('setGatewaySpecs', response.data)
+        const pages = parseInt(response.headers.pages, 10)
+        const promises = []
+        for (var index = context.state.gatewayPage; index <= pages; index++) {
+          promises.push(getGateways(index))
+        }
+        Promise.all(promises)
+          .then(res => {
+            res.map(response => {
+              context.commit('setRegisteredGateways', response)
+            })
+          })
+          .finally(() => {
+            context.commit('setGatewaySpecs', context.state.registeredGateways)
+            context.commit('setGatewaysLoading', false)
+          })
       })
     },
     getFarms: context => {
@@ -87,98 +142,38 @@ export default ({
       context.commit('resetState')
     },
     refreshData: ({ dispatch }) => {
-      // clear intervals first
-      clearInterval(nodesLoadingInterval)
-      clearInterval(farmsLoadingInterval)
-
       // reset the vuex store
       dispatch('resetState')
 
-      // load 100 nodes and farms
-      dispatch('getRegisteredNodes', { size: 1000, page: 1 })
-      dispatch('getRegisteredFarms', { size: 1000, page: 1 })
-      dispatch('getRegisteredGateways', { size: 1000, page: 1 })
-
-      // load all the rest of nodes and farms over time
-      dispatch('initialiseFarmsLoading')
-      dispatch('initialiseNodesLoading')
-      dispatch('initialiseGatewaysLoading')
-    },
-    initialiseNodesLoading ({ dispatch, state }) {
-      nodesLoadingInterval = setInterval(() => {
-        dispatch('getRegisteredNodes', { size: 1000, page: state.nodePage })
-      }, 750)
-    },
-    initialiseFarmsLoading ({ dispatch, state }) {
-      farmsLoadingInterval = setInterval(() => {
-        dispatch('getRegisteredFarms', { size: 1000, page: state.farmPage })
-      }, 750)
-    },
-    initialiseGatewaysLoading ({ dispatch, state }) {
-      gatewaysLoadingInvertal = setInterval(() => {
-        dispatch('getRegisteredGateways', { size: 1000, page: state.gatewayPage })
-      }, 750)
+      // load 500 nodes at a time
+      dispatch('getRegisteredNodes', { size: 500, page: 1 })
+      dispatch('getRegisteredFarms', { size: 500, page: 1 })
+      dispatch('getRegisteredGateways', { size: 500, page: 1 })
     }
   },
   mutations: {
     setRegisteredNodes (state, response) {
-      const pages = parseInt(response.headers.pages, 10)
-      if (pages === response.config.params.page) {
-        state.nodePage = undefined
-        state.registeredNodes = state.registeredNodes.concat(response.data)
-        // all nodes are loaded, clear the interval
-        return clearInterval(nodesLoadingInterval)
-      }
-
-      if (response.data.length === 0) {
-        state.nodePage = undefined
-        // all nodes are loaded, clear the interval
-        return clearInterval(nodesLoadingInterval)
-      }
-
-      // more pages to load, concat data and increase page number
       state.registeredNodes = state.registeredNodes.concat(response.data)
       state.nodePage += 1
     },
+    setNodesLoading (state, loading) {
+      state.nodesLoading = loading
+    },
     setRegisteredFarms (state, response) {
-      const pages = parseInt(response.headers.pages, 10)
-      if (pages === response.config.params.page) {
-        state.farmPage = undefined
-        state.registeredFarms = state.registeredFarms.concat(response.data)
-
-        // all farms are loaded, clear the interval
-        return clearInterval(farmsLoadingInterval)
-      }
-
-      if (response.data.length === 0) {
-        state.farmPage = undefined
-        // all farms are loaded, clear the interval
-        return clearInterval(farmsLoadingInterval)
-      }
-
       // more pages to load, concat data and increase page number
       state.registeredFarms = state.registeredFarms.concat(response.data)
       state.farmPage += 1
     },
+    setFarmsLoading (state, loading) {
+      state.farmsLoading = loading
+    },
     setRegisteredGateways (state, response) {
-      const pages = parseInt(response.headers.pages, 10)
-      if (pages === response.config.params.page) {
-        state.gatewayPage = undefined
-        state.registeredGateways = state.registeredGateways.concat(response.data)
-
-        // all gateways are loaded, clear the interval
-        return clearInterval(gatewaysLoadingInvertal)
-      }
-
-      if (response.data.length === 0) {
-        state.gatewayPage = undefined
-        // all gateways are loaded, clear the interval
-        return clearInterval(gatewaysLoadingInvertal)
-      }
-
       // more pages to load, concat data and increase page number
       state.registeredGateways = state.registeredGateways.concat(response.data)
       state.gatewayPage += 1
+    },
+    setGatewaysLoading (state, loading) {
+      state.gatewaysLoading = loading
     },
     setFarms (state, value) {
       state.farms = value
@@ -199,21 +194,21 @@ export default ({
       if (value.length === 0) {
         return
       }
-      state.nodeSpecs.amountregisteredNodes += value.length
-      state.nodeSpecs.onlinenodes += countOnlineNodes(value)
-      state.nodeSpecs.countries += lodash.uniqBy(
+      state.nodeSpecs.amountregisteredNodes = value.length
+      state.nodeSpecs.onlinenodes = countOnlineNodes(value)
+      state.nodeSpecs.countries = lodash.uniqBy(
         value,
         node => node.location.country
       ).length
-      state.nodeSpecs.cru += lodash.sumBy(value, node => node.total_resources.cru)
-      state.nodeSpecs.mru += lodash.sumBy(value, node => node.total_resources.mru)
-      state.nodeSpecs.sru += lodash.sumBy(value, node => node.total_resources.sru)
-      state.nodeSpecs.hru += lodash.sumBy(value, node => node.total_resources.hru)
-      state.nodeSpecs.network += lodash.sumBy(value, node => node.workloads.network)
-      state.nodeSpecs.volume += lodash.sumBy(value, node => node.workloads.volume)
-      state.nodeSpecs.container += lodash.sumBy(value, node => node.workloads.container)
-      state.nodeSpecs.zdb_namespace += lodash.sumBy(value, node => node.workloads.zdb_namespace)
-      state.nodeSpecs.k8s_vm += lodash.sumBy(value, node => node.workloads.k8s_vm)
+      state.nodeSpecs.cru = lodash.sumBy(value, node => node.total_resources.cru)
+      state.nodeSpecs.mru = lodash.sumBy(value, node => node.total_resources.mru)
+      state.nodeSpecs.sru = lodash.sumBy(value, node => node.total_resources.sru)
+      state.nodeSpecs.hru = lodash.sumBy(value, node => node.total_resources.hru)
+      state.nodeSpecs.network = lodash.sumBy(value, node => node.workloads.network)
+      state.nodeSpecs.volume = lodash.sumBy(value, node => node.workloads.volume)
+      state.nodeSpecs.container = lodash.sumBy(value, node => node.workloads.container)
+      state.nodeSpecs.zdb_namespace = lodash.sumBy(value, node => node.workloads.zdb_namespace)
+      state.nodeSpecs.k8s_vm = lodash.sumBy(value, node => node.workloads.k8s_vm)
     },
     setGatewaySpecs (state, value) {
       if (value.length === 0) {
@@ -237,9 +232,9 @@ export default ({
     farms: state => state.farms,
     nodeSpecs: state => state.nodeSpecs,
     gatewaySpecs: state => state.gatewaySpecs,
-    nodePage: state => state.nodePage,
-    gatewayPage: state => state.gatewayPage,
-    farmPage: state => state.farmPage
+    nodesLoading: state => state.nodesLoading,
+    farmsLoading: state => state.farmsLoading,
+    gatewaysLoading: state => state.gatewaysLoading
   }
 })
 
