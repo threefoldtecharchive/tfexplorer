@@ -14,14 +14,13 @@ type QemuBuilder struct {
 }
 
 // NewQemuBuilder creates a new Qemu builder
-func NewQemuBuilder(nodeID string, IP net.IP, image string, imageflist string, capacity workloads.QemuCapacity) *QemuBuilder {
+func NewQemuBuilder(nodeID string, IP net.IP, image string, capacity workloads.QemuCapacity) *QemuBuilder {
 	return &QemuBuilder{
 		Qemu: workloads.Qemu{
-			NodeId:            nodeID,
-			Ipaddress:         IP,
-			Image:             image,
-			ImageFlistStorage: imageflist,
-			Capacity:          capacity,
+			NodeId:    nodeID,
+			Ipaddress: IP,
+			Image:     image,
+			Capacity:  capacity,
 		},
 	}
 }
@@ -67,12 +66,6 @@ func (qemu *QemuBuilder) WithIPAddress(ip net.IP) *QemuBuilder {
 // WithImage sets the image id to the Qemu
 func (qemu *QemuBuilder) WithImage(image string) *QemuBuilder {
 	qemu.Qemu.Image = image
-	return qemu
-}
-
-// WithImageFlistStorage sets the imagefliststorage id to the Qemu
-func (qemu *QemuBuilder) WithImageFlistStorage(imagefliststorage string) *QemuBuilder {
-	qemu.Qemu.ImageFlistStorage = imagefliststorage
 	return qemu
 }
 

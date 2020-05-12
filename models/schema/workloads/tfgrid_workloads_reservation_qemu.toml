@@ -5,7 +5,6 @@ workload_id = (I)
 node_id = (S)
 ipaddress = (ipaddress)
 image = (S)
-image_flist = (S)
 
 @url = tfgrid.workloads.reservation.qemu.capacity.1
 # Number of vCPU

@@ -3,12 +3,11 @@ package workloads
 import "net"
 
 type Qemu struct {
-	WorkloadId        int64        `bson:"workload_id" json:"workload_id"`
-	NodeId            string       `bson:"node_id" json:"node_id"`
-	Ipaddress         net.IP       `bson:"ipaddress" json:"ipaddress"`
-	Image             string       `bson:"image" json:"image"`
-	ImageFlistStorage string       `bson:"image_flist_storage" json:"image_flist_storage"`
-	Capacity          QemuCapacity `bson:"capacity" json:"capacity"`
+	WorkloadId int64        `bson:"workload_id" json:"workload_id"`
+	NodeId     string       `bson:"node_id" json:"node_id"`
+	Ipaddress  net.IP       `bson:"ipaddress" json:"ipaddress"`
+	Image      string       `bson:"image" json:"image"`
+	Capacity   QemuCapacity `bson:"capacity" json:"capacity"`
 }
 
 func (q Qemu) WorkloadID() int64 {

@@ -11,10 +11,9 @@ import (
 
 func generateQemu(c *cli.Context) error {
 	var (
-		nodeID            = c.String("node")
-		ipString          = c.String("ip")
-		image             = c.String("image")
-		imageFlistStorage = c.String("image-flist-storage")
+		nodeID   = c.String("node")
+		ipString = c.String("ip")
+		image    = c.String("image")
 	)
 
 	ip := net.ParseIP(ipString)
@@ -26,16 +25,12 @@ func generateQemu(c *cli.Context) error {
 		return errors.New("vm requires a image to boot from")
 	}
 
-	if imageFlistStorage == "" {
-		return errors.New("imageFlistStorage is required")
-	}
-
 	cap := workloads.QemuCapacity{
 		CPU:     c.Uint("cpu"),
 		Memory:  c.Uint64("memory"),
 		HDDSize: c.Uint64("hddsize"),
 	}
 
-	qemu := builders.NewQemuBuilder(nodeID, ip, image, imageFlistStorage, cap)
+	qemu := builders.NewQemuBuilder(nodeID, ip, image, cap)
 	return writeWorkload(c.GlobalString("schema"), qemu.Build())
 }
