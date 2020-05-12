@@ -547,6 +547,22 @@ func TestCalculateReservationCost(t *testing.T) {
 		assert.Equal(t, xdr.Int64(7.086004*precision), res[3])
 	})
 
+	t.Run("333_hours", func(t *testing.T) {
+		duration := 333 * time.Hour
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
+
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 0.266 + 11.904 * 0.200) * 333 * (1 - 0.25)
+		assert.Equal(t, xdr.Int64(862.7968395*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 0.266 + 10.803 * 0.200) * 333 * (1 - 0.25)
+		assert.Equal(t, xdr.Int64(884.8647495*precision), res[3])
+	})
+
 	t.Run("1_month", func(t *testing.T) {
 		duration := month
 		res, err := escrow.calculateReservationCost(farmRsu, duration)
@@ -561,6 +577,22 @@ func TestCalculateReservationCost(t *testing.T) {
 		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
 		// (5.197 * 0.266 + 10.803 * 0.200) * 720 * (1 - 0.50)
 		assert.Equal(t, xdr.Int64(1275.48072*precision), res[3])
+	})
+
+	t.Run("1_month_2_day_16h_32m_11s", func(t *testing.T) {
+		duration := month + 2*day + 16*time.Hour + 32*time.Minute + 11*time.Second
+		res, err := escrow.calculateReservationCost(farmRsu, duration)
+		if ok := assert.NoError(t, err); !ok {
+			t.Fatal()
+		}
+
+		assert.True(t, len(res) == 2)
+		// cru: 11, sru: 1000, hru: 1000, mru: 17
+		// (4.037 * 0.266 + 11.904 * 0.200) * (720+2*24+17) * (1 - 0.50)
+		assert.Equal(t, xdr.Int64(1355.946985*precision), res[1])
+		// cru: 17, sru: 650, hru: 4000, mru: 21.8829
+		// (5.197 * 0.266 + 10.803 * 0.200) * (720+2*24+17) * (1 - 0.50)
+		assert.Equal(t, xdr.Int64(1390.628285*precision), res[3])
 	})
 
 	t.Run("2_month", func(t *testing.T) {
