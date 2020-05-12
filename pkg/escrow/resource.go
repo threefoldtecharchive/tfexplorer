@@ -88,7 +88,12 @@ func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer, duration
 			b.Mul(big.NewFloat(storageUnitTFTCost), big.NewFloat(cu.su)),
 		)
 
-		total = a.Mul(total, big.NewFloat(duration.Hours()))
+		// lock the duration to the hour above
+		ceiledDuration := math.Ceil(duration.Hours())
+		// compute the total amount of token to pay
+		total = a.Mul(total, big.NewFloat(ceiledDuration))
+
+		// apply the discount
 		discount := getDiscount(duration)
 		total = a.Mul(total, big.NewFloat(discount))
 

@@ -93,6 +93,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(fmt.Errorf("creating for a reservation that expires in the past"))
 	}
 
+	duration := time.Until(reservation.DataReservation.ExpirationReservation.Time)
+	if duration < time.Hour {
+		return nil, mw.BadRequest(fmt.Errorf("the minimum duration for a reservation is 1 hour, you tried to reserve for %s", duration.String()))
+	}
+
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
 	// in later stages
