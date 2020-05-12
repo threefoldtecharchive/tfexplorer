@@ -596,7 +596,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -678,7 +678,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
 		return nil, mw.Error(err)
 	}
 
