@@ -20,6 +20,8 @@ To achieve this, a `signing_request_extend` field needs to be filled with valid 
 After signing `signature_extend`is filled with a valid signature. Same rules apply as with provisioning, like the `quorum_min` must be respected to indicate minimum amount of signatures to be respected. 
 For this type of change, the reservation.data object doesn't change. 
 
+Proposal is not to allow shortening the reservation time by the user, as this can only be initiated by the sender of the tokens, in this case the farmer. The capacity user does not have the keys to trigger this action. 
+
 The workflow for this change looks like : 
 
 ![](workflow_extend_reservation.png)
