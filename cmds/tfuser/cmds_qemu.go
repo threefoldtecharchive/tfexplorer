@@ -21,9 +21,9 @@ func generateQemu(c *cli.Context) error {
 		return errors.New("bad IP for vm")
 	}
 
-	if image == "" {
+	/* if image == "" {
 		return errors.New("vm requires a image to boot from")
-	}
+	} */
 
 	cap := workloads.QemuCapacity{
 		CPU:     c.Uint("cpu"),
