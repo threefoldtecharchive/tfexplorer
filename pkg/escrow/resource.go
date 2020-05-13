@@ -29,37 +29,39 @@ type (
 	}
 )
 
-// cost price of cloud units:
-// - $15 for a compute unit
-// - $10 for a storage unit
+// cost price of cloud units per hour:
+// - 0.04 for a compute unit
+// - 0.03 for a storage unit
 // TFT price is fixed at $0.15 / TFT
 // since this means neither compute unit nor cloud unit returns a nice value when
 // expressed in TFT, we fix this to 3 digit precision.
 const (
-	computeUnitTFTCost = 100.000 // 15 / 0.15
-	storageUnitTFTCost = 66.667  // 10 / 0.15
+	computeUnitTFTCost = 0.266 //  0.04 / 0.15
+	storageUnitTFTCost = 0.200 // 0.03 / 0.15
 )
 
 const (
+	// durations
 	day   = 24 * time.Hour
 	week  = 7 * day
-	month = 31 * day
+	month = 30 * day
 )
 
-func timeMultiplier(d time.Duration) float64 {
+func getDiscount(d time.Duration) float64 {
 
-	// when < 1 week: price X 2
-	// when < 1 day: price X 4 (1h is smallest)
-	// 1.5 months is same as 2 months
-
-	multiplier := math.Ceil(d.Seconds() / month.Seconds())
 	switch {
-	case d < day:
-		multiplier *= 4
-	case day <= d && d < week:
-		multiplier *= 2
+	case d >= 12*month:
+		return 1 - 0.70
+	case d >= 6*month:
+		return 1 - 0.60
+	case d >= month:
+		return 1 - 0.50
+	case d >= week:
+		return 1 - 0.25
+	default:
+		return 1
 	}
-	return multiplier
+
 }
 
 // calculateReservationCost calculates the cost of reservation based on a resource per farmer map
@@ -86,7 +88,14 @@ func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer, duration
 			b.Mul(big.NewFloat(storageUnitTFTCost), big.NewFloat(cu.su)),
 		)
 
-		total = total.Mul(total, big.NewFloat(timeMultiplier(duration)))
+		// lock the duration to the hour above
+		ceiledDuration := math.Ceil(duration.Hours())
+		// compute the total amount of token to pay
+		total = a.Mul(total, big.NewFloat(ceiledDuration))
+
+		// apply the discount
+		discount := getDiscount(duration)
+		total = a.Mul(total, big.NewFloat(discount))
 
 		cost, err := amount.Parse(total.String())
 		if err != nil {

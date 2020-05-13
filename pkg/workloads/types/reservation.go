@@ -461,11 +461,7 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			if len(nodeID) > 0 && nr.NodeId != nodeID {
 				continue
 			}
-			// QUESTION: the problem here is that we have multiple workloads that
-			// has the same global workload-id, hence it's gonna be a problem
-			// when the node report their results. because it means only last
-			// result is what is gonna be visible. We need to (may be) change
-			// the workload id to have the network resource index
+
 			wrkl := newWrkl(
 				fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 				generated.WorkloadTypeNetwork,
@@ -602,6 +598,22 @@ func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema
 	return nil
 }
 
+// ReservationToDeploy marks a reservation to deploy and schedule the workloads for the nodes
+// it's a short cut to SetNextAction then PushWorkloads
+func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *Reservation) error {
+	// update reservation
+	if err := ReservationSetNextAction(ctx, db, reservation.ID, Deploy); err != nil {
+		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
+	}
+
+	//queue for processing
+	if err := WorkloadPush(ctx, db, reservation.Workloads("")...); err != nil {
+		return errors.Wrap(err, "failed to schedule reservation for deploying")
+	}
+
+	return nil
+}
+
 // SignatureMode type
 type SignatureMode string
 
@@ -676,9 +688,9 @@ func WorkloadPush(ctx context.Context, db *mongo.Database, w ...Workload) error 
 }
 
 // WorkloadPop removes workload from queue
-func WorkloadPop(ctx context.Context, db *mongo.Database, id string) error {
+func WorkloadPop(ctx context.Context, db *mongo.Database, id string, nodeID string) error {
 	col := db.Collection(queueCollection)
-	_, err := col.DeleteOne(ctx, bson.M{"workload_id": id})
+	_, err := col.DeleteOne(ctx, bson.M{"workload_id": id, "node_id": nodeID})
 
 	return err
 }

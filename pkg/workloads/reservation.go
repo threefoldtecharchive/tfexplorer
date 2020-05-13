@@ -93,6 +93,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(fmt.Errorf("creating for a reservation that expires in the past"))
 	}
 
+	duration := time.Until(reservation.DataReservation.ExpirationReservation.Time)
+	if duration < time.Hour {
+		return nil, mw.BadRequest(fmt.Errorf("the minimum duration for a reservation is 1 hour, you tried to reserve for %s", duration.String()))
+	}
+
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
 	// in later stages
@@ -602,7 +607,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -684,7 +689,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
 		return nil, mw.Error(err)
 	}
 

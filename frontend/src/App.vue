@@ -59,7 +59,7 @@
           </h1>
           <v-progress-circular
             class="refresh"
-            v-if="nodePage || farmPage"
+            v-if="nodesLoading || farmsLoading || gatewaysLoading"
             indeterminate
             color="primary"
           ></v-progress-circular>
@@ -123,8 +123,9 @@ export default {
       return this.$router.options.routes
     },
     ...mapGetters([
-      'nodePage',
-      'farmPage'
+      'nodesLoading',
+      'farmsLoading',
+      'gatewaysLoading'
     ])
   },
   mounted () {
