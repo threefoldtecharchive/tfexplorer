@@ -512,6 +512,10 @@ func main() {
 					Name:  "network",
 					Usage: "add a network to provision",
 				},
+				cli.StringSliceFlag{
+					Name:  "qemu",
+					Usage: "add a qemu vm to provision",
+				},
 			},
 			Action: cmdsProvision,
 		},
