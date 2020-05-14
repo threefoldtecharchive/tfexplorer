@@ -7,7 +7,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
 
-// DenbugBuilder is a struct that can set/request system debug information
+// DebugBuilder is a struct that can set/request system debug information
 type DebugBuilder struct {
 	workloads.Debug
 }
