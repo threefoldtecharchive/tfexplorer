@@ -107,6 +107,12 @@ func (r *ReservationBuilder) AddK8s(k8s K8sBuilder) *ReservationBuilder {
 	return r
 }
 
+// AddDebug adds a debug builder to the reservation builder
+func (r *ReservationBuilder) AddDebug(debug DebugBuilder) *ReservationBuilder {
+	r.reservation.DataReservation.Debug = append(r.reservation.DataReservation.Debug, debug.Debug)
+	return r
+}
+
 func encryptSecret(plain, nodeID string) (string, error) {
 	if len(plain) == 0 {
 		return "", nil

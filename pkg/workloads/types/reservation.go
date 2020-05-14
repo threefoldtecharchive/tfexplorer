@@ -100,7 +100,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
 
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates", "gateway4to6", "debug"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -517,6 +517,7 @@ func (r *Reservation) NodeIDs() []string {
 	for _, w := range r.DataReservation.Proxies {
 		ids[w.NodeId] = struct{}{}
 	}
+
 	for _, w := range r.DataReservation.Debug {
 		ids[w.NodeId] = struct{}{}
 	}
