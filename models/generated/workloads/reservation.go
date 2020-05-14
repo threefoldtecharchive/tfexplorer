@@ -68,6 +68,7 @@ type ReservationData struct {
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
 	DomainDelegates         []GatewayDelegate     `bson:"domain_delegates" json:"domain_delegates"`
 	Gateway4To6s            []Gateway4To6         `bson:"gateway4to6" json:"gateway4to6"`
+	Debug                   []Debug               `bson:"debug" json:"debug"`
 	ExpirationProvisioning  schema.Date           `bson:"expiration_provisioning" json:"expiration_provisioning"`
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
 }
@@ -138,6 +139,7 @@ const (
 	WorkloadTypeSubDomain
 	WorkloadTypeDomainDelegate
 	WorkloadTypeGateway4To6
+	WorkloadTypeDebug
 )
 
 // WorkloadTypes is a map of all the supported workload type
@@ -152,6 +154,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeSubDomain:      "subdomain",
 	WorkloadTypeDomainDelegate: "domain-delegate",
 	WorkloadTypeGateway4To6:    "gateway4to6",
+	WorkloadTypeDebug:          "debug",
 }
 
 func (e WorkloadTypeEnum) String() string {

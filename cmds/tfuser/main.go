@@ -437,6 +437,18 @@ func main() {
 					},
 					Action: generateKubernetes,
 				},
+				{
+					Name:   "debug",
+					Usage:  "generate system diagnostic report",
+					Action: generateDebug,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:     "node",
+							Usage:    "node id for the generated workload",
+							Required: true,
+						},
+					},
+				},
 			},
 		},
 		{
@@ -475,6 +487,10 @@ func main() {
 				cli.StringSliceFlag{
 					Name:  "network",
 					Usage: "add a network to provision",
+				},
+				cli.StringSliceFlag{
+					Name:  "debug",
+					Usage: "add a debug request to provision",
 				},
 			},
 			Action: cmdsProvision,

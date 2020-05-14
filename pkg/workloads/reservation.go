@@ -419,6 +419,12 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 				return nil, err
 			}
 			obj.Content = data
+		case generated.WorkloadTypeDebug:
+			var data generated.Debug
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
 		}
 
 		workloads = append(workloads, types.Workload{

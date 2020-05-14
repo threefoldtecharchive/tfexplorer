@@ -30,6 +30,7 @@ func cmdsProvision(c *cli.Context) error {
 		zdbs       = c.StringSlice("zdb")
 		kubes      = c.StringSlice("kube")
 		networks   = c.StringSlice("network")
+		debug      = c.StringSlice("debug")
 		dryRun     = c.Bool("dry-run")
 		err        error
 	)
@@ -110,6 +111,21 @@ func cmdsProvision(c *cli.Context) error {
 		networkBuilder.WorkloadId = workloadID
 		workloadID = +1
 		reservationBuilder.AddNetwork(*networkBuilder)
+	}
+
+	for _, entry := range debug {
+		f, err := os.Open(entry)
+		if err != nil {
+			return errors.Wrap(err, "failed to open debug")
+		}
+
+		builder, err := builders.LoadDebugBuilder(f)
+		if err != nil {
+			return errors.Wrap(err, "failed to load the debug builder")
+		}
+		builder.WorkloadId = workloadID
+		workloadID = +1
+		reservationBuilder.AddDebug(*builder)
 	}
 
 	var duration time.Duration
