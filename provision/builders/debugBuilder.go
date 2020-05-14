@@ -2,19 +2,17 @@ package builders
 
 import (
 	"encoding/json"
-	_ "fmt"
 	"io"
 
-	_ "github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
 
-// ContainerBuilder is a struct that can build containers
+// DenbugBuilder is a struct that can set/request system debug information
 type DebugBuilder struct {
 	workloads.Debug
 }
 
-// NewContainerBuilder creates a new container builder
+// NewDebugBuilder creates a new debug builder
 func NewDebugBuilder(nodeID string) *DebugBuilder {
 	return &DebugBuilder{
 		Debug: workloads.Debug{
@@ -24,7 +22,7 @@ func NewDebugBuilder(nodeID string) *DebugBuilder {
 	}
 }
 
-// LoadContainerBuilder loads a container builder based on a file path
+// LoadDebugBuilder loads a debug builder based on a file path
 func LoadDebugBuilder(reader io.Reader) (*DebugBuilder, error) {
 	debug := workloads.Debug{}
 
@@ -36,7 +34,7 @@ func LoadDebugBuilder(reader io.Reader) (*DebugBuilder, error) {
 	return &DebugBuilder{Debug: debug}, nil
 }
 
-// Save saves the container builder to an IO.Writer
+// Save saves the debug builder to an IO.Writer
 func (d *DebugBuilder) Save(writer io.Writer) error {
 	err := json.NewEncoder(writer).Encode(d.Debug)
 	if err != nil {
@@ -45,12 +43,12 @@ func (d *DebugBuilder) Save(writer io.Writer) error {
 	return err
 }
 
-// Build validates and encrypts the secret environment of the container
+// Build does nothing for now
 func (d *DebugBuilder) Build() (workloads.Debug, error) {
 	return d.Debug, nil
 }
 
-// WithSysdiag sets the system diagnostic request flag
+// WithSysdiag enable/disable the system diagnostic request flag
 func (d *DebugBuilder) WithSysdiag(enabled bool) *DebugBuilder {
 	d.Debug.Sysdiag = enabled
 	return d
