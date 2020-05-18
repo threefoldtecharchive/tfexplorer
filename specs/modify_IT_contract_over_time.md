@@ -98,5 +98,48 @@ In order to implement this solution a possible approach would be to create some 
 
 If a user needs to extend the live of its workloads he just have to make sure the reserved capacity from its pools is always funded enough.
 
-While this solution seems to solve of the problems is also requires nearly a complete rewrite of how capacity is reserved on the grid.
-How a reservation will be linked to a capacity pool is not yet defined in this spec.
+Some questions needs to be answered if we want to go this way:
+
+- Q: A capacity pool apply on a farm or on a list of nodes ?
+- A: Reservation on top a farm makes it pretty hard to do capacity planning on the node themself. Cause there is no way to know which nodes will be picked by the user. So there is a possibility a node will not be able to provide capacity even if the capacity pool still has some available capacity. For this reason I think capacity pool should actually be a list of node/capacity pair.
+
+- How does the node actually reserve the capacity ?
+
+- Should the node be involved in the creation of a pool ?
+- what about over provisioning ? Can a farmer sell more capacity than he actually has. if yes what happens if the nodes cannot provides the capacity when requested by the client.
+
+#### WIP design
+<!-- 
+```go
+
+type ResourceAmount struct {
+	Cru uint64 
+	Mru float64
+	Hru float64
+	Sru float64
+}
+
+type SigningRequest struct {
+	Signers   []int64
+	QuorumMin int64
+}
+
+type SigningSignature struct {
+	Tid       int64
+	Signature string
+	Created     time.Time
+}
+
+type CapacityPool struct {
+    FarmID int64
+    ResourceUnits ResourceAmount
+    Expiration time.Time
+
+    SigningRequestProvision SigningRequest
+	SigningRequestDelete    SigningRequest
+
+    SignaturesProvision []SigningSignature
+	SignaturesFarmer    SigningSignature
+	SignaturesDelete    []SigningSignature
+}
+``` -->
