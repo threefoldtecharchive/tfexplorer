@@ -437,6 +437,46 @@ func main() {
 					},
 					Action: generateKubernetes,
 				},
+				{
+					Name:  "qemu",
+					Usage: "Provision a virtual machine using Qemu as hypervisor",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:     "node",
+							Usage:    "node id for the generated workload",
+							Required: true,
+						},
+						cli.StringFlag{
+							Name:     "flist",
+							Usage:    "URL to the flist of the image",
+							Required: true,
+						},
+						cli.StringFlag{
+							Name:  "network-id",
+							Usage: "ID of the network resource in which the vm will be created",
+						},
+						cli.StringFlag{
+							Name:  "ip",
+							Usage: "Ip address of the virtual machine in the network resource",
+						},
+						cli.UintFlag{
+							Name:     "cpu",
+							Usage:    "limit the amount of CPU allocated to the virtual machine",
+							Required: true,
+						},
+						cli.Uint64Flag{
+							Name:     "memory",
+							Usage:    "limit the amount of memory a virutal machine can allocate",
+							Required: true,
+						},
+						cli.Uint64Flag{
+							Name:     "HDD",
+							Usage:    "limit the amount of HDD (in GB) a virtual machine can allocate",
+							Required: true,
+						},
+					},
+					Action: generateQemu,
+				},
 			},
 		},
 		{
@@ -475,6 +515,10 @@ func main() {
 				cli.StringSliceFlag{
 					Name:  "network",
 					Usage: "add a network to provision",
+				},
+				cli.StringSliceFlag{
+					Name:  "qemu",
+					Usage: "add a qemu vm to provision",
 				},
 			},
 			Action: cmdsProvision,

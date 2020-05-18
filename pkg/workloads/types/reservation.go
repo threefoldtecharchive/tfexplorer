@@ -100,7 +100,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
 
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "qemus", "proxies", "reserve_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -190,7 +190,8 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.ReserveProxy) +
 		len(r.DataReservation.Subdomains) +
 		len(r.DataReservation.DomainDelegates) +
-		len(r.DataReservation.Gateway4To6s)
+		len(r.DataReservation.Gateway4To6s) +
+		len(r.DataReservation.Qemus)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -225,6 +226,9 @@ func (r *Reservation) Validate() error {
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Gateway4To6s {
+		workloaders = append(workloaders, w)
+	}
+	for _, w := range r.DataReservation.Qemus {
 		workloaders = append(workloaders, w)
 	}
 
@@ -440,6 +444,18 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 	}
+	for _, wl := range data.Qemus {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		wrkl := newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeQemu,
+			wl.NodeId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
+
+	}
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
 
@@ -500,6 +516,9 @@ func (r *Reservation) NodeIDs() []string {
 		ids[w.NodeId] = struct{}{}
 	}
 	for _, w := range r.DataReservation.Proxies {
+		ids[w.NodeId] = struct{}{}
+	}
+	for _, w := range r.DataReservation.Qemus {
 		ids[w.NodeId] = struct{}{}
 	}
 
