@@ -94,52 +94,50 @@ None of the workloads provided by the webgateway can be updated.
 ### Solution 2: Decouple the reservation of capacity from the actual workloads description
 
 This solution splits the reservation of capacity from the workloads consuming this capacity.
-In order to implement this solution a possible approach would be to create some kind of capacity pool entity. User would reservation capacity from different farms. Then once the capacity is reserved, they could provision/decommission workloads on these farms freely without worrying when deleting a workloads cause then the capacity would just be given back to the pool and no token would be "lost".
+In order to implement this solution a possible approach would be to create some kind of capacity pool entity. User would reserve capacity from different farms. Then once the capacity is reserved, they could provision/decommission workloads on these farms freely without worrying when deleting a workloads cause then the capacity would just be given back to the pool and no token would be "lost".
 
 If a user needs to extend the live of its workloads he just have to make sure the reserved capacity from its pools is always funded enough.
 
-Some questions needs to be answered if we want to go this way:
+Here are the 2 new flows that would need to be implemented:
 
-- Q: A capacity pool apply on a farm or on a list of nodes ?
-- A: Reservation on top a farm makes it pretty hard to do capacity planning on the node themself. Cause there is no way to know which nodes will be picked by the user. So there is a possibility a node will not be able to provide capacity even if the capacity pool still has some available capacity. For this reason I think capacity pool should actually be a list of node/capacity pair.
+#### Creation of the capacity pool
 
-- How does the node actually reserve the capacity ?
+![reserve_capacity](reserve_capacity.png)
 
-- Should the node be involved in the creation of a pool ?
-- what about over provisioning ? Can a farmer sell more capacity than he actually has. if yes what happens if the nodes cannot provides the capacity when requested by the client.
+This flow is very similar to the current flow to deploy workloads. The main difference is only the amount of resource units if defined instead of a full workloads definition.
 
-#### WIP design
-<!-- 
-```go
+Both the farmer and the user still needs to sign the reservation to mark their agreement on the deal. Multi signature is still possible using the same signing request construct that exists today.
 
-type ResourceAmount struct {
-	Cru uint64 
-	Mru float64
-	Hru float64
-	Sru float64
-}
+The main difference is during the call numbered 3 in the diagram. When the user send the capacity reservation to the explorer, the explorer will block. During this time, the explorer will sends the capacity reservation to the nodes and wait for them to answer (in reality the node poll the explorer but this is an implementation detail, the idea is that the node is made aware of capacity reservation).
+There are 2 possibility, or the node managed to lock the amount of capacity asked, or not. In both cases the node answer to the explorer.
+If all nodes managed to lock the capacity, the explorer will mark the capacity reservation as to be paid and send the payment detail to the user.  
+If any of the node failed to lock the capacity, the explorer will return an error to the user. The error will give detail about which node failed to lock capacity. The user can then modify it's request and retry.
 
-type SigningRequest struct {
-	Signers   []int64
-	QuorumMin int64
-}
+This flow is made in such a way to avoid having to refund any token back to the client. When the node received the request to lock capacity, it will create an capacity pool object kept on cache the define the amount of capacity reserved by the pool. This object will be used later on during the life of the node to decide if a workload can be deployed or not.  
+The pool object also contains the expiration date of the pool. This will also be used by the node over time to periodically check back in the explorer and make sure the pool has been extended. If a node has some workloads that are part of a pool that is about to expire, a call is make to the explorer to ask what is the expiration date of the pool. If the pool has not been extended, all the workloads linked to this pool will be decommissioned.
 
-type SigningSignature struct {
-	Tid       int64
-	Signature string
-	Created     time.Time
-}
+With this system in place, expiration are not needed on the workload definition anymore. It also greatly reduce the amount of time the token are locked in the explorer, cause now as soon as they token are received on the escrow account, they can be forwarded directly to the farmer.
 
-type CapacityPool struct {
-    FarmID int64
-    ResourceUnits ResourceAmount
-    Expiration time.Time
+If for some reason the client fails to pay the capacity reservation in time. Only the capacity needs to be unlock on the node but there are no token transfer involved at all (unless the client pay only a part of the amount, then refund needs to happens)
 
-    SigningRequestProvision SigningRequest
-	SigningRequestDelete    SigningRequest
+#### Workloads deployment
 
-    SignaturesProvision []SigningSignature
-	SignaturesFarmer    SigningSignature
-	SignaturesDelete    []SigningSignature
-}
-``` -->
+![deploy_workload](deploy_workload.png)
+
+This flow is greatly simplified compare to how it works today. The only party involved are the user, the explorer and the nodes. The farmer and blockchain are no longer involved.
+
+There are still some things to take in account here. In order to avoid over-provisioning and try to return early, the explorer will keep track of how much resource is available in a capacity pool. So when a workloads definition is received, it first check if the total amount of resource needed is available in the pool.
+This check needs to be atomic in the explorer, meaning that 2 workloads for the same pool needs to be process one at a time.
+This is what we see in the step 3 and 4 of the diagram. The modification of the pool capacity is done before the workload definition is send to the node. This is a protection against concurrent request trying to deploy workloads using the same capacity pool. By modifying the pool capacity early we prevent over-provisioning.
+
+The pool resource is also updated when a workloads is decommissioned from a node. The explorer does this when it receives a result with the state deleted from a node.
+
+### Todo
+
+- I did not yet measure the impact of those change regarding all the different currency supported. We should try to make sure to avoid the network split generated by the FreeTFT token. cf. https://github.com/threefoldtech/tfexplorer/issues/50
+- The exact schema of the different new objects still needs to be defined in detail
+- Define clearly all the modification in the code that would be needed for all component to implement this proposal
+
+### Extra ideas
+
+With this design, the capacity reservation is not linked to a single farm but to a list of nodes. This property would allow multiple farmer to create some kind of "virtual farm" where all farmer contribute some capacity and are rewarded based on the % of CPR they allocated to the virtual farm. Think crypto mining pool but for IT capacity. This is specially interesting for very small farmer that have less chance to get market shares. This needs to be further thought out and is not part of this reflection just yet.

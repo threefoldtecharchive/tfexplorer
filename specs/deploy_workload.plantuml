@@ -1,0 +1,23 @@
+@startuml
+
+title Deploy workload
+
+actor User as user
+database tfexplorer
+boundary node
+
+autonumber
+user -> tfexplorer: send workloads definition
+tfexplorer -> tfexplorer: ensure enough capacity is available in the pool.
+tfexplorer -> tfexplorer: decrease remaining pool capacity
+tfexplorer -> node: sends workloads definition
+alt workload deployed sucesfully
+node --> tfexplorer: result success
+user -> node: user access its workload
+else failed to deploy workload or provision timeout reached
+autonumber 5
+node --> tfexplorer: result error
+tfexplorer -> node: cancel full reservation
+tfexplorer -> tfexplorer: increase remaining pool capacity
+end
+@enduml
