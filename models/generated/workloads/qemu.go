@@ -5,6 +5,7 @@ import "net"
 type Qemu struct {
 	WorkloadId int64        `bson:"workload_id" json:"workload_id"`
 	NodeId     string       `bson:"node_id" json:"node_id"`
+	NetworkId  string       `bson:"network_id" json:"network_id"`
 	Ipaddress  net.IP       `bson:"ipaddress" json:"ipaddress"`
 	Image      string       `bson:"image" json:"image"`
 	Capacity   QemuCapacity `bson:"capacity" json:"capacity"`

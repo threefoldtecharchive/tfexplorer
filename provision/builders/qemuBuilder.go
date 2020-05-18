@@ -14,10 +14,11 @@ type QemuBuilder struct {
 }
 
 // NewQemuBuilder creates a new Qemu builder
-func NewQemuBuilder(nodeID string, IP net.IP, image string, capacity workloads.QemuCapacity) *QemuBuilder {
+func NewQemuBuilder(nodeID string, networkID string, IP net.IP, image string, capacity workloads.QemuCapacity) *QemuBuilder {
 	return &QemuBuilder{
 		Qemu: workloads.Qemu{
 			NodeId:    nodeID,
+			NetworkId: networkID,
 			Ipaddress: IP,
 			Image:     image,
 			Capacity:  capacity,
@@ -60,6 +61,12 @@ func (qemu *QemuBuilder) WithNodeID(nodeID string) *QemuBuilder {
 // WithIPAddress sets the ip address to the Qemu
 func (qemu *QemuBuilder) WithIPAddress(ip net.IP) *QemuBuilder {
 	qemu.Qemu.Ipaddress = ip
+	return qemu
+}
+
+// WithNetworkID sets the ip address to the Qemu
+func (qemu *QemuBuilder) WithNetworkID(netID string) *QemuBuilder {
+	qemu.Qemu.NetworkId = netID
 	return qemu
 }
 

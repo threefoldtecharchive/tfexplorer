@@ -3,6 +3,7 @@
 workload_id = (I)
 #links to unique node on the TFGrid
 node_id = (S)
+network_id = (S)
 ipaddress = (ipaddress)
 image = (S)
 

@@ -452,6 +452,10 @@ func main() {
 							Required: true,
 						},
 						cli.StringFlag{
+							Name:  "network-id",
+							Usage: "ID of the network resource in which the vm will be created",
+						},
+						cli.StringFlag{
 							Name:  "ip",
 							Usage: "Ip address of the virtual machine in the network resource",
 						},
