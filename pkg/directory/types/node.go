@@ -75,6 +75,15 @@ func (f NodeFilter) WithNodeID(id string) NodeFilter {
 	return append(f, bson.E{Key: "node_id", Value: id})
 }
 
+// WithNodeIDs list gateways which node_id is in ids slice
+func (f NodeFilter) WithNodeIDs(ids []string) NodeFilter {
+	a := make(bson.A, len(ids))
+	for i := range ids {
+		a[i] = ids[i]
+	}
+	return append(f, bson.E{Key: "node_id", Value: bson.M{"$in": a}})
+}
+
 // WithFarmID search nodes with given farmID
 func (f NodeFilter) WithFarmID(id schema.ID) NodeFilter {
 	return append(f, bson.E{Key: "farm_id", Value: id})
@@ -106,6 +115,11 @@ func (f NodeFilter) WithLocation(country, city string) NodeFilter {
 	}
 
 	return f
+}
+
+// WithFreeToUse search the nodes that free_to_use value is equal to freeToUse
+func (f NodeFilter) WithFreeToUse(freeToUse bool) NodeFilter {
+	return append(f, bson.E{Key: "free_to_use", Value: freeToUse})
 }
 
 // Find run the filter and return a cursor result
