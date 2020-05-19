@@ -70,6 +70,15 @@ func (f GatewayFilter) WithGWID(id string) GatewayFilter {
 	return append(f, bson.E{Key: "node_id", Value: id})
 }
 
+// WithGWIDs list gateways which ndoe_id is in ids slice
+func (f GatewayFilter) WithGWIDs(ids []string) GatewayFilter {
+	a := make(bson.A, len(ids))
+	for i := range ids {
+		a[i] = ids[i]
+	}
+	return append(f, bson.E{Key: "node_id", Value: bson.M{"$in": a}})
+}
+
 // WithLocation search the nodes that are located in country and or city
 func (f GatewayFilter) WithLocation(country, city string) GatewayFilter {
 	if country != "" {
@@ -80,6 +89,11 @@ func (f GatewayFilter) WithLocation(country, city string) GatewayFilter {
 	}
 
 	return f
+}
+
+// WithFreeToUse search the nodes that free_to_use value is equal to freeToUse
+func (f GatewayFilter) WithFreeToUse(freeToUse bool) GatewayFilter {
+	return append(f, bson.E{Key: "free_to_use", Value: freeToUse})
 }
 
 // Find run the filter and return a cursor result

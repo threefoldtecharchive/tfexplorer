@@ -127,53 +127,48 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err, http.StatusFailedDependency) //FIXME: what is this strange status ?
 	}
 
+	// check if freeTFT is allowed to be used
+	// if all nodes are marked as free to use then FreeTFT is allowed
+	// otherwise it is not
+
+	var freeNodes int
+
 	usedNodes := reservation.NodeIDs()
-	var freeNodes, paidNodes int
-	for _, nodeID := range usedNodes {
-		node, err := directory.NodeFilter{}.WithNodeID(nodeID).Get(r.Context(), db, false)
-		if err != nil {
-			return nil, mw.Error(err, http.StatusInternalServerError)
-		}
-		if node.FreeToUse {
-			freeNodes++
-		} else {
-			paidNodes++
-		}
+	count, err := (directory.NodeFilter{}).
+		WithNodeIDs(usedNodes).
+		WithFreeToUse(true).
+		Count(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err, http.StatusInternalServerError)
 	}
+	freeNodes += int(count)
 
 	usedGateways := reservation.GatewayIDs()
-	for _, nodeID := range usedGateways {
-		node, err := directory.GatewayFilter{}.WithGWID(nodeID).Get(r.Context(), db)
-		if err != nil {
-			return nil, mw.Error(err, http.StatusInternalServerError)
-		}
-		if node.FreeToUse {
-			freeNodes++
-		} else {
-			paidNodes++
-		}
+	count, err = (directory.GatewayFilter{}).
+		WithGWIDs(usedGateways).
+		WithFreeToUse(true).
+		Count(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err, http.StatusInternalServerError)
 	}
+	freeNodes += int(count)
 
-	// don't allow mixed nodes
-	if freeNodes > 0 && paidNodes > 0 {
-		return nil, mw.Error(errors.New("reservation can only contain either free nodes or paid nodes, not both"), http.StatusBadRequest)
-	}
+	paidNodes := len(usedNodes) + len(usedGateways)
 
-	currencies := []string{}
-	// filter out FreeTFT if its a paid reservation
-	if paidNodes > 0 {
-		for _, c := range reservation.DataReservation.Currencies {
-			if c != freeTFT {
-				currencies = append(currencies, c)
-			}
-		}
-	}
+	log.Info().
+		Int64("reservation_id", int64(reservation.ID)).
+		Int("paid_nodes", paidNodes).
+		Int("free_nodes", freeNodes).
+		Msg("distribution of free nodes")
 
-	// filter out anything but FreeTFT for a free reservation
-	if freeNodes > 0 {
-		for _, c := range reservation.DataReservation.Currencies {
+	currencies := make([]string, len(reservation.DataReservation.Currencies))
+	copy(currencies, reservation.DataReservation.Currencies)
+
+	// filter out FreeTFT if not all the nodes can be paid with freeTFT
+	if freeNodes < paidNodes {
+		for i, c := range currencies {
 			if c == freeTFT {
-				currencies = append(currencies, c)
+				currencies = append(currencies[:i], currencies[i+1:]...)
 			}
 		}
 	}
