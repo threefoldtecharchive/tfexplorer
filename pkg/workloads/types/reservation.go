@@ -499,9 +499,6 @@ func (r *Reservation) NodeIDs() []string {
 	for _, w := range r.DataReservation.Kubernetes {
 		ids[w.NodeId] = struct{}{}
 	}
-	for _, w := range r.DataReservation.Proxies {
-		ids[w.NodeId] = struct{}{}
-	}
 
 	nodeIDs := make([]string, 0, len(ids))
 	for nid := range ids {
