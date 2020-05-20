@@ -194,6 +194,9 @@ func NodeCreate(ctx context.Context, db *mongo.Database, node Node) (schema.ID, 
 		// make sure we do NOT overwrite these field
 		node.Created = current.Created
 		node.FreeToUse = current.FreeToUse
+		node.ReservedResources = current.ReservedResources
+		node.UsedResources = current.UsedResources
+		node.TotalResources = current.TotalResources
 	}
 
 	node.ID = id

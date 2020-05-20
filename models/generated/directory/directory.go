@@ -70,27 +70,27 @@ func NewLocation() (Location, error) {
 }
 
 type Node struct {
-	ID                schema.ID      `bson:"_id" json:"id"`
-	NodeId            string         `bson:"node_id" json:"node_id"`
-	NodeIdV1          string         `bson:"node_id_v1" json:"node_id_v1"`
-	FarmId            int64          `bson:"farm_id" json:"farm_id"`
-	OsVersion         string         `bson:"os_version" json:"os_version"`
-	Created           schema.Date    `bson:"created" json:"created"`
-	Updated           schema.Date    `bson:"updated" json:"updated"`
-	Uptime            int64          `bson:"uptime" json:"uptime"`
-	Address           string         `bson:"address" json:"address"`
-	Location          Location       `bson:"location" json:"location"`
-	TotalResources    ResourceAmount `bson:"total_resources" json:"total_resources"`
-	UsedResources     ResourceAmount `bson:"used_resources" json:"used_resources"`
-	ReservedResources ResourceAmount `bson:"reserved_resources" json:"reserved_resources"`
-	Workloads         WorkloadAmount `bson:"workloads" json:"workloads"`
-	Proofs            []Proof        `bson:"proofs" json:"proofs"`
-	Ifaces            []Iface        `bson:"ifaces" json:"ifaces"`
-	PublicConfig      *PublicIface   `bson:"public_config,omitempty" json:"public_config"`
-	FreeToUse         bool           `bson:"free_to_use" json:"free_to_use"`
-	Approved          bool           `bson:"approved" json:"approved"`
-	PublicKeyHex      string         `bson:"public_key_hex" json:"public_key_hex"`
-	WgPorts           []int64        `bson:"wg_ports" json:"wg_ports"`
+	ID                schema.ID       `bson:"_id" json:"id"`
+	NodeId            string          `bson:"node_id" json:"node_id"`
+	NodeIdV1          string          `bson:"node_id_v1" json:"node_id_v1"`
+	FarmId            int64           `bson:"farm_id" json:"farm_id"`
+	OsVersion         string          `bson:"os_version" json:"os_version"`
+	Created           schema.Date     `bson:"created" json:"created"`
+	Updated           schema.Date     `bson:"updated" json:"updated"`
+	Uptime            int64           `bson:"uptime,omitempty" json:"uptime"`
+	Address           string          `bson:"address" json:"address"`
+	Location          Location        `bson:"location" json:"location"`
+	TotalResources    *ResourceAmount `bson:"total_resources" json:"total_resources"`
+	UsedResources     *ResourceAmount `bson:"used_resources" json:"used_resources"`
+	ReservedResources *ResourceAmount `bson:"reserved_resources" json:"reserved_resources"`
+	Workloads         WorkloadAmount  `bson:"workloads" json:"workloads"`
+	Proofs            []Proof         `bson:"proofs" json:"proofs"`
+	Ifaces            []Iface         `bson:"ifaces" json:"ifaces"`
+	PublicConfig      *PublicIface    `bson:"public_config,omitempty" json:"public_config"`
+	FreeToUse         bool            `bson:"free_to_use" json:"free_to_use"`
+	Approved          bool            `bson:"approved" json:"approved"`
+	PublicKeyHex      string          `bson:"public_key_hex" json:"public_key_hex"`
+	WgPorts           []int64         `bson:"wg_ports" json:"wg_ports"`
 }
 
 func NewNode() (Node, error) {
