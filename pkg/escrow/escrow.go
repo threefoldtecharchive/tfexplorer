@@ -34,11 +34,10 @@ func (e *Free) Run(ctx context.Context) error {
 
 // RegisterReservation implements the escrow interface
 func (e *Free) RegisterReservation(reservation workloads.Reservation, _ []string) (detail types.CustomerEscrowInformation, err error) {
-
 	if reservation.NextAction == workloads.NextActionPay {
 		if err = workloadstypes.ReservationSetNextAction(context.Background(), e.db, reservation.ID, workloads.NextActionDeploy); err != nil {
 			err = errors.Wrapf(err, "failed to change state of reservation %d to DEPLOY", reservation.ID)
-			return
+			return types.CustomerEscrowInformation{}, err
 		}
 	}
 

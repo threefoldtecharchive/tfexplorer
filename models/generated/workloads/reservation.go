@@ -63,7 +63,7 @@ type ReservationData struct {
 	Zdbs                    []ZDB                 `bson:"zdbs" json:"zdbs"`
 	Networks                []Network             `bson:"networks" json:"networks"`
 	Kubernetes              []K8S                 `bson:"kubernetes" json:"kubernetes"`
-	Qemus                   []Qemu                `bson:"qemu" json:"qemu"`
+	Qemus                   []Qemu                `bson:"qemus" json:"qemus"`
 	Proxies                 []GatewayProxy        `bson:"proxies" json:"proxies"`
 	ReserveProxy            []GatewayReserveProxy `bson:"reserve_proxies" json:"reserve_proxies"`
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
