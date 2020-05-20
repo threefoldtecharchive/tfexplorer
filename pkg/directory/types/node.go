@@ -191,6 +191,8 @@ func NodeCreate(ctx context.Context, db *mongo.Database, node Node) (schema.ID, 
 		node.Created = schema.Date{Time: time.Now()}
 	} else {
 		// node exists, only update new fields
+		id = current.ID
+
 		tmp := node
 		node = current
 		node.NodeIdV1 = tmp.NodeIdV1
