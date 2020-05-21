@@ -168,9 +168,10 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 	}
 	tx, err := txnbuild.NewTransaction(
 		txnbuild.TransactionParams{
-			SourceAccount: &sourceAccount,
-			Operations:    []txnbuild.Operation{&createAccountOp},
-			Timebounds:    txnbuild.NewTimeout(300),
+			SourceAccount:        &sourceAccount,
+			Operations:           []txnbuild.Operation{&createAccountOp},
+			Timebounds:           txnbuild.NewTimeout(300),
+			IncrementSequenceNum: true,
 		},
 	)
 	if err != nil {
@@ -507,6 +508,7 @@ func (w *Wallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbuild.Tra
 
 	// calculate total fee based on the operations in the transaction
 	txp.BaseFee = txnbuild.MinBaseFee * int64(len(txp.Operations))
+	txp.IncrementSequenceNum = true
 
 	tx, err := txnbuild.NewTransaction(*txp)
 	if err != nil {
