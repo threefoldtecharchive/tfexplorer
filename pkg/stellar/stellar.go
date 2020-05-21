@@ -166,20 +166,24 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		Destination: newKp.Address(),
 		Amount:      minimumBalance,
 	}
-	tx := txnbuild.Transaction{
-		SourceAccount: &sourceAccount,
-		Operations:    []txnbuild.Operation{&createAccountOp},
-		Timebounds:    txnbuild.NewTimeout(300),
-		Network:       w.GetNetworkPassPhrase(),
+	tx, err := txnbuild.NewTransaction(
+		txnbuild.TransactionParams{
+			SourceAccount: &sourceAccount,
+			Operations:    []txnbuild.Operation{&createAccountOp},
+			Timebounds:    txnbuild.NewTimeout(300),
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to build transaction")
 	}
 
-	txeBase64, err := tx.BuildSignEncode(w.keypair)
+	tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
 	if err != nil {
-		return errors.Wrap(err, "failed to get build transaction")
+		return errors.Wrap(err, "failed to sign transaction")
 	}
 
 	// Submit the transaction
-	_, err = client.SubmitTransactionXDR(txeBase64)
+	_, err = client.SubmitTransaction(tx)
 	if err != nil {
 		hError := err.(*horizonclient.Error)
 		return errors.Wrap(hError, "error submitting transaction")
@@ -200,10 +204,9 @@ func (w *Wallet) setupEscrow(newKp *keypair.Full, sourceAccount hProtocol.Accoun
 		operations = append(operations, addSignerOperations...)
 	}
 
-	tx := txnbuild.Transaction{
+	tx := txnbuild.TransactionParams{
 		Operations: operations,
 		Timebounds: txnbuild.NewTimeout(300),
-		Network:    w.GetNetworkPassPhrase(),
 	}
 
 	fundedTx, err := w.fundTransaction(&tx)
@@ -422,10 +425,9 @@ func (w *Wallet) Refund(encryptedSeed string, id schema.ID, asset Asset) error {
 
 	formattedMemo := fmt.Sprintf("%d", id)
 	memo := txnbuild.MemoText(formattedMemo)
-	tx := txnbuild.Transaction{
+	tx := txnbuild.TransactionParams{
 		Operations: []txnbuild.Operation{&paymentOP},
 		Timebounds: txnbuild.NewTimeout(300),
-		Network:    w.GetNetworkPassPhrase(),
 		Memo:       memo,
 	}
 
@@ -470,10 +472,9 @@ func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, 
 
 	formattedMemo := fmt.Sprintf("%d", id)
 	memo := txnbuild.MemoText(formattedMemo)
-	tx := txnbuild.Transaction{
+	tx := txnbuild.TransactionParams{
 		Operations: paymentOps,
 		Timebounds: txnbuild.NewTimeout(300),
-		Network:    w.GetNetworkPassPhrase(),
 		Memo:       memo,
 	}
 
@@ -491,27 +492,28 @@ func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, 
 
 // fundTransaction funds a transaction with the foundation wallet
 // For every operation in the transaction, the fee will be paid by the foundation wallet
-func (w *Wallet) fundTransaction(tx *txnbuild.Transaction) (*txnbuild.Transaction, error) {
+func (w *Wallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbuild.Transaction, error) {
 	sourceAccount, err := w.GetAccountDetails(w.keypair.Address())
 	if err != nil {
 		return &txnbuild.Transaction{}, errors.Wrap(err, "failed to get source account")
 	}
 
 	// set the source account of the tx to the foundation account
-	tx.SourceAccount = &sourceAccount
+	txp.SourceAccount = &sourceAccount
 
-	if len(tx.Operations) == 0 {
+	if len(txp.Operations) == 0 {
 		return &txnbuild.Transaction{}, errors.New("no operations were set on the transaction")
 	}
 
 	// calculate total fee based on the operations in the transaction
-	tx.BaseFee = tx.BaseFee * uint32(len(tx.Operations))
-	err = tx.Build()
+	txp.BaseFee = txp.BaseFee * int64(len(txp.Operations))
+
+	tx, err := txnbuild.NewTransaction(*txp)
 	if err != nil {
 		return &txnbuild.Transaction{}, errors.Wrap(err, "failed to build transaction")
 	}
 
-	err = tx.Sign(w.keypair)
+	tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
 	if err != nil {
 		return &txnbuild.Transaction{}, errors.Wrap(err, "failed to sign transaction")
 	}
@@ -527,14 +529,14 @@ func (w *Wallet) signAndSubmitTx(keypair *keypair.Full, tx *txnbuild.Transaction
 		return errors.Wrap(err, "failed to get horizon client")
 	}
 
-	err = tx.Sign(keypair)
+	tx, err = tx.Sign(w.GetNetworkPassPhrase(), keypair)
 	if err != nil {
 		return errors.Wrap(err, "failed to sign transaction with keypair")
 	}
 
 	log.Info().Msg("submitting transaction to the stellar network")
 	// Submit the transaction
-	_, err = client.SubmitTransaction(*tx)
+	_, err = client.SubmitTransaction(tx)
 	if err != nil {
 		hError := err.(*horizonclient.Error)
 		log.Debug().
