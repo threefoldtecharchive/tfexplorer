@@ -285,6 +285,13 @@ func NodeUpdateFreeToUse(ctx context.Context, db *mongo.Database, nodeID string,
 	})
 }
 
+// NodeUpdateLocation sets node free to use flag
+func NodeUpdateLocation(ctx context.Context, db *mongo.Database, nodeID string, location generated.Location) error {
+	return nodeUpdate(ctx, db, nodeID, bson.M{
+		"location": location,
+	})
+}
+
 // NodeSetWGPorts update wireguard ports
 func NodeSetWGPorts(ctx context.Context, db *mongo.Database, nodeID string, ports []uint) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{

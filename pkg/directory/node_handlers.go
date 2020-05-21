@@ -211,6 +211,37 @@ func (s *NodeAPI) configureFreeToUse(r *http.Request) (interface{}, mw.Response)
 	return nil, mw.Ok()
 }
 
+func (s *NodeAPI) updateLocation(r *http.Request) (interface{}, mw.Response) {
+	db := mw.Database(r)
+	nodeID := mux.Vars(r)["node_id"]
+
+	node, err := s.Get(r.Context(), db, nodeID, false)
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	// ensure it is the farmer that does the call
+	authorized, merr := isFarmerAuthorized(r, node, db)
+	if err != nil {
+		return nil, merr
+	}
+
+	if !authorized {
+		return nil, mw.Forbidden(fmt.Errorf("only the farmer can update node location"))
+	}
+
+	location := generated.Location{}
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&location); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	if err := s.updateLocationStore(r.Context(), db, node.NodeId, location); err != nil {
+		return nil, mw.Error(err)
+	}
+	return nil, mw.Ok()
+}
+
 func (s *NodeAPI) registerPorts(r *http.Request) (interface{}, mw.Response) {
 
 	defer r.Body.Close()

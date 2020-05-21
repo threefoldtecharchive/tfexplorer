@@ -148,6 +148,10 @@ func (s *NodeAPI) updateFreeToUse(ctx context.Context, db *mongo.Database, nodeI
 	return directory.NodeUpdateFreeToUse(ctx, db, nodeID, freeToUse)
 }
 
+func (s *NodeAPI) updateLocationStore(ctx context.Context, db *mongo.Database, nodeID string, location generated.Location) error {
+	return directory.NodeUpdateLocation(ctx, db, nodeID, location)
+}
+
 func (s *NodeAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads generated.WorkloadAmount) error {
 	return directory.NodeUpdateWorkloadsAmount(ctx, db, nodeID, workloads)
 }
