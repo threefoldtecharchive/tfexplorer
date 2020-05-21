@@ -506,7 +506,7 @@ func (w *Wallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbuild.Tra
 	}
 
 	// calculate total fee based on the operations in the transaction
-	txp.BaseFee = txp.BaseFee * int64(len(txp.Operations))
+	txp.BaseFee = txnbuild.MinBaseFee * int64(len(txp.Operations))
 
 	tx, err := txnbuild.NewTransaction(*txp)
 	if err != nil {
