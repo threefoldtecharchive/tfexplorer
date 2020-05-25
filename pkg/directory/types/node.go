@@ -214,6 +214,7 @@ func NodeCreate(ctx context.Context, db *mongo.Database, node Node) (schema.ID, 
 		node.OsVersion = tmp.OsVersion
 		node.Location = tmp.Location
 		node.Uptime = tmp.Uptime
+		node.HostName = tmp.HostName
 	}
 
 	node.ID = id
