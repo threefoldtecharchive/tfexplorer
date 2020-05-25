@@ -160,6 +160,19 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 			log.Error().Err(err).Send()
 		}
 	})
+	router.Path("/explorer").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		r, err := statikFS.Open("/docs.html")
+		if err != nil {
+			mw.Error(err, http.StatusInternalServerError)
+			return
+		}
+		defer r.Close()
+
+		w.WriteHeader(http.StatusOK)
+		if _, err := io.Copy(w, r); err != nil {
+			log.Error().Err(err).Send()
+		}
+	})
 
 	if dropEscrowData {
 		log.Warn().Msg("dropping escrow and address collection")
