@@ -64,7 +64,7 @@ type ReservationData struct {
 	Networks                []Network             `bson:"networks" json:"networks"`
 	Kubernetes              []K8S                 `bson:"kubernetes" json:"kubernetes"`
 	Proxies                 []GatewayProxy        `bson:"proxies" json:"proxies"`
-	ReserveProxy            []GatewayReserveProxy `bson:"reserve_proxies" json:"reserve_proxies"`
+	ReverseProxy            []GatewayReverseProxy `bson:"reverse_proxies" json:"reverse_proxies"`
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
 	DomainDelegates         []GatewayDelegate     `bson:"domain_delegates" json:"domain_delegates"`
 	Gateway4To6s            []Gateway4To6         `bson:"gateway4to6" json:"gateway4to6"`
@@ -148,7 +148,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeNetwork:        "networks",
 	WorkloadTypeKubernetes:     "kubernetes",
 	WorkloadTypeProxy:          "proxies",
-	WorkloadTypeReverseProxy:   "reserve_proxies",
+	WorkloadTypeReverseProxy:   "reverse_proxies",
 	WorkloadTypeSubDomain:      "subdomains",
 	WorkloadTypeDomainDelegate: "domain_delegates",
 	WorkloadTypeGateway4To6:    "gateway4to6",
