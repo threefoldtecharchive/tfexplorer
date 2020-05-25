@@ -40,7 +40,7 @@ func (s *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 
 	id, err := s.Add(r.Context(), db, info)
 	if err != nil {
-		return nil, mw.GenericDBError(mw.DBError{Cause: err, Message: errFailedToRegisterFarm.Error()})
+		return nil, mw.GenericDBError(err, errFailedToRegisterFarm.Error())
 	}
 
 	return struct {
@@ -62,7 +62,7 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 
 	farm, err := s.GetByID(r.Context(), db, id)
 	if err != nil {
-		return nil, mw.GenericDBError(mw.DBError{Cause: err, Message: fmt.Sprintf("farm with id %s not found", sid)})
+		return nil, mw.GenericDBError(err, fmt.Sprintf("farm with id %s not found", sid))
 	}
 
 	sfarmerID := httpsig.KeyIDFromContext(r.Context())
@@ -84,7 +84,7 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 
 	err = s.Update(r.Context(), db, info.ID, info)
 	if err != nil {
-		return nil, mw.GenericDBError(mw.DBError{Cause: err, Message: fmt.Sprintf("failed to update farm with farmID %s", sid)})
+		return nil, mw.GenericDBError(err, fmt.Sprintf("failed to update farm with farmID %s", sid))
 	}
 
 	return nil, mw.Ok()
@@ -102,7 +102,7 @@ func (s *FarmAPI) listFarm(r *http.Request) (interface{}, mw.Response) {
 	pager := models.PageFromRequest(r)
 	farms, total, err := s.List(r.Context(), db, filter, pager)
 	if err != nil {
-		return nil, mw.GenericDBError(mw.DBError{Cause: err, Message: errFailedToListFarms.Error()})
+		return nil, mw.GenericDBError(err, errFailedToListFarms.Error())
 	}
 
 	pages := fmt.Sprintf("%d", models.Pages(pager, total))
@@ -121,7 +121,7 @@ func (s *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 
 	farm, err := s.GetByID(r.Context(), db, id)
 	if err != nil {
-		return nil, mw.GenericDBError(mw.DBError{Cause: err, Message: fmt.Sprintf("farm with id %s not found", sid)})
+		return nil, mw.GenericDBError(err, fmt.Sprintf("farm with id %s not found", sid))
 	}
 
 	return farm, nil

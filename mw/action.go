@@ -113,21 +113,15 @@ func Error(err error, code ...int) Response {
 	return genericResponse{status: status, err: err}
 }
 
-// DBError is a struct that wraps an error with a message
-type DBError struct {
-	Cause   error
-	Message string
-}
-
 // GenericDBError generic db error response
-func GenericDBError(err DBError, code ...int) Response {
+func GenericDBError(err error, message string, code ...int) Response {
 	status := http.StatusInternalServerError
 	if len(code) > 0 {
 		status = code[0]
 	}
 
-	if errors.Is(err.Cause, mongo.ErrNoDocuments) {
-		return NotFound(fmt.Errorf(err.Message))
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return NotFound(err)
 	}
 
 	return genericResponse{status: status, err: fmt.Errorf("no message")}
