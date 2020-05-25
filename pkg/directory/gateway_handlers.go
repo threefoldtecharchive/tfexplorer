@@ -34,7 +34,7 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 
 	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, gw); err != nil {
-		return nil, mw.GenericDBError(err, errFailedToRegisterGateway.Error())
+		return nil, mw.GenericDBError(err, errFailedToRegisterGateway)
 	}
 
 	log.Info().Msgf("gateway registered: %+v\n", gw)
@@ -52,7 +52,7 @@ func (s *GatewayAPI) gatewayDetail(r *http.Request) (interface{}, mw.Response) {
 
 	gateway, err := s.Get(r.Context(), db, gatewayID)
 	if err != nil {
-		return nil, mw.GenericDBError(err, fmt.Sprintf("gateway with id %s not found", gatewayID))
+		return nil, mw.GenericDBError(err, fmt.Errorf("gateway with id %s not found", gatewayID))
 	}
 
 	return gateway, nil
@@ -68,7 +68,7 @@ func (s *GatewayAPI) listGateways(r *http.Request) (interface{}, mw.Response) {
 	pager := models.PageFromRequest(r)
 	gateways, total, err := s.List(r.Context(), db, q, pager)
 	if err != nil {
-		return nil, mw.GenericDBError(err, errFailedToListGateways.Error())
+		return nil, mw.GenericDBError(err, errFailedToListGateways)
 	}
 
 	pages := fmt.Sprintf("%d", models.Pages(pager, total))
@@ -95,7 +95,7 @@ func (s *GatewayAPI) updateUptimeHandler(r *http.Request) (interface{}, mw.Respo
 	log.Debug().Str("gateway", gatewayID).Uint64("uptime", input.Uptime).Msg("gateway uptime received")
 
 	if err := s.updateUptime(r.Context(), db, gatewayID, int64(input.Uptime)); err != nil {
-		return nil, mw.GenericDBError(err, fmt.Sprintf("failed to update gateway with gatewayID %s", gatewayID))
+		return nil, mw.GenericDBError(err, fmt.Errorf("failed to update gateway with gatewayID %s", gatewayID))
 	}
 
 	return nil, nil
@@ -121,10 +121,10 @@ func (s *GatewayAPI) updateReservedResources(r *http.Request) (interface{}, mw.R
 
 	db := mw.Database(r)
 	if err := s.updateReservedCapacity(r.Context(), db, gatewayID, input.ResourceAmount); err != nil {
-		return nil, mw.GenericDBError(err, fmt.Sprintf("failed to update gateway reserved capacity with gatewayID %s", gatewayID))
+		return nil, mw.GenericDBError(err, fmt.Errorf("failed to update gateway reserved capacity with gatewayID %s", gatewayID))
 	}
 	if err := s.updateWorkloadsAmount(r.Context(), db, gatewayID, input.WorkloadAmount); err != nil {
-		return nil, mw.GenericDBError(err, fmt.Sprintf("failed to update gateway workloads amount with gatewayID %s", gatewayID))
+		return nil, mw.GenericDBError(err, fmt.Errorf("failed to update gateway workloads amount with gatewayID %s", gatewayID))
 	}
 
 	return nil, nil
