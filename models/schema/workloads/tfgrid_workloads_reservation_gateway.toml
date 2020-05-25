@@ -4,7 +4,7 @@ node_id = (S)
 domain = (S)
 destination = (S) # format 'ip:port'
 
-@url = tfgrid.workloads.reservation.gateway.reserve_proxy.1
+@url = tfgrid.workloads.reservation.gateway.reverse_proxy.1
 workload_id = (I)
 node_id = (S)
 domain = (S)
