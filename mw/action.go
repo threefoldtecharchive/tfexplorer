@@ -121,7 +121,7 @@ func GenericDBError(err error, message string, code ...int) Response {
 	}
 
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return NotFound(err)
+		return NotFound(fmt.Errorf(message))
 	}
 
 	return genericResponse{status: status, err: fmt.Errorf("no message")}
