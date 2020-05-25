@@ -89,14 +89,23 @@ func (w *multisigWallet) createMultisigTransaction(from, destination, amount, as
 		},
 	}
 
-	tx := txnbuild.Transaction{
-		SourceAccount: &sourceAccount,
-		Operations:    []txnbuild.Operation{&paymentOP},
-		Timebounds:    txnbuild.NewTimeout(300),
-		Network:       w.wallet.GetNetworkPassPhrase(),
+	tx, err := txnbuild.NewTransaction(
+		txnbuild.TransactionParams{
+			SourceAccount: &sourceAccount,
+			Operations:    []txnbuild.Operation{&paymentOP},
+			Timebounds:    txnbuild.NewTimeout(300),
+		},
+	)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to build transaction")
 	}
 
-	return tx.BuildSignEncode(w.kp)
+	tx, err = tx.Sign(w.wallet.GetNetworkPassPhrase(), w.kp)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to sign transaction")
+	}
+
+	return tx.Base64()
 }
 
 // signAndSubmitMultisigTransaction signs off on a multisig transaction and tries to submit it to the network
@@ -106,9 +115,12 @@ func (w *multisigWallet) signAndSubmitMultisigTransaction(transaction string) (s
 		return "", errors.Wrap(err, "failed parse xdr to a transaction")
 	}
 
-	tx.Network = w.wallet.GetNetworkPassPhrase()
+	stellarTx, ok := tx.Transaction()
+	if !ok {
+		return "", errors.Wrap(err, "failed to unwrap transaction")
+	}
 
-	err = tx.Sign(w.kp)
+	signedTx, err := stellarTx.Sign(w.wallet.GetNetworkPassPhrase(), w.kp)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to sign transaction")
 	}
@@ -118,12 +130,12 @@ func (w *multisigWallet) signAndSubmitMultisigTransaction(transaction string) (s
 		return "", errors.Wrap(err, "failed to get horizon client")
 	}
 
-	txXDR, err := tx.Base64()
+	txXDR, err := signedTx.Base64()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse transaction to xdr")
 	}
 	// Submit the transaction
-	_, err = client.SubmitTransaction(tx)
+	_, err = client.SubmitTransaction(signedTx)
 	if err != nil {
 		hError := err.(*horizonclient.Error)
 		log.Debug().Msgf("%+v", hError.Problem.Extras)
