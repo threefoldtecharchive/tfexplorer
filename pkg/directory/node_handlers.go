@@ -34,9 +34,23 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	db := mw.Database(r)
+	q := nodeQuery{}
+	if err := q.Parse(r); err != nil {
+		return nil, err
+	}
+	// check if the node already exists
+	_, err := s.Get(r.Context(), db, n.NodeId, q.Proofs)
+	if err == nil {
+		// if the node exists, this request must be authenticated
+		hNodeID := httpsig.KeyIDFromContext(r.Context())
+		if n.NodeId != hNodeID {
+			return nil, mw.Forbidden(fmt.Errorf("trying to register a node with nodeID %s while you are %s", n.NodeId, hNodeID))
+		}
+	}
+
 	//make sure node can not set public config
 	n.PublicConfig = nil
-	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, n); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, mw.NotFound(fmt.Errorf("farm with id:%d does not exists", n.FarmId))

@@ -37,7 +37,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	userAuthenticated.Use(userAuthMW.Middleware)
 	nodesAuthenticated.Use(nodeAuthMW.Middleware)
 
-	nodes.HandleFunc("", mw.AsHandlerFunc(nodeAPI.registerNode)).Methods("POST").Name("node-register")
+	nodesAuthenticated.HandleFunc("", mw.AsHandlerFunc(nodeAPI.registerNode)).Methods("POST").Name("node-register")
 	nodes.HandleFunc("", mw.AsHandlerFunc(nodeAPI.listNodes)).Methods("GET").Name("nodes-list")
 	nodes.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.nodeDetail)).Methods("GET").Name(("node-get"))
 	nodesAuthenticated.HandleFunc("/{node_id}/interfaces", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.registerIfaces))).Methods("POST").Name("node-interfaces")
