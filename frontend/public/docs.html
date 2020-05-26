@@ -697,6 +697,12 @@
     },
     "memory" : {
       "type" : "integer"
+    },
+    "disk_size" : {
+      "type" : "integer"
+    },
+    "disk_type" : {
+      "type" : "integer"
     }
   }
 };
@@ -8526,7 +8532,7 @@ except ApiException as e:
                         <p class="marked">Get a user by ID</p>
                         <p></p>
                         <br />
-                        <pre class="prettyprint language-html prettyprinted" data-type="get"><code><span class="pln">/users/{userId}</span></code></pre>
+                        <pre class="prettyprint language-html prettyprinted" data-type="get"><code><span class="pln">/users/{usersId}</span></code></pre>
                         <p>
                           <h3>Usage and SDK Samples</h3>
                         </p>
@@ -8546,7 +8552,7 @@ except ApiException as e:
 
                         <div class="tab-content">
                           <div class="tab-pane active" id="examples-Users-getUser-0-curl">
-                            <pre class="prettyprint"><code class="language-bsh">curl -X GET "https://explorer.grid.tf/explorer/users/{userId}"</code></pre>
+                            <pre class="prettyprint"><code class="language-bsh">curl -X GET "https://explorer.grid.tf/explorer/users/{usersId}"</code></pre>
                           </div>
                           <div class="tab-pane" id="examples-Users-getUser-0-java">
                             <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
@@ -8562,9 +8568,9 @@ public class UsersApiExample {
     public static void main(String[] args) {
         
         UsersApi apiInstance = new UsersApi();
-        Integer userId = 56; // Integer | ID of the user to return
+        Integer usersId = 56; // Integer | ID of the user to return
         try {
-            User result = apiInstance.getUser(userId);
+            User result = apiInstance.getUser(usersId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling UsersApi#getUser");
@@ -8581,9 +8587,9 @@ public class UsersApiExample {
 
     public static void main(String[] args) {
         UsersApi apiInstance = new UsersApi();
-        Integer userId = 56; // Integer | ID of the user to return
+        Integer usersId = 56; // Integer | ID of the user to return
         try {
-            User result = apiInstance.getUser(userId);
+            User result = apiInstance.getUser(usersId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling UsersApi#getUser");
@@ -8597,12 +8603,12 @@ public class UsersApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Users-getUser-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Integer *userId = 56; // ID of the user to return
+                              <pre class="prettyprint"><code class="language-cpp">Integer *usersId = 56; // ID of the user to return
 
 UsersApi *apiInstance = [[UsersApi alloc] init];
 
 // Get a user by ID
-[apiInstance getUserWith:userId
+[apiInstance getUserWith:usersId
               completionHandler: ^(User output, NSError* error) {
                             if (output) {
                                 NSLog(@"%@", output);
@@ -8618,7 +8624,7 @@ UsersApi *apiInstance = [[UsersApi alloc] init];
                               <pre class="prettyprint"><code class="language-js">var ThreefoldExplorer = require('threefold_explorer');
 
 var api = new ThreefoldExplorer.UsersApi()
-var userId = 56; // {{Integer}} ID of the user to return
+var usersId = 56; // {{Integer}} ID of the user to return
 
 var callback = function(error, data, response) {
   if (error) {
@@ -8627,7 +8633,7 @@ var callback = function(error, data, response) {
     console.log('API called successfully. Returned data: ' + data);
   }
 };
-api.getUser(userId, callback);
+api.getUser(usersId, callback);
 </code></pre>
                             </div>
 
@@ -8649,12 +8655,12 @@ namespace Example
         {
 
             var apiInstance = new UsersApi();
-            var userId = 56;  // Integer | ID of the user to return
+            var usersId = 56;  // Integer | ID of the user to return
 
             try
             {
                 // Get a user by ID
-                User result = apiInstance.getUser(userId);
+                User result = apiInstance.getUser(usersId);
                 Debug.WriteLine(result);
             }
             catch (Exception e)
@@ -8672,10 +8678,10 @@ namespace Example
 require_once(__DIR__ . '/vendor/autoload.php');
 
 $api_instance = new Swagger\Client\ApiUsersApi();
-$userId = 56; // Integer | ID of the user to return
+$usersId = 56; // Integer | ID of the user to return
 
 try {
-    $result = $api_instance->getUser($userId);
+    $result = $api_instance->getUser($usersId);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling UsersApi->getUser: ', $e->getMessage(), PHP_EOL;
@@ -8689,10 +8695,10 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::UsersApi;
 
 my $api_instance = WWW::SwaggerClient::UsersApi->new();
-my $userId = 56; # Integer | ID of the user to return
+my $usersId = 56; # Integer | ID of the user to return
 
 eval { 
-    my $result = $api_instance->getUser(userId => $userId);
+    my $result = $api_instance->getUser(usersId => $usersId);
     print Dumper($result);
 };
 if ($@) {
@@ -8709,11 +8715,11 @@ from pprint import pprint
 
 # create an instance of the API class
 api_instance = swagger_client.UsersApi()
-userId = 56 # Integer | ID of the user to return
+usersId = 56 # Integer | ID of the user to return
 
 try: 
     # Get a user by ID
-    api_response = api_instance.get_user(userId)
+    api_response = api_instance.get_user(usersId)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling UsersApi->getUser: %s\n" % e)</code></pre>
@@ -8728,11 +8734,11 @@ except ApiException as e:
                                   <th width="150px">Name</th>
                                   <th>Description</th>
                                 </tr>
-                                  <tr><td style="width:150px;">userId*</td>
+                                  <tr><td style="width:150px;">usersId*</td>
                                   <td>
                                   
                                   
-                                      <div id="d2e199_getUser_userId">
+                                      <div id="d2e199_getUser_usersId">
                                           <div class="json-schema-view">
                                               <div class="primitive">
                                                   <span class="type">
@@ -9216,7 +9222,7 @@ except ApiException as e:
                         <p class="marked">Update a user by ID</p>
                         <p></p>
                         <br />
-                        <pre class="prettyprint language-html prettyprinted" data-type="put"><code><span class="pln">/users/{userId}</span></code></pre>
+                        <pre class="prettyprint language-html prettyprinted" data-type="put"><code><span class="pln">/users/{usersId}</span></code></pre>
                         <p>
                           <h3>Usage and SDK Samples</h3>
                         </p>
@@ -9236,7 +9242,7 @@ except ApiException as e:
 
                         <div class="tab-content">
                           <div class="tab-pane active" id="examples-Users-updateUser-0-curl">
-                            <pre class="prettyprint"><code class="language-bsh">curl -X PUT "https://explorer.grid.tf/explorer/users/{userId}"</code></pre>
+                            <pre class="prettyprint"><code class="language-bsh">curl -X PUT "https://explorer.grid.tf/explorer/users/{usersId}"</code></pre>
                           </div>
                           <div class="tab-pane" id="examples-Users-updateUser-0-java">
                             <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
@@ -9253,9 +9259,9 @@ public class UsersApiExample {
         
         UsersApi apiInstance = new UsersApi();
         User body = ; // User | 
-        Integer userId = 56; // Integer | ID of the user to update
+        Integer usersId = 56; // Integer | ID of the user to update
         try {
-            inline_response_200 result = apiInstance.updateUser(body, userId);
+            inline_response_200 result = apiInstance.updateUser(body, usersId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling UsersApi#updateUser");
@@ -9273,9 +9279,9 @@ public class UsersApiExample {
     public static void main(String[] args) {
         UsersApi apiInstance = new UsersApi();
         User body = ; // User | 
-        Integer userId = 56; // Integer | ID of the user to update
+        Integer usersId = 56; // Integer | ID of the user to update
         try {
-            inline_response_200 result = apiInstance.updateUser(body, userId);
+            inline_response_200 result = apiInstance.updateUser(body, usersId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling UsersApi#updateUser");
@@ -9290,13 +9296,13 @@ public class UsersApiExample {
   </div> -->
                             <div class="tab-pane" id="examples-Users-updateUser-0-objc">
                               <pre class="prettyprint"><code class="language-cpp">User *body = ; // 
-Integer *userId = 56; // ID of the user to update
+Integer *usersId = 56; // ID of the user to update
 
 UsersApi *apiInstance = [[UsersApi alloc] init];
 
 // Update a user by ID
 [apiInstance updateUserWith:body
-    userId:userId
+    usersId:usersId
               completionHandler: ^(inline_response_200 output, NSError* error) {
                             if (output) {
                                 NSLog(@"%@", output);
@@ -9313,7 +9319,7 @@ UsersApi *apiInstance = [[UsersApi alloc] init];
 
 var api = new ThreefoldExplorer.UsersApi()
 var body = ; // {{User}} 
-var userId = 56; // {{Integer}} ID of the user to update
+var usersId = 56; // {{Integer}} ID of the user to update
 
 var callback = function(error, data, response) {
   if (error) {
@@ -9322,7 +9328,7 @@ var callback = function(error, data, response) {
     console.log('API called successfully. Returned data: ' + data);
   }
 };
-api.updateUser(bodyuserId, callback);
+api.updateUser(bodyusersId, callback);
 </code></pre>
                             </div>
 
@@ -9345,12 +9351,12 @@ namespace Example
 
             var apiInstance = new UsersApi();
             var body = new User(); // User | 
-            var userId = 56;  // Integer | ID of the user to update
+            var usersId = 56;  // Integer | ID of the user to update
 
             try
             {
                 // Update a user by ID
-                inline_response_200 result = apiInstance.updateUser(body, userId);
+                inline_response_200 result = apiInstance.updateUser(body, usersId);
                 Debug.WriteLine(result);
             }
             catch (Exception e)
@@ -9369,10 +9375,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 $api_instance = new Swagger\Client\ApiUsersApi();
 $body = ; // User | 
-$userId = 56; // Integer | ID of the user to update
+$usersId = 56; // Integer | ID of the user to update
 
 try {
-    $result = $api_instance->updateUser($body, $userId);
+    $result = $api_instance->updateUser($body, $usersId);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling UsersApi->updateUser: ', $e->getMessage(), PHP_EOL;
@@ -9387,10 +9393,10 @@ use WWW::SwaggerClient::UsersApi;
 
 my $api_instance = WWW::SwaggerClient::UsersApi->new();
 my $body = WWW::SwaggerClient::Object::User->new(); # User | 
-my $userId = 56; # Integer | ID of the user to update
+my $usersId = 56; # Integer | ID of the user to update
 
 eval { 
-    my $result = $api_instance->updateUser(body => $body, userId => $userId);
+    my $result = $api_instance->updateUser(body => $body, usersId => $usersId);
     print Dumper($result);
 };
 if ($@) {
@@ -9408,11 +9414,11 @@ from pprint import pprint
 # create an instance of the API class
 api_instance = swagger_client.UsersApi()
 body =  # User | 
-userId = 56 # Integer | ID of the user to update
+usersId = 56 # Integer | ID of the user to update
 
 try: 
     # Update a user by ID
-    api_response = api_instance.update_user(body, userId)
+    api_response = api_instance.update_user(body, usersId)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling UsersApi->updateUser: %s\n" % e)</code></pre>
@@ -9427,11 +9433,11 @@ except ApiException as e:
                                   <th width="150px">Name</th>
                                   <th>Description</th>
                                 </tr>
-                                  <tr><td style="width:150px;">userId*</td>
+                                  <tr><td style="width:150px;">usersId*</td>
                                   <td>
                                   
                                   
-                                      <div id="d2e199_updateUser_userId">
+                                      <div id="d2e199_updateUser_usersId">
                                           <div class="json-schema-view">
                                               <div class="primitive">
                                                   <span class="type">
@@ -9570,7 +9576,7 @@ except ApiException as e:
                         <p class="marked">Validate a user by ID</p>
                         <p></p>
                         <br />
-                        <pre class="prettyprint language-html prettyprinted" data-type="post"><code><span class="pln">/users/{userId}/validate</span></code></pre>
+                        <pre class="prettyprint language-html prettyprinted" data-type="post"><code><span class="pln">/users/{usersId}/validate</span></code></pre>
                         <p>
                           <h3>Usage and SDK Samples</h3>
                         </p>
@@ -9590,7 +9596,7 @@ except ApiException as e:
 
                         <div class="tab-content">
                           <div class="tab-pane active" id="examples-Users-validateUser-0-curl">
-                            <pre class="prettyprint"><code class="language-bsh">curl -X POST "https://explorer.grid.tf/explorer/users/{userId}/validate"</code></pre>
+                            <pre class="prettyprint"><code class="language-bsh">curl -X POST "https://explorer.grid.tf/explorer/users/{usersId}/validate"</code></pre>
                           </div>
                           <div class="tab-pane" id="examples-Users-validateUser-0-java">
                             <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
@@ -9607,9 +9613,9 @@ public class UsersApiExample {
         
         UsersApi apiInstance = new UsersApi();
         User body = ; // User | 
-        Integer userId = 56; // Integer | ID of the user to validate
+        Integer usersId = 56; // Integer | ID of the user to validate
         try {
-            inline_response_200_1 result = apiInstance.validateUser(body, userId);
+            inline_response_200_1 result = apiInstance.validateUser(body, usersId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling UsersApi#validateUser");
@@ -9627,9 +9633,9 @@ public class UsersApiExample {
     public static void main(String[] args) {
         UsersApi apiInstance = new UsersApi();
         User body = ; // User | 
-        Integer userId = 56; // Integer | ID of the user to validate
+        Integer usersId = 56; // Integer | ID of the user to validate
         try {
-            inline_response_200_1 result = apiInstance.validateUser(body, userId);
+            inline_response_200_1 result = apiInstance.validateUser(body, usersId);
             System.out.println(result);
         } catch (ApiException e) {
             System.err.println("Exception when calling UsersApi#validateUser");
@@ -9644,13 +9650,13 @@ public class UsersApiExample {
   </div> -->
                             <div class="tab-pane" id="examples-Users-validateUser-0-objc">
                               <pre class="prettyprint"><code class="language-cpp">User *body = ; // 
-Integer *userId = 56; // ID of the user to validate
+Integer *usersId = 56; // ID of the user to validate
 
 UsersApi *apiInstance = [[UsersApi alloc] init];
 
 // Validate a user by ID
 [apiInstance validateUserWith:body
-    userId:userId
+    usersId:usersId
               completionHandler: ^(inline_response_200_1 output, NSError* error) {
                             if (output) {
                                 NSLog(@"%@", output);
@@ -9667,7 +9673,7 @@ UsersApi *apiInstance = [[UsersApi alloc] init];
 
 var api = new ThreefoldExplorer.UsersApi()
 var body = ; // {{User}} 
-var userId = 56; // {{Integer}} ID of the user to validate
+var usersId = 56; // {{Integer}} ID of the user to validate
 
 var callback = function(error, data, response) {
   if (error) {
@@ -9676,7 +9682,7 @@ var callback = function(error, data, response) {
     console.log('API called successfully. Returned data: ' + data);
   }
 };
-api.validateUser(bodyuserId, callback);
+api.validateUser(bodyusersId, callback);
 </code></pre>
                             </div>
 
@@ -9699,12 +9705,12 @@ namespace Example
 
             var apiInstance = new UsersApi();
             var body = new User(); // User | 
-            var userId = 56;  // Integer | ID of the user to validate
+            var usersId = 56;  // Integer | ID of the user to validate
 
             try
             {
                 // Validate a user by ID
-                inline_response_200_1 result = apiInstance.validateUser(body, userId);
+                inline_response_200_1 result = apiInstance.validateUser(body, usersId);
                 Debug.WriteLine(result);
             }
             catch (Exception e)
@@ -9723,10 +9729,10 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 $api_instance = new Swagger\Client\ApiUsersApi();
 $body = ; // User | 
-$userId = 56; // Integer | ID of the user to validate
+$usersId = 56; // Integer | ID of the user to validate
 
 try {
-    $result = $api_instance->validateUser($body, $userId);
+    $result = $api_instance->validateUser($body, $usersId);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling UsersApi->validateUser: ', $e->getMessage(), PHP_EOL;
@@ -9741,10 +9747,10 @@ use WWW::SwaggerClient::UsersApi;
 
 my $api_instance = WWW::SwaggerClient::UsersApi->new();
 my $body = WWW::SwaggerClient::Object::User->new(); # User | 
-my $userId = 56; # Integer | ID of the user to validate
+my $usersId = 56; # Integer | ID of the user to validate
 
 eval { 
-    my $result = $api_instance->validateUser(body => $body, userId => $userId);
+    my $result = $api_instance->validateUser(body => $body, usersId => $usersId);
     print Dumper($result);
 };
 if ($@) {
@@ -9762,11 +9768,11 @@ from pprint import pprint
 # create an instance of the API class
 api_instance = swagger_client.UsersApi()
 body =  # User | 
-userId = 56 # Integer | ID of the user to validate
+usersId = 56 # Integer | ID of the user to validate
 
 try: 
     # Validate a user by ID
-    api_response = api_instance.validate_user(body, userId)
+    api_response = api_instance.validate_user(body, usersId)
     pprint(api_response)
 except ApiException as e:
     print("Exception when calling UsersApi->validateUser: %s\n" % e)</code></pre>
@@ -9781,11 +9787,11 @@ except ApiException as e:
                                   <th width="150px">Name</th>
                                   <th>Description</th>
                                 </tr>
-                                  <tr><td style="width:150px;">userId*</td>
+                                  <tr><td style="width:150px;">usersId*</td>
                                   <td>
                                   
                                   
-                                      <div id="d2e199_validateUser_userId">
+                                      <div id="d2e199_validateUser_usersId">
                                           <div class="json-schema-view">
                                               <div class="primitive">
                                                   <span class="type">
