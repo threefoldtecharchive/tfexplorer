@@ -72,6 +72,7 @@ func NewLocation() (Location, error) {
 type Node struct {
 	ID                schema.ID      `bson:"_id" json:"id"`
 	NodeId            string         `bson:"node_id" json:"node_id"`
+	HostName          string         `bson:"hostname" json:"hostname"`
 	NodeIdV1          string         `bson:"node_id_v1" json:"node_id_v1"`
 	FarmId            int64          `bson:"farm_id" json:"farm_id"`
 	OsVersion         string         `bson:"os_version" json:"os_version"`
