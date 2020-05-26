@@ -17,6 +17,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	}
 
 	var farmAPI FarmAPI
+	var nodeAPI NodeAPI
+
 	farms := parent.PathPrefix("/farms").Subrouter()
 	farmsAuthenticated := parent.PathPrefix("/farms").Subrouter()
 	farmsAuthenticated.Use(mw.NewAuthMiddleware(httpsig.NewVerifier(mw.NewUserKeyGetter(db))).Middleware)
@@ -25,8 +27,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list")
 	farms.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.getFarm)).Methods("GET").Name("farm-get")
 	farmsAuthenticated.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update")
+	farmsAuthenticated.HandleFunc("/{farm_id}/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete")
 
-	var nodeAPI NodeAPI
 	nodes := parent.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := parent.PathPrefix("/nodes").Subrouter()
 	userAuthenticated := parent.PathPrefix("/nodes").Subrouter()
