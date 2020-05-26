@@ -147,32 +147,9 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	router.Path("/metrics").Handler(promhttp.Handler()).Name("metrics")
 	router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(statikFS)))
-	router.Path("/").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		r, err := statikFS.Open("/index.html")
-		if err != nil {
-			mw.Error(err, http.StatusInternalServerError)
-			return
-		}
-		defer r.Close()
 
-		w.WriteHeader(http.StatusOK)
-		if _, err := io.Copy(w, r); err != nil {
-			log.Error().Err(err).Send()
-		}
-	})
-	router.Path("/explorer").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		r, err := statikFS.Open("/docs.html")
-		if err != nil {
-			mw.Error(err, http.StatusInternalServerError)
-			return
-		}
-		defer r.Close()
-
-		w.WriteHeader(http.StatusOK)
-		if _, err := io.Copy(w, r); err != nil {
-			log.Error().Err(err).Send()
-		}
-	})
+	router.Path("/").HandlerFunc(serveStatic("/index.html", statikFS))
+	router.Path("/explorer").HandlerFunc(serveStatic("/docs.html", statikFS))
 
 	if dropEscrowData {
 		log.Warn().Msg("dropping escrow and address collection")
@@ -252,4 +229,19 @@ func userInputYesNo(question string) bool {
 	reply = strings.ToLower(reply)
 
 	return reply == "y" || reply == "yes"
+}
+
+func serveStatic(path string, statikFS http.FileSystem) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		r, err := statikFS.Open(path)
+		if err != nil {
+			mw.Error(err, http.StatusInternalServerError)
+			return
+		}
+		defer r.Close()
+		w.WriteHeader(http.StatusOK)
+		if _, err := io.Copy(w, r); err != nil {
+			log.Error().Err(err).Send()
+		}
+	}
 }
