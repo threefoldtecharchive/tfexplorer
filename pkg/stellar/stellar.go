@@ -166,12 +166,14 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		Destination: newKp.Address(),
 		Amount:      minimumBalance,
 	}
+	ops := []txnbuild.Operation{&createAccountOp}
 	tx, err := txnbuild.NewTransaction(
 		txnbuild.TransactionParams{
 			SourceAccount:        &sourceAccount,
-			Operations:           []txnbuild.Operation{&createAccountOp},
+			Operations:           ops,
 			Timebounds:           txnbuild.NewTimeout(300),
 			IncrementSequenceNum: true,
+			BaseFee:              txnbuild.MinBaseFee * int64(len(ops)),
 		},
 	)
 	if err != nil {
