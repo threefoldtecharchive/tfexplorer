@@ -91,17 +91,21 @@ func cmdsAddNode(c *cli.Context) error {
 		return err
 	}
 
+	fmt.Println(network)
+
 	network, err = network.AddNode(nodeID, subnet, port, forceHidden)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add a node to the network %s", network.Name)
 	}
 
-	f, err = os.Open(networkSchema)
+	fmt.Println(network)
+
+	nf, err := os.Create(networkSchema + ".new")
 	if err != nil {
 		return errors.Wrap(err, "failed to open networks schema")
 	}
 
-	return network.Save(f)
+	return network.Save(nf)
 }
 
 func cmdsAddAccess(c *cli.Context) error {

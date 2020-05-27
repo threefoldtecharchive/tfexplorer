@@ -92,11 +92,7 @@ func LoadNetworkBuilder(reader io.Reader, explorer *client.Client) (*NetworkBuil
 
 // Save saves the network builder to an IO.Writer
 func (n *NetworkBuilder) Save(writer io.Writer) error {
-	err := json.NewEncoder(writer).Encode(n.Network)
-	if err != nil {
-		return err
-	}
-	return err
+	return json.NewEncoder(writer).Encode(n.Network)
 }
 
 // Build returns the network
