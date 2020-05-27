@@ -403,7 +403,7 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 			obj.Content = data
 
 		case generated.WorkloadTypeReverseProxy:
-			var data generated.GatewayReserveProxy
+			var data generated.GatewayReverseProxy
 			if err := bson.Unmarshal(wl.Content, &data); err != nil {
 				return nil, err
 			}

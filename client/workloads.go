@@ -114,7 +114,7 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 		}
 		result.Content = o
 	case workloads.WorkloadTypeReverseProxy:
-		var o workloads.GatewayReserveProxy
+		var o workloads.GatewayReverseProxy
 		if err := json.Unmarshal(wl.Content, &o); err != nil {
 			return result, err
 		}

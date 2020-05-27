@@ -100,7 +100,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
 
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reserve_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -187,7 +187,7 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.Volumes) +
 		len(r.DataReservation.Zdbs) +
 		len(r.DataReservation.Proxies) +
-		len(r.DataReservation.ReserveProxy) +
+		len(r.DataReservation.ReverseProxy) +
 		len(r.DataReservation.Subdomains) +
 		len(r.DataReservation.DomainDelegates) +
 		len(r.DataReservation.Gateway4To6s)
@@ -215,7 +215,7 @@ func (r *Reservation) Validate() error {
 	for _, w := range r.DataReservation.Proxies {
 		workloaders = append(workloaders, w)
 	}
-	for _, w := range r.DataReservation.ReserveProxy {
+	for _, w := range r.DataReservation.ReverseProxy {
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Subdomains {
@@ -394,7 +394,7 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		workloads = append(workloads, wrkl)
 
 	}
-	for _, wl := range data.ReserveProxy {
+	for _, wl := range data.ReverseProxy {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
@@ -515,7 +515,7 @@ func (r *Reservation) GatewayIDs() []string {
 		ids[p.NodeId] = struct{}{}
 	}
 
-	for _, p := range r.DataReservation.ReserveProxy {
+	for _, p := range r.DataReservation.ReverseProxy {
 		ids[p.NodeId] = struct{}{}
 	}
 

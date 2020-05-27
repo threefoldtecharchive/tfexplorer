@@ -16,7 +16,7 @@ func (g GatewayProxy) WorkloadID() int64 {
 	return g.WorkloadId
 }
 
-type GatewayReserveProxy struct {
+type GatewayReverseProxy struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
 	NodeId     string    `bson:"node_id" json:"node_id"`
@@ -24,7 +24,7 @@ type GatewayReserveProxy struct {
 	Secret     string    `bson:"secret" json:"secret"`
 }
 
-func (g GatewayReserveProxy) WorkloadID() int64 {
+func (g GatewayReverseProxy) WorkloadID() int64 {
 	return g.WorkloadId
 }
 
