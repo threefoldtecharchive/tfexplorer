@@ -184,6 +184,7 @@ func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceH
 	}
 
 	n.NetResources = append(n.NetResources, nr)
+	n.Network.NetworkResources = append(n.Network.NetworkResources, nr.NetworkNetResource)
 
 	if err = n.generatePeers(); err != nil {
 		return n, errors.Wrap(err, "failed to generate peers")
