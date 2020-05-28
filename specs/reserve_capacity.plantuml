@@ -1,0 +1,32 @@
+@startuml
+
+title Reserve capacity
+
+actor User as user
+actor Farmer as farmer
+database tfexplorer
+database blockchain
+boundary node
+
+autonumber
+== Farm preparation ==
+farmer -> tfexplorer: configure prices
+== Reasearch for nodes ==
+user <-> tfexplorer: Select which node to use and the amount of capacity per node
+== Resource reservation ==
+user -> tfexplorer: Send list of nodes and amount of capacity to reserve per node
+tfexplorer -> tfexplorer: calculate token amount
+tfexplorer -> farmer: Farmer validate he agrees with the capacity reservation
+farmer --> tfexplorer: confirm capacity is locked
+tfexplorer --> user: respond with payment request
+user -> blockchain: pay reservation
+alt payment sucessfull
+tfexplorer -> blockchain: detect payment
+tfexplorer -> farmer: payout tokens
+tfexplorer -> tfexplorer: mark capacity reservation as valid
+else payment timeout reached
+autonumber 9
+tfexplorer -> tfexplorer: mark capacity reservation as invalid
+tfexplorer -> farmer: unlock capacity
+end
+@enduml

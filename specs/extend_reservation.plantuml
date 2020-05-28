@@ -1,0 +1,25 @@
+@startuml extend-reservation
+
+title Extending a reservation
+
+actor User
+actor Farmer
+database tfexplorer
+database blockchain
+boundary node
+
+autonumber
+User -> User: select workload to be extended
+== Resource reservation ==
+User -> tfexplorer: Request extension of capacity reservation
+tfexplorer -> tfexplorer: Search ongoing reservation
+tfexplorer -> tfexplorer: calculate token amount
+tfexplorer -> User: return a list of transactions to execute on the blockchain
+== Resource processing ==
+User -> blockchain: Execute transactions
+blockchain <-> tfexplorer: verify transactions are done
+tfexplorer -> tfexplorer: reservation end timestamp changed to new expiry date
+tfexplorer <-> node: read description of the workloads
+node -> node: update provision workload
+
+@enduml
