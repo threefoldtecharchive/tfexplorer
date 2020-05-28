@@ -13,6 +13,8 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
+var ErrUnknownWorkload = errors.New("unknown workload type")
+
 type httpWorkloads struct {
 	*httpClient
 }
@@ -138,7 +140,7 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 		}
 		result.Content = o
 	default:
-		return result, fmt.Errorf("unknown workload type")
+		return result, ErrUnknownWorkload
 	}
 
 	return
