@@ -160,7 +160,7 @@ func (s *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 
 	err = nodeAPI.Delete(r.Context(), db, nodeID)
 	if err != nil {
-		return nil, mw.BadRequest(err)
+		return nil, mw.Error(err)
 	}
 
 	return nil, mw.Ok()
