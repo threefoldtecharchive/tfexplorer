@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -19,13 +18,9 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		},
 	}
 
-	// Gather all supported workloads types to index them all
-	wt := make([]string, 0, len(workloads.WorkloadTypes))
-	for t := range workloads.WorkloadTypes {
-		wt = append(wt, t.String())
-	}
-
-	for _, typ := range wt {
+	types := []string{"containers", "volumes", "zdbs", "networks", "kubernetes",
+		"proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6"}
+	for _, typ := range types {
 		indexes = append(
 			indexes,
 			mongo.IndexModel{
