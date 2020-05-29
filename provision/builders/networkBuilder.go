@@ -73,7 +73,7 @@ func LoadNetworkBuilder(reader io.Reader, explorer *client.Client) (*NetworkBuil
 
 	err := json.NewDecoder(reader).Decode(&network)
 	if err != nil {
-		return &NetworkBuilder{}, err
+		return nil, err
 	}
 
 	networkBuilder := &NetworkBuilder{

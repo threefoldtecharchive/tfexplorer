@@ -48,6 +48,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "seed",
 			Usage:  "path to the file container the seed of the user private key",
+			Value:  "user.seed",
 			EnvVar: "SEED_PATH",
 		},
 	}
