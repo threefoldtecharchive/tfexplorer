@@ -142,15 +142,15 @@ const (
 
 // WorkloadTypes is a map of all the supported workload type
 var WorkloadTypes = map[WorkloadTypeEnum]string{
-	WorkloadTypeZDB:            "zdbs",
-	WorkloadTypeContainer:      "containers",
-	WorkloadTypeVolume:         "volumes",
-	WorkloadTypeNetwork:        "networks",
+	WorkloadTypeZDB:            "zdb",
+	WorkloadTypeContainer:      "container",
+	WorkloadTypeVolume:         "volume",
+	WorkloadTypeNetwork:        "network",
 	WorkloadTypeKubernetes:     "kubernetes",
-	WorkloadTypeProxy:          "proxies",
-	WorkloadTypeReverseProxy:   "reverse_proxies",
-	WorkloadTypeSubDomain:      "subdomains",
-	WorkloadTypeDomainDelegate: "domain_delegates",
+	WorkloadTypeProxy:          "proxy",
+	WorkloadTypeReverseProxy:   "reverse-proxy",
+	WorkloadTypeSubDomain:      "subdomain",
+	WorkloadTypeDomainDelegate: "domain-delegate",
 	WorkloadTypeGateway4To6:    "gateway4to6",
 }
 
