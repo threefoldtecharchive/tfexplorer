@@ -13,8 +13,8 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
-// ErrUnknownWorkload define error when an unknown workload is found from reservation
-var ErrUnknownWorkload = errors.New("unknown workload type")
+// errUnknownWorkload define error when an unknown workload is found from reservation
+var errUnknownWorkload = errors.New("unknown workload type")
 
 type httpWorkloads struct {
 	*httpClient
@@ -141,7 +141,7 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 		}
 		result.Content = o
 	default:
-		return result, ErrUnknownWorkload
+		return result, errUnknownWorkload
 	}
 
 	return
@@ -177,7 +177,7 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Reser
 		wl, err := i.Workload()
 		if err != nil {
 			// skipping unknown workloads
-			if err == ErrUnknownWorkload {
+			if err == errUnknownWorkload {
 				continue
 			}
 
