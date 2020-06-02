@@ -125,6 +125,7 @@ func (f FarmFilter) Find(ctx context.Context, db *mongo.Database, opts ...*optio
 	if f == nil {
 		f = FarmFilter{}
 	}
+
 	return col.Find(ctx, f, opts...)
 }
 

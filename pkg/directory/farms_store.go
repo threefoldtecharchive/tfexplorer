@@ -6,12 +6,15 @@ import (
 	"github.com/pkg/errors"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // FarmAPI holds farm releated handlers
-type FarmAPI struct{}
+type FarmAPI struct {
+	verifier *httpsig.Verifier
+}
 
 // List farms
 // TODO: add paging arguments
