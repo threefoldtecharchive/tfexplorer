@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/threefoldtech/tfexplorer/mw"
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
+	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -16,7 +17,11 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 		return err
 	}
 
-	var userAPI UserAPI
+	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
+
+	var userAPI = UserAPI{
+		verifier: userVerifier,
+	}
 	users := parent.PathPrefix("/users").Subrouter()
 
 	users.HandleFunc("", mw.AsHandlerFunc(userAPI.create)).Methods(http.MethodPost).Name("user-create")

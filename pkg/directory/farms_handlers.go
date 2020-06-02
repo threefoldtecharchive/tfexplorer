@@ -8,6 +8,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/mw"
@@ -17,7 +19,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
+func (f FarmAPI) isAuthenticated(r *http.Request) bool {
+	_, err := f.verifier.Verify(r)
+	return err == nil
+}
+
+func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 	log.Info().Msg("farm register request received")
 
 	db := mw.Database(r)
@@ -32,7 +39,7 @@ func (s *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	id, err := s.Add(r.Context(), db, info)
+	id, err := f.Add(r.Context(), db, info)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -44,7 +51,7 @@ func (s *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 	}, mw.Created()
 }
 
-func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
+func (f *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 	sid := mux.Vars(r)["farm_id"]
 
 	id, err := strconv.ParseInt(sid, 10, 64)
@@ -54,7 +61,7 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 
-	farm, err := s.GetByID(r.Context(), db, id)
+	farm, err := f.GetByID(r.Context(), db, id)
 	if err != nil {
 		return nil, mw.NotFound(err)
 	}
@@ -76,7 +83,7 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 
 	info.ID = schema.ID(id)
 
-	err = s.Update(r.Context(), db, info.ID, info)
+	err = f.Update(r.Context(), db, info.ID, info)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -84,17 +91,30 @@ func (s *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Ok()
 }
 
-func (s *FarmAPI) listFarm(r *http.Request) (interface{}, mw.Response) {
+func (f *FarmAPI) listFarm(r *http.Request) (interface{}, mw.Response) {
+
 	q := directory.FarmQuery{}
 	if err := q.Parse(r); err != nil {
 		return nil, err
 	}
 	var filter directory.FarmFilter
 	filter = filter.WithFarmQuery(q)
+
 	db := mw.Database(r)
 
+	var findOpts []*options.FindOptions
+
 	pager := models.PageFromRequest(r)
-	farms, total, err := s.List(r.Context(), db, filter, pager)
+	findOpts = append(findOpts, pager)
+
+	// hide the email of the farm for any non authenticated user
+	if !f.isAuthenticated(r) {
+		findOpts = append(findOpts, options.Find().SetProjection(bson.D{
+			{Key: "email", Value: 0},
+		}))
+	}
+
+	farms, total, err := f.List(r.Context(), db, filter, findOpts...)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -103,7 +123,7 @@ func (s *FarmAPI) listFarm(r *http.Request) (interface{}, mw.Response) {
 	return farms, mw.Ok().WithHeader("Pages", pages)
 }
 
-func (s *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
+func (f *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 	sid := mux.Vars(r)["farm_id"]
 
 	id, err := strconv.ParseInt(sid, 10, 64)
@@ -113,15 +133,20 @@ func (s *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 
-	farm, err := s.GetByID(r.Context(), db, id)
+	farm, err := f.GetByID(r.Context(), db, id)
 	if err != nil {
 		return nil, mw.NotFound(err)
+	}
+
+	// hide the email of the farm for any non authenticated user
+	if !f.isAuthenticated(r) {
+		farm.Email = ""
 	}
 
 	return farm, nil
 }
 
-func (s *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response) {
+func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response) {
 	sid := mux.Vars(r)["farm_id"]
 
 	id, err := strconv.ParseInt(sid, 10, 64)
@@ -131,7 +156,7 @@ func (s *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 
 	db := mw.Database(r)
 
-	farm, err := s.GetByID(r.Context(), db, id)
+	farm, err := f.GetByID(r.Context(), db, id)
 	if err != nil {
 		return nil, mw.NotFound(err)
 	}

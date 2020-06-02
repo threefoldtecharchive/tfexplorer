@@ -16,10 +16,20 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
+	"github.com/zaibon/httpsig"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // UserAPI struct
-type UserAPI struct{}
+type UserAPI struct {
+	verifier *httpsig.Verifier
+}
+
+func (u *UserAPI) isAuthenticated(r *http.Request) bool {
+	_, err := u.verifier.Verify(r)
+	return err == nil
+}
 
 // create user entry point, makes sure name is free for reservation
 func (u *UserAPI) create(r *http.Request) (interface{}, mw.Response) {
@@ -98,8 +108,19 @@ func (u *UserAPI) list(r *http.Request) (interface{}, mw.Response) {
 	filter = filter.WithEmail(r.FormValue("email"))
 
 	db := mw.Database(r)
+
+	findOpts := make([]*options.FindOptions, 0, 2)
 	pager := models.PageFromRequest(r)
-	cur, err := filter.Find(r.Context(), db, pager)
+	findOpts = append(findOpts, pager)
+
+	// hide the email of the user for any non authenticated user
+	if !u.isAuthenticated(r) {
+		findOpts = append(findOpts, options.Find().SetProjection(bson.D{
+			{Key: "email", Value: 0},
+		}))
+	}
+
+	cur, err := filter.Find(r.Context(), db, findOpts...)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -142,6 +163,11 @@ func (u *UserAPI) get(r *http.Request) (interface{}, mw.Response) {
 	user, err := filter.Get(r.Context(), db)
 	if err != nil {
 		return nil, mw.NotFound(err)
+	}
+
+	// hide the email of the user for any non authenticated user
+	if !u.isAuthenticated(r) {
+		user.Email = ""
 	}
 
 	return user, nil

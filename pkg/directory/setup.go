@@ -16,12 +16,17 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 		return err
 	}
 
-	var farmAPI FarmAPI
+	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
+	nodeVerifier := httpsig.NewVerifier(mw.NewNodeKeyGetter())
+
+	var farmAPI = FarmAPI{
+		verifier: userVerifier,
+	}
 	var nodeAPI NodeAPI
 
 	farms := parent.PathPrefix("/farms").Subrouter()
 	farmsAuthenticated := parent.PathPrefix("/farms").Subrouter()
-	farmsAuthenticated.Use(mw.NewAuthMiddleware(httpsig.NewVerifier(mw.NewUserKeyGetter(db))).Middleware)
+	farmsAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
 
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.registerFarm)).Methods("POST").Name("farm-register")
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list")
@@ -33,8 +38,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	nodesAuthenticated := parent.PathPrefix("/nodes").Subrouter()
 	userAuthenticated := parent.PathPrefix("/nodes").Subrouter()
 
-	nodeAuthMW := mw.NewAuthMiddleware(httpsig.NewVerifier(mw.NewNodeKeyGetter()))
-	userAuthMW := mw.NewAuthMiddleware(httpsig.NewVerifier(mw.NewUserKeyGetter(db)))
+	nodeAuthMW := mw.NewAuthMiddleware(nodeVerifier)
+	userAuthMW := mw.NewAuthMiddleware(userVerifier)
 
 	userAuthenticated.Use(userAuthMW.Middleware)
 	nodesAuthenticated.Use(nodeAuthMW.Middleware)
@@ -53,7 +58,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	var gwAPI GatewayAPI
 	gw := parent.PathPrefix("/gateways").Subrouter()
 	gwAuthenticated := parent.PathPrefix("/gateways").Subrouter()
-	gwAuthMW := mw.NewAuthMiddleware(httpsig.NewVerifier(mw.NewNodeKeyGetter()))
+	gwAuthMW := mw.NewAuthMiddleware(nodeVerifier)
 	gwAuthenticated.Use(gwAuthMW.Middleware)
 
 	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.registerGateway)).Methods("POST").Name("gateway-register")
