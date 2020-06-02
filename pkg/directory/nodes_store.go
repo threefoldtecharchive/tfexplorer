@@ -109,6 +109,13 @@ func (s *NodeAPI) Get(ctx context.Context, db *mongo.Database, nodeID string, in
 	return filter.Get(ctx, db, includeProofs)
 }
 
+// Delete a single node
+func (s *NodeAPI) Delete(ctx context.Context, db *mongo.Database, nodeID string) error {
+	var filter directory.NodeFilter
+	filter = filter.WithNodeID(nodeID)
+	return filter.Delete(ctx, db)
+}
+
 // Exists tests if node exists
 func (s *NodeAPI) Exists(ctx context.Context, db *mongo.Database, nodeID string) (bool, error) {
 	var filter directory.NodeFilter

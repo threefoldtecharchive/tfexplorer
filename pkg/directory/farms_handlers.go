@@ -120,3 +120,48 @@ func (s *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 
 	return farm, nil
 }
+
+func (s *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response) {
+	sid := mux.Vars(r)["farm_id"]
+
+	id, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	db := mw.Database(r)
+
+	farm, err := s.GetByID(r.Context(), db, id)
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	sfarmerID := httpsig.KeyIDFromContext(r.Context())
+	requestFarmerID, err := strconv.ParseInt(sfarmerID, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	if farm.ThreebotId != requestFarmerID {
+		return nil, mw.Forbidden(fmt.Errorf("only the farm owner of this node can delete this node"))
+	}
+
+	var nodeAPI NodeAPI
+	nodeID := mux.Vars(r)["node_id"]
+
+	node, err := nodeAPI.Get(r.Context(), db, nodeID, false)
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if node.FarmId != int64(farm.ID) {
+		return nil, mw.Forbidden(fmt.Errorf("only the farm owner of this node can delete this node"))
+	}
+
+	err = nodeAPI.Delete(r.Context(), db, nodeID)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return nil, mw.Ok()
+}
