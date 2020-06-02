@@ -175,8 +175,16 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Reser
 	for _, i := range list {
 		wl, err := i.Workload()
 		if err != nil {
+			// skipping unknown workloads
+			if err == ErrUnknownWorkload {
+				continue
+			}
+
+			// something else went wrong
 			return nil, lastID, err
 		}
+
+		// forward this workload to caller
 		results = append(results, wl)
 	}
 
