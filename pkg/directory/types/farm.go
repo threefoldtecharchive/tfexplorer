@@ -131,7 +131,7 @@ func (f FarmFilter) Find(ctx context.Context, db *mongo.Database, opts ...*optio
 
 // Count number of documents matching
 func (f FarmFilter) Count(ctx context.Context, db *mongo.Database) (int64, error) {
-	col := db.Collection(NodeCollection)
+	col := db.Collection(FarmCollection)
 	if f == nil {
 		f = FarmFilter{}
 	}
