@@ -14,86 +14,104 @@ import (
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 )
 
-// Client structure
-type Client struct {
-	Phonebook Phonebook
-	Directory Directory
-	Workloads Workloads
-}
+type (
+	// Client structure
+	Client struct {
+		Phonebook Phonebook
+		Directory Directory
+		Workloads Workloads
+	}
 
-// Directory API interface
-type Directory interface {
-	FarmRegister(farm directory.Farm) (schema.ID, error)
-	FarmUpdate(farm directory.Farm) error
-	FarmList(tid schema.ID, name string, page *Pager) (farms []directory.Farm, err error)
-	FarmGet(id schema.ID) (farm directory.Farm, err error)
+	// NodeIter iterator over all nodes
+	//
+	// If the iterator has finished, a nil error and nil node pointer is returned
+	NodeIter interface {
+		Next() (*directory.Node, error)
+	}
 
-	GatewayRegister(Gateway directory.Gateway) error
-	GatewayList(tid schema.ID, name string, page *Pager) (farms []directory.Gateway, err error)
-	GatewayGet(id string) (farm directory.Gateway, err error)
-	GatewayUpdateUptime(id string, uptime uint64) error
-	GatewayUpdateReservedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error
+	// FarmIter iterator over all farms
+	//
+	// If the iterator has finished, a nil error and nil farm pointer is returned
+	FarmIter interface {
+		Next() (*directory.Farm, error)
+	}
 
-	NodeRegister(node directory.Node) error
-	NodeList(filter NodeFilter) (nodes []directory.Node, err error)
-	NodeGet(id string, proofs bool) (node directory.Node, err error)
+	// Directory API interface
+	Directory interface {
+		FarmRegister(farm directory.Farm) (schema.ID, error)
+		FarmUpdate(farm directory.Farm) error
+		FarmList(tid schema.ID, name string, page *Pager) (farms []directory.Farm, err error)
+		FarmGet(id schema.ID) (farm directory.Farm, err error)
+		Farms(cacheSize int) FarmIter
 
-	NodeSetInterfaces(id string, ifaces []directory.Iface) error
-	NodeSetPorts(id string, ports []uint) error
-	NodeSetPublic(id string, pub directory.PublicIface) error
-	NodeSetFreeToUse(id string, free bool) error
+		GatewayRegister(Gateway directory.Gateway) error
+		GatewayList(tid schema.ID, name string, page *Pager) (farms []directory.Gateway, err error)
+		GatewayGet(id string) (farm directory.Gateway, err error)
+		GatewayUpdateUptime(id string, uptime uint64) error
+		GatewayUpdateReservedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error
 
-	//TODO: this method call uses types from zos that is not generated
-	//from the schema. Which is wrong imho.
-	NodeSetCapacity(
-		id string,
-		resources directory.ResourceAmount,
-		dmiInfo dmi.DMI,
-		disksInfo capacity.Disks,
-		hypervisor []string,
-	) error
+		NodeRegister(node directory.Node) error
+		NodeList(filter NodeFilter, pager *Pager) (nodes []directory.Node, err error)
+		NodeGet(id string, proofs bool) (node directory.Node, err error)
+		Nodes(cacheSize int, proofs bool) NodeIter
 
-	NodeUpdateUptime(id string, uptime uint64) error
-	NodeUpdateUsedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error
-}
+		NodeSetInterfaces(id string, ifaces []directory.Iface) error
+		NodeSetPorts(id string, ports []uint) error
+		NodeSetPublic(id string, pub directory.PublicIface) error
+		NodeSetFreeToUse(id string, free bool) error
 
-// Phonebook interface
-type Phonebook interface {
-	Create(user phonebook.User) (schema.ID, error)
-	List(name, email string, page *Pager) (output []phonebook.User, err error)
-	Get(id schema.ID) (phonebook.User, error)
-	// Update() #TODO
-	Validate(id schema.ID, message, signature string) (bool, error)
-}
+		//TODO: this method call uses types from zos that is not generated
+		//from the schema. Which is wrong imho.
+		NodeSetCapacity(
+			id string,
+			resources directory.ResourceAmount,
+			dmiInfo dmi.DMI,
+			disksInfo capacity.Disks,
+			hypervisor []string,
+		) error
 
-// Workloads interface
-type Workloads interface {
-	Create(reservation workloads.Reservation) (resp wrklds.ReservationCreateResponse, err error)
-	List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Reservation, err error)
-	Get(id schema.ID) (reservation workloads.Reservation, err error)
+		NodeUpdateUptime(id string, uptime uint64) error
+		NodeUpdateUsedResources(id string, resources directory.ResourceAmount, workloads directory.WorkloadAmount) error
+	}
 
-	SignProvision(id schema.ID, user schema.ID, signature string) error
-	SignDelete(id schema.ID, user schema.ID, signature string) error
+	// Phonebook interface
+	Phonebook interface {
+		Create(user phonebook.User) (schema.ID, error)
+		List(name, email string, page *Pager) (output []phonebook.User, err error)
+		Get(id schema.ID) (phonebook.User, error)
+		// Update() #TODO
+		Validate(id schema.ID, message, signature string) (bool, error)
+	}
 
-	Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error)
-	WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error)
-	WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
-	WorkloadPutDeleted(nodeID, gwid string) error
-}
+	// Workloads interface
+	Workloads interface {
+		Create(reservation workloads.Reservation) (resp wrklds.ReservationCreateResponse, err error)
+		List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Reservation, err error)
+		Get(id schema.ID) (reservation workloads.Reservation, err error)
 
-// Identity is used by the client to authenticate to the explorer API
-type Identity interface {
-	// The unique ID as known by the explorer
-	Identity() string
-	// PrivateKey used to sign the requests
-	PrivateKey() ed25519.PrivateKey
-}
+		SignProvision(id schema.ID, user schema.ID, signature string) error
+		SignDelete(id schema.ID, user schema.ID, signature string) error
 
-// Pager for listing
-type Pager struct {
-	p int
-	s int
-}
+		Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error)
+		WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error)
+		WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
+		WorkloadPutDeleted(nodeID, gwid string) error
+	}
+
+	// Identity is used by the client to authenticate to the explorer API
+	Identity interface {
+		// The unique ID as known by the explorer
+		Identity() string
+		// PrivateKey used to sign the requests
+		PrivateKey() ed25519.PrivateKey
+	}
+
+	// Pager for listing
+	Pager struct {
+		p int
+		s int
+	}
+)
 
 func (p *Pager) apply(v url.Values) {
 	if p == nil {
