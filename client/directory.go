@@ -5,15 +5,37 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/capacity"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 )
 
-type httpDirectory struct {
-	*httpClient
-}
+type (
+	httpDirectory struct {
+		*httpClient
+	}
+
+	httpNodeIter struct {
+		cl       *httpDirectory
+		proofs   bool
+		page     int
+		size     int
+		cache    []directory.Node
+		cacheIdx int
+		finished bool
+	}
+
+	httpFarmIter struct {
+		cl       *httpDirectory
+		page     int
+		size     int
+		cache    []directory.Farm
+		cacheIdx int
+		finished bool
+	}
+)
 
 func (d *httpDirectory) FarmRegister(farm directory.Farm) (schema.ID, error) {
 	var output struct {
@@ -47,13 +69,42 @@ func (d *httpDirectory) FarmGet(id schema.ID) (farm directory.Farm, err error) {
 	return
 }
 
+func (d *httpDirectory) Farms(cacheSize int) FarmIter {
+	// pages start at index 1
+	return &httpFarmIter{cl: d, size: cacheSize, page: 1}
+}
+
+func (fi *httpFarmIter) Next() (*directory.Farm, error) {
+	// check if there are still cached farms
+	if fi.cacheIdx >= len(fi.cache) {
+		if fi.finished {
+			return nil, nil
+		}
+		// pull new data in cache
+		pager := Page(fi.page, fi.size)
+		farms, err := fi.cl.FarmList(0, "", pager)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get farms")
+		}
+		fi.cache = farms
+		fi.cacheIdx = 0
+		fi.page++
+		if len(farms) < fi.size {
+			fi.finished = true
+		}
+	}
+	fi.cacheIdx++
+	return &fi.cache[fi.cacheIdx-1], nil
+}
+
 func (d *httpDirectory) NodeRegister(node directory.Node) error {
 	_, err := d.post(d.url("nodes"), node, nil, http.StatusCreated)
 	return err
 }
 
-func (d *httpDirectory) NodeList(filter NodeFilter) (nodes []directory.Node, err error) {
+func (d *httpDirectory) NodeList(filter NodeFilter, pager *Pager) (nodes []directory.Node, err error) {
 	query := url.Values{}
+	pager.apply(query)
 	filter.Apply(query)
 	_, err = d.get(d.url("nodes"), query, &nodes, http.StatusOK)
 	return
@@ -141,6 +192,34 @@ func (d *httpDirectory) NodeSetFreeToUse(id string, free bool) error {
 	return err
 }
 
+func (d *httpDirectory) Nodes(cacheSize int, proofs bool) NodeIter {
+	// pages start at index 1
+	return &httpNodeIter{cl: d, size: cacheSize, page: 1, proofs: proofs}
+}
+
+func (ni *httpNodeIter) Next() (*directory.Node, error) {
+	// check if there are still cached nodes
+	if ni.cacheIdx >= len(ni.cache) {
+		if ni.finished {
+			return nil, nil
+		}
+		// pull new data in cache
+		pager := Page(ni.page, ni.size)
+		filter := NodeFilter{}.WithProofs(ni.proofs)
+		nodes, err := ni.cl.NodeList(filter, pager)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get nodes")
+		}
+		ni.cache = nodes
+		ni.cacheIdx = 0
+		ni.page++
+		if len(nodes) < ni.size {
+			ni.finished = true
+		}
+	}
+	ni.cacheIdx++
+	return &ni.cache[ni.cacheIdx-1], nil
+}
 func (d *httpDirectory) GatewayRegister(Gateway directory.Gateway) error {
 	_, err := d.post(d.url("gateways"), Gateway, nil, http.StatusCreated)
 	return err
