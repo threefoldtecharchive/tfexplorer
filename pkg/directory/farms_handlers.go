@@ -25,26 +25,18 @@ func (f FarmAPI) isAuthenticated(r *http.Request) bool {
 	return err == nil
 }
 
-type myWriter struct {
-	http.Hijacker
-	http.ResponseWriter
-}
-
 func (f *FarmAPI) wsEnpoint(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%+v", w)
 	events.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
 	// upgrade this connection to a WebSocket connection
-	ws, err := events.Upgrader.Upgrade(&myWriter{ResponseWriter: w}, r, nil)
+	ws, err := events.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to upgrade connection")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("error occured"))
 		return
 	}
-	for {
-		f.eventProcessingService.SendEvents(ws)
-	}
+	go f.eventProcessingService.SendEvents(ws)
 }
 
 func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
