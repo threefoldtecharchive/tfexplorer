@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,7 +14,8 @@ import (
 
 // FarmAPI holds farm releated handlers
 type FarmAPI struct {
-	verifier *httpsig.Verifier
+	verifier               *httpsig.Verifier
+	eventProcessingService *events.EventProcessingService
 }
 
 // List farms

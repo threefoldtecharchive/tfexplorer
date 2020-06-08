@@ -17,6 +17,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/capacity"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
@@ -59,6 +60,10 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	log.Info().Msgf("node registered: %+v\n", n)
+	createEvent := events.Event{
+		Message: fmt.Sprintf("node with id %s was created", n.NodeId),
+	}
+	s.eventProcessingService.ProcessEvent(createEvent)
 
 	return nil, mw.Created()
 }
@@ -333,4 +338,8 @@ func isFarmerAuthorized(r *http.Request, node directory.Node, db *mongo.Database
 	}
 	log.Debug().Int64("actualFarmerID", actualFarmerID).Int64("requestFarmID", requestFarmerID).Send()
 	return (requestFarmerID == actualFarmerID), nil
+}
+
+func (s *NodeAPI) processEvent(event events.Event) {
+
 }

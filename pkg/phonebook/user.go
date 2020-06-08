@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -23,7 +24,8 @@ import (
 
 // UserAPI struct
 type UserAPI struct {
-	verifier *httpsig.Verifier
+	verifier               *httpsig.Verifier
+	eventProcessingService *events.EventProcessingService
 }
 
 func (u *UserAPI) isAuthenticated(r *http.Request) bool {

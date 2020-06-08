@@ -6,13 +6,14 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Setup injects and initializes directory package
-func Setup(parent *mux.Router, db *mongo.Database) error {
+func Setup(parent *mux.Router, db *mongo.Database, e *events.EventProcessingService) error {
 	if err := phonebook.Setup(context.TODO(), db); err != nil {
 		return err
 	}
@@ -20,7 +21,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
 
 	var userAPI = UserAPI{
-		verifier: userVerifier,
+		verifier:               userVerifier,
+		eventProcessingService: e,
 	}
 	users := parent.PathPrefix("/users").Subrouter()
 

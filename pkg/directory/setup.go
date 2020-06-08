@@ -6,12 +6,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/threefoldtech/tfexplorer/mw"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Setup injects and initializes directory package
-func Setup(parent *mux.Router, db *mongo.Database) error {
+func Setup(parent *mux.Router, db *mongo.Database, e *events.EventProcessingService) error {
 	if err := directory.Setup(context.TODO(), db); err != nil {
 		return err
 	}
@@ -20,9 +21,12 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	nodeVerifier := httpsig.NewVerifier(mw.NewNodeKeyGetter())
 
 	var farmAPI = FarmAPI{
-		verifier: userVerifier,
+		verifier:               userVerifier,
+		eventProcessingService: e,
 	}
-	var nodeAPI NodeAPI
+	var nodeAPI = NodeAPI{
+		eventProcessingService: e,
+	}
 
 	farms := parent.PathPrefix("/farms").Subrouter()
 	farmsAuthenticated := parent.PathPrefix("/farms").Subrouter()
@@ -30,6 +34,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.registerFarm)).Methods("POST").Name("farm-register")
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list")
+	farms.HandleFunc("/ws", farmAPI.wsEnpoint)
 	farms.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.getFarm)).Methods("GET").Name("farm-get")
 	farmsAuthenticated.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update")
 	farmsAuthenticated.HandleFunc("/{farm_id}/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete")

@@ -14,6 +14,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/mw"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	"github.com/threefoldtech/tfexplorer/schema"
 
 	"github.com/gorilla/mux"
@@ -22,6 +23,28 @@ import (
 func (f FarmAPI) isAuthenticated(r *http.Request) bool {
 	_, err := f.verifier.Verify(r)
 	return err == nil
+}
+
+type myWriter struct {
+	http.Hijacker
+	http.ResponseWriter
+}
+
+func (f *FarmAPI) wsEnpoint(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("%+v", w)
+	events.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+	// upgrade this connection to a WebSocket connection
+	ws, err := events.Upgrader.Upgrade(&myWriter{ResponseWriter: w}, r, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to upgrade connection")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error occured"))
+		return
+	}
+	for {
+		f.eventProcessingService.SendEvents(ws)
+	}
 }
 
 func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {

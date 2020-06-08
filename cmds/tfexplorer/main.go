@@ -30,6 +30,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowdb "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
+	"github.com/threefoldtech/tfexplorer/pkg/events"
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads"
@@ -39,7 +40,7 @@ import (
 )
 
 // Pkg is a shorthand type for func
-type Pkg func(*mux.Router, *mongo.Database) error
+type Pkg func(*mux.Router, *mongo.Database, *events.EventProcessingService) error
 
 func main() {
 	app.Initialize()
@@ -191,9 +192,10 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
+	eventProcessingService := events.InitialiseEventProcessingService()
 	apiRouter := router.PathPrefix("/explorer").Subrouter()
 	for _, pkg := range pkgs {
-		if err := pkg(apiRouter, db.Database()); err != nil {
+		if err := pkg(apiRouter, db.Database(), eventProcessingService); err != nil {
 			log.Error().Err(err).Msg("failed to register package")
 		}
 	}
