@@ -2,9 +2,9 @@
 
 At the moment, there is no way for a grid user to modify anything in the workloads that are live on the grid. The IT contract is something that is agreed by the user and all involved farmers before.
 
-Once an IT contract is signed by all parties, it is  provisioned by the 3n nodes and the workloads come to life.
+Once an IT contract is signed by all parties, it is  provisioned by the 3 nodes and the workloads come to life.
 
-If the reservation has been made for a duration of 6 months, there is no way for the user to cancel it after 3 months and not loose the tokens for the last 3 months. A manual discussion between the user and all the farmers  may be be initiated but there is no grantee the farmer will accept to refund the remaining 3 months and this process is impossible to scale.
+If the reservation has been made for a duration of 6 months, there is no way for the user to cancel it after 3 months and not loose the tokens for the last 3 months. A manual discussion between the user and all the farmers  may be be initiated but there is no garantee the farmer will accept to refund the remaining 3 months and this process is impossible to scale.
 
 ## Possible solutions
 
