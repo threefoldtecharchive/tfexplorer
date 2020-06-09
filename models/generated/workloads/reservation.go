@@ -139,6 +139,7 @@ const (
 	WorkloadTypeSubDomain
 	WorkloadTypeDomainDelegate
 	WorkloadTypeGateway4To6
+	WorkloadTypeCapacityPool
 )
 
 // WorkloadTypes is a map of all the supported workload type
@@ -153,6 +154,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeSubDomain:      "subdomain",
 	WorkloadTypeDomainDelegate: "domain-delegate",
 	WorkloadTypeGateway4To6:    "gateway4to6",
+	WorkloadTypeCapacityPool:   "capacity-pool",
 }
 
 func (e WorkloadTypeEnum) String() string {
