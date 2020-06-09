@@ -68,6 +68,7 @@ type ReservationData struct {
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
 	DomainDelegates         []GatewayDelegate     `bson:"domain_delegates" json:"domain_delegates"`
 	Gateway4To6s            []Gateway4To6         `bson:"gateway4to6" json:"gateway4to6"`
+	CapacityPools           []CapacityPool        `bson:"capacity_pool" json:"capacity_pool"`
 	ExpirationProvisioning  schema.Date           `bson:"expiration_provisioning" json:"expiration_provisioning"`
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
 }
