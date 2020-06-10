@@ -17,6 +17,7 @@ type Container struct {
 	Logs              []Logs              `bson:"logs" json:"logs"`
 	FarmerTid         int64               `bson:"farmer_tid" json:"farmer_tid"`
 	Capacity          ContainerCapacity   `bson:"capcity" json:"capacity"`
+	PoolId            int64               `bson:"pool_id" json:"pool_id"`
 }
 
 func (c Container) WorkloadID() int64 {

@@ -13,6 +13,7 @@ type K8S struct {
 	SshKeys         []string          `bson:"ssh_keys" json:"ssh_keys"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
+	PoolId          int64             `bson:"pool_id" json:"pool_id"`
 }
 
 func (k K8S) WorkloadID() int64 {

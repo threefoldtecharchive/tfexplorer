@@ -9,6 +9,7 @@ type Network struct {
 	StatsAggregator  []StatsAggregator    `bson:"stats_aggregator" json:"stats_aggregator"`
 	NetworkResources []NetworkNetResource `bson:"network_resources" json:"network_resources"`
 	FarmerTid        int64                `bson:"farmer_tid" json:"farmer_tid"`
+	PoolId           int64                `bson:"pool_id" json:"pool_id"`
 }
 
 func (n Network) WorkloadID() int64 {

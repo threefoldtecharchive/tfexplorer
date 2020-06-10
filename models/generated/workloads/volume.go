@@ -7,6 +7,7 @@ type Volume struct {
 	Type            VolumeTypeEnum    `bson:"type" json:"type"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
+	PoolId          int64             `bson:"pool_id" json:"pool_id"`
 }
 
 func (v Volume) WorkloadID() int64 {
