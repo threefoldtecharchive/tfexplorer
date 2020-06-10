@@ -13,7 +13,7 @@ type User struct {
 	Pubkey      string    `bson:"pubkey" json:"pubkey"`
 	Host        string    `bson:"host" json:"host"`
 	Description string    `bson:"description" json:"description"`
-	Signature   string    `bson:"signature" json:"signature"`
+	Signature   string    `bson:"-" json:"signature,omitempty"`
 }
 
 func NewUser() (User, error) {
