@@ -19,7 +19,7 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 	}
 
 	types := []string{"containers", "volumes", "zdbs", "networks", "kubernetes",
-		"proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6"}
+		"proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6", "capacity_pool"}
 	for _, typ := range types {
 		indexes = append(
 			indexes,
@@ -41,6 +41,17 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		{
 			Keys: bson.M{"node_id": 1},
 		},
+		{
+			Keys: bson.M{"workload_id": 1},
+		},
+	}
+
+	if _, err := col.Indexes().CreateMany(ctx, indexes); err != nil {
+		return err
+	}
+
+	col = db.Collection(CapacityPoolCollection)
+	indexes = []mongo.IndexModel{
 		{
 			Keys: bson.M{"workload_id": 1},
 		},

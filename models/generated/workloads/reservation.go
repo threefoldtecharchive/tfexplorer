@@ -154,7 +154,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeSubDomain:      "subdomain",
 	WorkloadTypeDomainDelegate: "domain-delegate",
 	WorkloadTypeGateway4To6:    "gateway4to6",
-	WorkloadTypeCapacityPool:   "capacity-pool",
+	WorkloadTypeCapacityPool:   "capacity_pool",
 }
 
 func (e WorkloadTypeEnum) String() string {

@@ -10,6 +10,7 @@ type ZDB struct {
 	Public          bool              `bson:"public" json:"public"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
+	PoolId          int64             `bson:"pool_id" json:"pool_id"`
 }
 
 func (z ZDB) WorkloadID() int64 {

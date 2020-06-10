@@ -24,6 +24,8 @@ const (
 	// ReservationCollection db collection name
 	ReservationCollection = "reservation"
 	queueCollection       = "workqueue"
+	// CapacityPoolCollection db collection name
+	CapacityPoolCollection = "capacitypools"
 )
 
 const (
@@ -100,7 +102,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
 
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6", "CapacityPool"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6", "capacity_pool"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -190,8 +192,8 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.ReverseProxy) +
 		len(r.DataReservation.Subdomains) +
 		len(r.DataReservation.DomainDelegates) +
-		len(r.DataReservation.Gateway4To6s) +
-		len(r.DataReservation.CapacityPools)
+		len(r.DataReservation.Gateway4To6s)
+		// len(r.DataReservation.CapacityPools)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -234,9 +236,9 @@ func (r *Reservation) Validate() error {
 	for _, w := range r.DataReservation.Gateway4To6s {
 		workloaders = append(workloaders, w)
 	}
-	for _, w := range r.DataReservation.CapacityPools {
-		workloaders = append(workloaders, w)
-	}
+	// for _, w := range r.DataReservation.CapacityPools {
+	// 	workloaders = append(workloaders, w)
+	// }
 
 	for _, w := range workloaders {
 		if _, ok := ids[w.WorkloadID()]; ok {
@@ -450,17 +452,17 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 	}
-	for _, wl := range data.CapacityPools {
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeCapacityPool,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-	}
+	// for _, wl := range data.CapacityPools {
+	// 	if len(nodeID) > 0 && wl.NodeId != nodeID {
+	// 		continue
+	// 	}
+	// 	wrkl := newWrkl(
+	// 		fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+	// 		generated.WorkloadTypeCapacityPool,
+	// 		wl.NodeId)
+	// 	wrkl.Content = wl
+	// 	workloads = append(workloads, wrkl)
+	// }
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
 
@@ -521,6 +523,10 @@ func (r *Reservation) NodeIDs() []string {
 		ids[w.NodeId] = struct{}{}
 	}
 
+	// for _, w := range r.DataReservation.CapacityPools {
+	// 	ids[w.NodeId] = struct{}{}
+	// }
+
 	nodeIDs := make([]string, 0, len(ids))
 	for nid := range ids {
 		nodeIDs = append(nodeIDs, nid)
@@ -549,10 +555,6 @@ func (r *Reservation) GatewayIDs() []string {
 	}
 
 	for _, p := range r.DataReservation.Gateway4To6s {
-		ids[p.NodeId] = struct{}{}
-	}
-
-	for _, p := range r.DataReservation.CapacityPools {
 		ids[p.NodeId] = struct{}{}
 	}
 
@@ -608,6 +610,16 @@ func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *R
 	// update reservation
 	if err := ReservationSetNextAction(ctx, db, reservation.ID, Deploy); err != nil {
 		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
+	}
+
+	if len(reservation.DataReservation.CapacityPools) > 0 {
+		for _, capacityPool := range reservation.DataReservation.CapacityPools {
+			if _, err := CapacityPoolCreate(ctx, db, capacityPool); err != nil {
+				return errors.Wrap(err, "failed to insert capacity pool")
+			}
+		}
+		// return here because we don't want to put it in the queue
+		return nil
 	}
 
 	//queue for processing
@@ -689,6 +701,19 @@ func WorkloadPush(ctx context.Context, db *mongo.Database, w ...Workload) error 
 	_, err := col.InsertMany(ctx, docs)
 
 	return err
+}
+
+// CapacityPoolCreate save new capacity pool to the database
+func CapacityPoolCreate(ctx context.Context, db *mongo.Database, capacityPool generated.CapacityPool) (schema.ID, error) {
+	id := models.MustID(ctx, db, CapacityPoolCollection)
+	capacityPool.ID = id
+
+	_, err := db.Collection(CapacityPoolCollection).InsertOne(ctx, capacityPool)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }
 
 // WorkloadPop removes workload from queue

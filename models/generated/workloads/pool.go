@@ -5,8 +5,8 @@ import schema "github.com/threefoldtech/tfexplorer/schema"
 type CapacityPool struct {
 	ID           schema.ID `bson:"_id" json:"id"`
 	WorkloadId   int64     `bson:"workload_id" json:"workload_id"`
-	NodeId       string    `bson:"node_id" json:"node_id"`
 	UsedCapacity Capacity  `bson:"used_capacity" json:"used_capacity"`
+	NodeIDs      []string  `bson:"node_ids" json:"node_ids"`
 }
 
 type Capacity struct {
