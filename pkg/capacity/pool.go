@@ -3,6 +3,8 @@ package capacity
 import (
 	"math"
 	"time"
+
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 type (
@@ -37,10 +39,10 @@ type (
 		// still left and the capacity being used.
 		EmptyAt int64 `bson:"empty_at" json:"empty_at"`
 
-		// PoolID is the id of the pool, which needs to be referenced in workloads
+		// ID is the id of the pool, which needs to be referenced in workloads
 		// wanting to use this pool to deploy. It can also be used to increase
 		// the pool
-		PoolID uint64 `bson:"pool_id" json:"pool_id"`
+		ID schema.ID `bson:"pool_id" json:"pool_id"`
 
 		// CustomerTid is the threebot id of the pool owner. Only the owner can
 		// assign workloads to the pool

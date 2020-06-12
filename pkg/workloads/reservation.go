@@ -17,6 +17,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
@@ -32,7 +33,8 @@ import (
 type (
 	// API struct
 	API struct {
-		escrow escrow.Escrow
+		escrow          escrow.Escrow
+		capacityPlanner capacity.Planner
 	}
 
 	// ReservationCreateResponse wraps reservation create response
@@ -210,6 +212,72 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		ID:                reservation.ID,
 		EscrowInformation: escrowDetails,
 	}, mw.Created()
+}
+
+func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
+	defer r.Body.Close()
+	var reservation capacity.Reservation
+	if err := json.NewDecoder(r.Body).Decode(&reservation); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	if err := reservation.Validate(); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	db := mw.Database(r)
+
+	// check if freeTFT is allowed to be used
+	// if all nodes are marked as free to use then FreeTFT is allowed
+	// otherwise it is not
+
+	var freeNodes int
+
+	usedNodes := reservation.DataReservation.NodeIDs
+	count, err := (directory.NodeFilter{}).
+		WithNodeIDs(usedNodes).
+		WithFreeToUse(true).
+		Count(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err, http.StatusInternalServerError)
+	}
+	freeNodes += int(count)
+
+	paidNodes := len(usedNodes)
+	log.Info().
+		Int("paid_nodes", paidNodes).
+		Int("free_nodes", freeNodes).
+		Msg("distribution of free nodes in capacity reservation")
+
+	currencies := make([]string, len(reservation.DataReservation.Currencies))
+	copy(currencies, reservation.DataReservation.Currencies)
+
+	// filter out FreeTFT if not all the nodes can be paid with freeTFT
+	if freeNodes < paidNodes {
+		for i, c := range currencies {
+			if c == freeTFT {
+				currencies = append(currencies[:i], currencies[i+1:]...)
+			}
+		}
+	}
+
+	var filter phonebook.UserFilter
+	filter = filter.WithID(schema.ID(reservation.CustomerTid))
+	user, err := filter.Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", reservation.CustomerTid))
+	}
+
+	if err := reservation.Verify(user.Pubkey); err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
+	}
+
+	info, err := a.capacityPlanner.Reserve(reservation)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return info, mw.Created()
 }
 
 func (a *API) parseID(id string) (schema.ID, error) {
