@@ -227,10 +227,18 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 
+	// check if all nodes belong to the same farm
+	farms, err := directory.FarmsForNodes(r.Context(), db, reservation.DataReservation.NodeIDs...)
+	if err != nil {
+		return nil, mw.Error(err, http.StatusInternalServerError)
+	}
+	if len(farms) > 1 {
+		return nil, mw.BadRequest(errors.New("all nodes for a capacity pool must belong to the same farm"))
+	}
+
 	// check if freeTFT is allowed to be used
 	// if all nodes are marked as free to use then FreeTFT is allowed
 	// otherwise it is not
-
 	var freeNodes int
 
 	usedNodes := reservation.DataReservation.NodeIDs

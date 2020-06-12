@@ -77,6 +77,10 @@ func (pr *Reservation) Validate() error {
 		return errors.New("customer_signature is required")
 	}
 
+	if len(pr.DataReservation.NodeIDs) == 0 {
+		return errors.New("pool must be applicable to at least 1 node")
+	}
+
 	var data ReservationData
 
 	if err := json.Unmarshal([]byte(pr.JSON), &data); err != nil {
