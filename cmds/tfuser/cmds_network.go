@@ -96,12 +96,12 @@ func cmdsAddNode(c *cli.Context) error {
 		return errors.Wrapf(err, "failed to add a node to the network %s", network.Name)
 	}
 
-	f, err = os.Open(networkSchema)
+	nf, err := os.Create(networkSchema)
 	if err != nil {
 		return errors.Wrap(err, "failed to open networks schema")
 	}
 
-	return network.Save(f)
+	return network.Save(nf)
 }
 
 func cmdsAddAccess(c *cli.Context) error {

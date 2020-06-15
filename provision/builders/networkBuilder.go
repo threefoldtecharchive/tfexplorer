@@ -73,7 +73,7 @@ func LoadNetworkBuilder(reader io.Reader, explorer *client.Client) (*NetworkBuil
 
 	err := json.NewDecoder(reader).Decode(&network)
 	if err != nil {
-		return &NetworkBuilder{}, err
+		return nil, err
 	}
 
 	networkBuilder := &NetworkBuilder{
@@ -92,11 +92,7 @@ func LoadNetworkBuilder(reader io.Reader, explorer *client.Client) (*NetworkBuil
 
 // Save saves the network builder to an IO.Writer
 func (n *NetworkBuilder) Save(writer io.Writer) error {
-	err := json.NewEncoder(writer).Encode(n.Network)
-	if err != nil {
-		return err
-	}
-	return err
+	return json.NewEncoder(writer).Encode(n.Network)
 }
 
 // Build returns the network
@@ -188,6 +184,7 @@ func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceH
 	}
 
 	n.NetResources = append(n.NetResources, nr)
+	n.Network.NetworkResources = append(n.Network.NetworkResources, nr.NetworkNetResource)
 
 	if err = n.generatePeers(); err != nil {
 		return n, errors.Wrap(err, "failed to generate peers")
