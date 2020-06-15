@@ -9,6 +9,7 @@ import (
 	"github.com/stellar/go/amount"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 )
 
 type (
@@ -38,6 +39,11 @@ type (
 const (
 	computeUnitTFTCost = 0.266 //  0.04 / 0.15
 	storageUnitTFTCost = 0.200 // 0.03 / 0.15
+
+	// express as stropes, to simplify things a bit
+	// TODO: check if the rounding errors here matter
+	computeUnitSecondTFTStropesCost = 741 //  0.04 / 0.15 / 3600 * 10_000_000
+	storageUnitSecondTFTStropesCost = 556 // 0.03 / 0.15 / 3600 * 10_000_000
 )
 
 const (
@@ -104,6 +110,21 @@ func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer, duration
 		costPerFarmerMap[id] = cost
 	}
 	return costPerFarmerMap, nil
+}
+
+// calculateCapacityReservationCost calculates the cost of a capacity reservation
+func (e Stellar) calculateCapacityReservationCost(data capacity.ReservationData, farmID int64) (xdr.Int64, error) {
+	total := big.NewInt(0)
+	cuCost := big.NewInt(0)
+	suCost := big.NewInt(0)
+
+	cuCost = cuCost.Mul(big.NewInt(computeUnitSecondTFTStropesCost), big.NewInt(int64(data.CUs)))
+	suCost = suCost.Mul(big.NewInt(storageUnitSecondTFTStropesCost), big.NewInt(int64(data.SUs)))
+
+	// TODO: Discount??
+	total = total.Add(cuCost, suCost)
+
+	return xdr.Int64(total.Int64()), nil
 }
 
 func (e Stellar) processReservationResources(resData workloads.ReservationData) (rsuPerFarmer, error) {

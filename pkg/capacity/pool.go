@@ -50,6 +50,21 @@ type (
 	}
 )
 
+// NewPool sets up a new pool, ready to use, with the given data
+func NewPool(id schema.ID, ownerID int64, nodeIDs []string) *Pool {
+	return &Pool{
+		Cus:         0,
+		Sus:         0,
+		NodeIDs:     nodeIDs,
+		LastUpdated: time.Now().Unix(),
+		ActiveCU:    0,
+		ActiveSU:    0,
+		EmptyAt:     math.MaxInt64,
+		ID:          id,
+		CustomerTid: ownerID,
+	}
+}
+
 // AddCapacity adds new capacity to the pool
 func (p *Pool) AddCapacity(CUs float64, SUs float64) {
 	p.syncCurrentCapacity()
