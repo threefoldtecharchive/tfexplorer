@@ -150,14 +150,6 @@ func (p PublicIface) Validate() error {
 		return fmt.Errorf("gw4 cannot be empty")
 	}
 
-	if p.Ipv6.IP == nil || p.Ipv6.Mask == nil {
-		return fmt.Errorf("ipv6 cannot be empty")
-	}
-
-	if p.Gw6 == nil {
-		return fmt.Errorf("gw6 cannot be empty")
-	}
-
 	if p.Ipv4.IP.To4() == nil {
 		return fmt.Errorf("%s is not a valid IPv4 address", p.Ipv4.IP.String())
 	}
@@ -171,17 +163,19 @@ func (p PublicIface) Validate() error {
 		return fmt.Errorf("%s is not a valid IPv4 address", p.Gw4.String())
 	}
 
-	if p.Ipv6.IP.To4() != nil {
-		return fmt.Errorf("%s is not a valid IPv6 address", p.Ipv6.IP.String())
-	}
+	if p.Ipv6.IP != nil && p.Gw6 != nil {
+		if p.Ipv6.IP.To4() != nil {
+			return fmt.Errorf("%s is not a valid IPv6 address", p.Ipv6.IP.String())
+		}
 
-	_, bits = p.Ipv6.Mask.Size()
-	if bits != 128 {
-		return fmt.Errorf("%s is not a valid IPv6 net mask", p.Ipv6.Mask.String())
-	}
+		_, bits = p.Ipv6.Mask.Size()
+		if bits != 128 {
+			return fmt.Errorf("%s is not a valid IPv6 net mask", p.Ipv6.Mask.String())
+		}
 
-	if p.Gw6.To4() != nil {
-		return fmt.Errorf("%s is not a valid IPv6 address", p.Gw6.String())
+		if p.Gw6.To4() != nil {
+			return fmt.Errorf("%s is not a valid IPv6 address", p.Gw6.String())
+		}
 	}
 
 	return nil
