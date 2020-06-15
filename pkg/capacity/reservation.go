@@ -50,12 +50,12 @@ type (
 	// very small, this is not a problem for over purchasing, and it simplifies
 	// some stuff on our end.
 	ReservationData struct {
-		PoolID                 uint64      `json:"pool_id"`
-		CUs                    uint64      `json:"cus"`
-		SUs                    uint64      `json:"sus"`
-		NodeIDs                []string    `json:"node_ids"`
-		ExpirationProvisioning schema.Date `json:"expiration_provisioning"` // Needed so a new pool does not hang forever
-		Currencies             []string    `json:"currencies"`
+		PoolID                 uint64      `bson:"pool_id" json:"pool_id"`
+		CUs                    uint64      `bson:"cus" json:"c_us"`
+		SUs                    uint64      `bson:"sus" json:"s_us"`
+		NodeIDs                []string    `bson:"node_ids" json:"node_i_ds"`
+		ExpirationProvisioning schema.Date `bson:"expiration_provisioning" json:"expiration_provisioning"` // Needed so a new pool does not hang forever
+		Currencies             []string    `bson:"currencies" json:"currencies"`
 	}
 )
 
