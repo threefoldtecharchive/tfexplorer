@@ -14,7 +14,7 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/rakyll/statik v0.1.7
 	github.com/rs/zerolog v1.18.0
-	github.com/rusart/muxprom v0.0.0-20200323164249-36ea051efbe6
+	github.com/rusart/muxprom v0.0.0-20200609120753-9173fa27435a
 	github.com/stellar/go v0.0.0-20200520124219-6cdb4e841dc7
 	github.com/stretchr/testify v1.5.1
 	github.com/threefoldtech/zos v0.2.4
@@ -29,4 +29,3 @@ require (
 )
 
 replace github.com/docker/distribution v2.7.1+incompatible => github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible
-replace github.com/rusart/muxprom => /home/dylan/go/src/github.com/rusart/muxprom

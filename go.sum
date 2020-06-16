@@ -455,6 +455,8 @@ github.com/rs/zerolog v1.18.0/go.mod h1:9nvC1axdVrAHcu/s9taAVfBuIdTZLVQmKQyvrUjF
 github.com/rubenv/sql-migrate v0.0.0-20190717103323-87ce952f7079/go.mod h1:WS0rl9eEliYI8DPnr3TOwz4439pay+qNgzJoVya/DmY=
 github.com/rusart/muxprom v0.0.0-20200323164249-36ea051efbe6 h1:7Le2wa3OZncqppeAvtSjjzQ8GGxZmfIL8/IjA6Fy8/U=
 github.com/rusart/muxprom v0.0.0-20200323164249-36ea051efbe6/go.mod h1:GWiHVzK0fC7MY2dtQ+js0B7yRqwZVlej6qN28MonuUQ=
+github.com/rusart/muxprom v0.0.0-20200609120753-9173fa27435a h1:vCw+JDEJSxF1nkTTv3M8lYtUYV0KoGUDwbl7oBtJOd4=
+github.com/rusart/muxprom v0.0.0-20200609120753-9173fa27435a/go.mod h1:GWiHVzK0fC7MY2dtQ+js0B7yRqwZVlej6qN28MonuUQ=
 github.com/russross/blackfriday/v2 v2.0.1 h1:lPqVAte+HuHNfhJ/0LC98ESWRz8afy9tM/0RK8m9o+Q=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8 h1:2c1EFnZHIPCW8qKWgHMH/fX2PkSabFc5mrVzfUNdg5U=

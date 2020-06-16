@@ -40,7 +40,7 @@ import (
 )
 
 // Pkg is a shorthand type for func
-type Pkg func(*mux.Router, *mongo.Database, *events.EventProcessingService) error
+type Pkg func(*mux.Router, *mongo.Database) error
 
 func main() {
 	app.Initialize()
@@ -152,6 +152,10 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	router.Path("/").HandlerFunc(serveStatic("/index.html", statikFS))
 	router.Path("/explorer").HandlerFunc(serveStatic("/docs.html", statikFS))
 
+	eventProcessingService := events.InitialiseEventProcessingService()
+
+	router.Path("/explorer/ws").HandlerFunc(wsEnpoint(*eventProcessingService))
+
 	if dropEscrowData {
 		log.Warn().Msg("dropping escrow and address collection")
 		if err := db.Database().Collection(escrowdb.AddressCollection).Drop(context.Background()); err != nil {
@@ -192,10 +196,9 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
-	eventProcessingService := events.InitialiseEventProcessingService()
 	apiRouter := router.PathPrefix("/explorer").Subrouter()
 	for _, pkg := range pkgs {
-		if err := pkg(apiRouter, db.Database(), eventProcessingService); err != nil {
+		if err := pkg(apiRouter, db.Database()); err != nil {
 			log.Error().Err(err).Msg("failed to register package")
 		}
 	}
@@ -245,5 +248,21 @@ func serveStatic(path string, statikFS http.FileSystem) http.HandlerFunc {
 		if _, err := io.Copy(w, r); err != nil {
 			log.Error().Err(err).Send()
 		}
+	}
+}
+
+func wsEnpoint(eventProcessingService events.EventProcessingService) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		events.Upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+		// upgrade this connection to a WebSocket connection
+		ws, err := events.Upgrader.Upgrade(w, req, nil)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to upgrade connection")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("error occured"))
+			return
+		}
+		go eventProcessingService.SendEvents(ws)
 	}
 }
