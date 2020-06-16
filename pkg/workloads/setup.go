@@ -6,19 +6,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Setup injects and initializes directory package
-func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow) error {
+func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner capacity.Planner) error {
 	if err := types.Setup(context.TODO(), db); err != nil {
 		return err
 	}
 
 	var api API
 	api.escrow = escrow
+	api.capacityPlanner = planner
 	reservations := parent.PathPrefix("/reservations").Subrouter()
 
 	reservations.HandleFunc("", mw.AsHandlerFunc(api.create)).Methods(http.MethodPost).Name("reservation-create")
@@ -31,6 +33,8 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow) error {
 	reservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(api.workloadGet)).Methods(http.MethodGet).Name("workload-get")
 	reservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}/{node_id}", mw.AsHandlerFunc(api.workloadPutResult)).Methods(http.MethodPut).Name("workloads-results")
 	reservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}/{node_id}", mw.AsHandlerFunc(api.workloadPutDeleted)).Methods(http.MethodDelete).Name("workloads-deleted")
+
+	reservations.HandleFunc("/pools", mw.AsHandlerFunc(api.setupPool)).Methods(http.MethodPost).Name("pool-create")
 
 	return nil
 }
