@@ -27,6 +27,8 @@ import (
 	"github.com/rakyll/statik/fs"
 	"github.com/threefoldtech/tfexplorer/config"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity"
+	capacitydb "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowdb "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
@@ -198,7 +200,10 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 		}
 	}
 
-	if err = workloads.Setup(apiRouter, db.Database(), e); err != nil {
+	if err = capacitydb.Setup(context.Background(), db.Database()); err != nil {
+		log.Fatal().Err(err).Msg("failed to create capacity database indexes")
+	}
+	if err = workloads.Setup(apiRouter, db.Database(), e, capacity.NewNaivePlanner(e, db.Database())); err != nil {
 		log.Error().Err(err).Msg("failed to register package")
 	}
 

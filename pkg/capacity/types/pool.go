@@ -87,6 +87,7 @@ func (p *Pool) AddCapacity(CUs float64, SUs float64) {
 	p.syncCurrentCapacity()
 	p.Cus += CUs
 	p.Sus += SUs
+	p.syncPoolExpiration()
 }
 
 // AddWorkload adds the used CU and SU of a deployed workload to the currently
@@ -166,6 +167,17 @@ func CapacityPoolCreate(ctx context.Context, db *mongo.Database, pool Pool) (Poo
 	}
 
 	return pool, nil
+}
+
+// UpdatePool updates the pool in the database
+func UpdatePool(ctx context.Context, db *mongo.Database, pool Pool) error {
+	filter := bson.M{"_id": pool.ID}
+
+	if _, err := db.Collection(CapacityPoolCollection).UpdateOne(ctx, filter, bson.M{"$set": pool}); err != nil {
+		return errors.Wrap(err, "could not update document")
+	}
+
+	return nil
 }
 
 // GetPool from the database with the given ID
