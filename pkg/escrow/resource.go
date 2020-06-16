@@ -9,7 +9,6 @@ import (
 	"github.com/stellar/go/amount"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
-	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 )
 
 type (
@@ -113,13 +112,13 @@ func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer, duration
 }
 
 // calculateCapacityReservationCost calculates the cost of a capacity reservation
-func (e Stellar) calculateCapacityReservationCost(data capacity.ReservationData, farmID int64) (xdr.Int64, error) {
+func (e Stellar) calculateCapacityReservationCost(CUs, SUs uint64, farmID int64) (xdr.Int64, error) {
 	total := big.NewInt(0)
 	cuCost := big.NewInt(0)
 	suCost := big.NewInt(0)
 
-	cuCost = cuCost.Mul(big.NewInt(computeUnitSecondTFTStropesCost), big.NewInt(int64(data.CUs)))
-	suCost = suCost.Mul(big.NewInt(storageUnitSecondTFTStropesCost), big.NewInt(int64(data.SUs)))
+	cuCost = cuCost.Mul(big.NewInt(computeUnitSecondTFTStropesCost), big.NewInt(int64(CUs)))
+	suCost = suCost.Mul(big.NewInt(storageUnitSecondTFTStropesCost), big.NewInt(int64(SUs)))
 
 	// TODO: Discount??
 	total = total.Add(cuCost, suCost)

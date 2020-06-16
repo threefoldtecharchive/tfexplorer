@@ -280,7 +280,7 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
 	}
 
-	info, err := a.capacityPlanner.Reserve(reservation)
+	info, err := a.capacityPlanner.Reserve(reservation, currencies)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
