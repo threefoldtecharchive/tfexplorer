@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
 
-	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
@@ -57,14 +56,13 @@ type (
 
 	// CapacityReservationPaymentInformation stores the reservation payment information
 	CapacityReservationPaymentInformation struct {
-		ReservationID schema.ID                `bson:"_id"`
-		FarmerID      schema.ID                `bson:"farmer_id"`
-		Address       string                   `bson:"address"`
-		Expiration    schema.Date              `bson:"expiration"`
-		Asset         stellar.Asset            `bson:"asset"`
-		Amount        xdr.Int64                `bson:"amount"`
-		Data          capacity.ReservationData `bson:"data"`
-		Owner         int64                    `bson:"owner"`
+		ReservationID schema.ID               `bson:"_id"`
+		FarmerID      schema.ID               `bson:"farmer_id"`
+		Address       string                  `bson:"address"`
+		Expiration    schema.Date             `bson:"expiration"`
+		Asset         stellar.Asset           `bson:"asset"`
+		Amount        xdr.Int64               `bson:"amount"`
+		Info          CapacityReservationInfo `bson:"info"`
 		// Paid indicates the capacity reservation escrows have been fully funded,
 		// resulting in the new funds being allocated into the pool (creating
 		// the pool in case it did not exist yet)
@@ -96,6 +94,17 @@ type (
 		Address string        `json:"address"`
 		Asset   stellar.Asset `json:"asset"`
 		Amount  xdr.Int64     `json:"amount"`
+	}
+
+	// CapacityReservationInfo is information to manipulate a capacity pool once
+	// the escrow is fulfilled
+	CapacityReservationInfo struct {
+		// ID of the pool
+		ID schema.ID `bson:"id"`
+		// CUs to add
+		CUs uint64 `bson:"cus"`
+		// SUs to add
+		SUs uint64 `bson:"sus"`
 	}
 )
 

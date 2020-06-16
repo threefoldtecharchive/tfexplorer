@@ -24,8 +24,6 @@ const (
 	// ReservationCollection db collection name
 	ReservationCollection = "reservation"
 	queueCollection       = "workqueue"
-	// CapacityPoolCollection db collection name
-	CapacityPoolCollection = "capacitypools"
 )
 
 const (
@@ -612,16 +610,6 @@ func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *R
 		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
 	}
 
-	if len(reservation.DataReservation.CapacityPools) > 0 {
-		for _, capacityPool := range reservation.DataReservation.CapacityPools {
-			if _, err := CapacityPoolCreate(ctx, db, capacityPool); err != nil {
-				return errors.Wrap(err, "failed to insert capacity pool")
-			}
-		}
-		// return here because we don't want to put it in the queue
-		return nil
-	}
-
 	//queue for processing
 	if err := WorkloadPush(ctx, db, reservation.Workloads("")...); err != nil {
 		return errors.Wrap(err, "failed to schedule reservation for deploying")
@@ -701,19 +689,6 @@ func WorkloadPush(ctx context.Context, db *mongo.Database, w ...Workload) error 
 	_, err := col.InsertMany(ctx, docs)
 
 	return err
-}
-
-// CapacityPoolCreate save new capacity pool to the database
-func CapacityPoolCreate(ctx context.Context, db *mongo.Database, capacityPool generated.CapacityPool) (schema.ID, error) {
-	id := models.MustID(ctx, db, CapacityPoolCollection)
-	capacityPool.ID = id
-
-	_, err := db.Collection(CapacityPoolCollection).InsertOne(ctx, capacityPool)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
 }
 
 // WorkloadPop removes workload from queue
