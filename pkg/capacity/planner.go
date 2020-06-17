@@ -24,6 +24,10 @@ type (
 		// IsAllowed checks if the pool with the given id is owned by the given
 		// customer, and can deploy on the given node.
 		IsAllowed(id int64, customer int64, nodeID string) (bool, error)
+		// PoolByID returns the pool with the given ID
+		PoolByID(id int64) (types.Pool, error)
+		// PoolsForOwner returns all pools for a given owner
+		PoolsForOwner(owner int64) ([]types.Pool, error)
 	}
 
 	// NaivePlanner simply allows all capacity purchases, and allows all workloads
@@ -33,6 +37,7 @@ type (
 
 		reserveChan chan reserveJob
 		allowedChan chan allowedJob
+		listChan    chan listPoolJob
 
 		db  *mongo.Database
 		ctx context.Context
@@ -58,15 +63,26 @@ type (
 	}
 
 	allowedJob struct {
-		poolID      int64
-		customerTid int64
-		nodeID      string
-		responsChan chan<- allowedResponse
+		poolID       int64
+		customerTid  int64
+		nodeID       string
+		responseChan chan<- allowedResponse
 	}
 
 	allowedResponse struct {
 		status bool
 		err    error
+	}
+
+	listPoolJob struct {
+		id           int64
+		owner        int64
+		responseChan chan<- listPoolResponse
+	}
+
+	listPoolResponse struct {
+		pools []types.Pool
+		err   error
 	}
 )
 
@@ -77,6 +93,7 @@ func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
 		escrow:      escrow,
 		reserveChan: make(chan reserveJob),
 		allowedChan: make(chan allowedJob),
+		listChan:    make(chan listPoolJob),
 		db:          db,
 	}
 }
@@ -94,7 +111,18 @@ func (p *NaivePlanner) Run(ctx context.Context) {
 			job.responseChan <- reserveResponse{info: info, err: err}
 		case job := <-p.allowedChan:
 			status, err := p.isAllowed(job.poolID, job.customerTid, job.nodeID)
-			job.responsChan <- allowedResponse{status: status, err: err}
+			job.responseChan <- allowedResponse{status: status, err: err}
+		case job := <-p.listChan:
+			var pools []types.Pool
+			var err error
+			if job.id != 0 {
+				var pool types.Pool
+				pool, err = p.poolByID(job.id)
+				pools = []types.Pool{pool}
+			} else if job.owner != 0 {
+				pools, err = p.poolsForOwner(job.owner)
+			}
+			job.responseChan <- listPoolResponse{pools: pools, err: err}
 		case info := <-p.escrow.PaidCapacity():
 			if err := p.addCapacity(info); err != nil {
 				log.Error().Err(err).Msg("could not add capacity to pool")
@@ -125,14 +153,48 @@ func (p *NaivePlanner) IsAllowed(id int64, customer int64, nodeID string) (bool,
 	defer close(ch)
 
 	p.allowedChan <- allowedJob{
-		poolID:      id,
-		customerTid: customer,
-		nodeID:      nodeID,
+		poolID:       id,
+		customerTid:  customer,
+		nodeID:       nodeID,
+		responseChan: ch,
 	}
 
 	res := <-ch
 
 	return res.status, res.err
+}
+
+// PoolByID implements Planner
+func (p *NaivePlanner) PoolByID(id int64) (types.Pool, error) {
+	ch := make(chan listPoolResponse)
+	defer close(ch)
+
+	p.listChan <- listPoolJob{
+		id:           id,
+		responseChan: ch,
+	}
+
+	res := <-ch
+	var pool types.Pool
+	if len(res.pools) > 0 {
+		pool = res.pools[0]
+	}
+	return pool, res.err
+}
+
+// PoolsForOwner implements Planner
+func (p *NaivePlanner) PoolsForOwner(owner int64) ([]types.Pool, error) {
+	ch := make(chan listPoolResponse)
+	defer close(ch)
+
+	p.listChan <- listPoolJob{
+		owner:        owner,
+		responseChan: ch,
+	}
+
+	res := <-ch
+
+	return res.pools, res.err
 }
 
 // reserve some capacity
@@ -182,6 +244,30 @@ func (p *NaivePlanner) isAllowed(id int64, customer int64, nodeID string) (bool,
 	}
 
 	return pool.CustomerTid == customer && pool.AllowedInPool(nodeID), nil
+}
+
+// poolByID returns the pool with the given ID
+func (p *NaivePlanner) poolByID(id int64) (types.Pool, error) {
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(id))
+	if err != nil {
+		return types.Pool{}, errors.Wrap(err, "could not fetch pool by id")
+	}
+	pool.SyncCurrentCapacity()
+	return pool, nil
+}
+
+// poolsForOwner lists all pools owned by the given customer
+func (p *NaivePlanner) poolsForOwner(owner int64) ([]types.Pool, error) {
+	pools, err := types.GetPoolsByOwner(p.ctx, p.db, owner)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not fetch pools for woner")
+	}
+
+	for i := range pools {
+		pools[i].SyncCurrentCapacity()
+	}
+
+	return pools, nil
 }
 
 func (p *NaivePlanner) addCapacity(info escrowtypes.CapacityReservationInfo) error {
