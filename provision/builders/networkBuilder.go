@@ -702,6 +702,7 @@ func isPrivateIP(ip net.IP) bool {
 		"::1/128",        // IPv6 loopback
 		"fe80::/10",      // IPv6 link-local
 		"fc00::/7",       // IPv6 unique local addr
+		"200::/7",        // yggdrasil network
 	} {
 		_, block, err := net.ParseCIDR(cidr)
 		if err != nil {
