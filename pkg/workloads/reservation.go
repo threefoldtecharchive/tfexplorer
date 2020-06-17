@@ -318,6 +318,38 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 	return info, mw.Created()
 }
 
+func (a *API) getPool(r *http.Request) (interface{}, mw.Response) {
+	idstr := mux.Vars(r)["id"]
+
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err == nil {
+		return nil, mw.BadRequest(errors.New("id must be an integer"))
+	}
+
+	pool, err := a.capacityPlanner.PoolByID(id)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return pool, nil
+}
+
+func (a *API) listPools(r *http.Request) (interface{}, mw.Response) {
+	ownerstr := mux.Vars(r)["owner"]
+
+	owner, err := strconv.ParseInt(ownerstr, 10, 64)
+	if err == nil {
+		return nil, mw.BadRequest(errors.New("id must be an integer"))
+	}
+
+	pool, err := a.capacityPlanner.PoolsForOwner(owner)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return pool, nil
+}
+
 func (a *API) parseID(id string) (schema.ID, error) {
 	v, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {

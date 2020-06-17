@@ -84,7 +84,7 @@ func NewPool(ownerID int64, nodeIDs []string) Pool {
 
 // AddCapacity adds new capacity to the pool
 func (p *Pool) AddCapacity(CUs float64, SUs float64) {
-	p.syncCurrentCapacity()
+	p.SyncCurrentCapacity()
 	p.Cus += CUs
 	p.Sus += SUs
 	p.syncPoolExpiration()
@@ -93,7 +93,7 @@ func (p *Pool) AddCapacity(CUs float64, SUs float64) {
 // AddWorkload adds the used CU and SU of a deployed workload to the currently
 // active CU and SU of the pool
 func (p *Pool) AddWorkload(CU float64, SU float64) {
-	p.syncCurrentCapacity()
+	p.SyncCurrentCapacity()
 	p.ActiveCU += CU
 	p.ActiveSU += SU
 	p.syncPoolExpiration()
@@ -102,7 +102,7 @@ func (p *Pool) AddWorkload(CU float64, SU float64) {
 // RemoveWorkload remove the used CU and SU of a deployed workload to the currently
 // active CU and SU of the pool
 func (p *Pool) RemoveWorkload(CU float64, SU float64) {
-	p.syncCurrentCapacity()
+	p.SyncCurrentCapacity()
 	p.ActiveCU -= CU
 	p.ActiveSU -= SU
 	p.syncPoolExpiration()
@@ -119,8 +119,8 @@ func (p *Pool) AllowedInPool(nodeID string) bool {
 	return false
 }
 
-// recalculate the current capacity in the pool
-func (p *Pool) syncCurrentCapacity() {
+// SyncCurrentCapacity recalculate the current capacity in the pool
+func (p *Pool) SyncCurrentCapacity() {
 	now := time.Now().Unix()
 	timePassed := now - p.LastUpdated
 	p.Cus -= p.ActiveCU * float64(timePassed)
@@ -194,4 +194,18 @@ func GetPool(ctx context.Context, db *mongo.Database, id schema.ID) (Pool, error
 	}
 	err := res.Decode(&pool)
 	return pool, err
+}
+
+// GetPoolsByOwner gets all pools for an owner
+func GetPoolsByOwner(ctx context.Context, db *mongo.Database, owner int64) ([]Pool, error) {
+	pools := []Pool{}
+	cursor, err := db.Collection(CapacityPoolCollection).Find(ctx, bson.M{"customer_tid": owner})
+	if err != nil {
+		return nil, errors.Wrap(err, "could not load pools for owner")
+	}
+	if err = cursor.All(ctx, &pools); err != nil {
+		return nil, errors.Wrap(err, "could not decode pools")
+	}
+
+	return pools, nil
 }
