@@ -16,6 +16,9 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		{
 			Keys: bson.M{"customer_tid": 1},
 		},
+		{
+			Keys: bson.M{"empty_at": 1},
+		},
 	}
 
 	if _, err := col.Indexes().CreateMany(ctx, indexes); err != nil {
