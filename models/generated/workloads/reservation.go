@@ -68,7 +68,6 @@ type ReservationData struct {
 	Subdomains              []GatewaySubdomain    `bson:"subdomains" json:"subdomains"`
 	DomainDelegates         []GatewayDelegate     `bson:"domain_delegates" json:"domain_delegates"`
 	Gateway4To6s            []Gateway4To6         `bson:"gateway4to6" json:"gateway4to6"`
-	CapacityPools           []CapacityPool        `bson:"capacity_pool" json:"capacity_pool"`
 	ExpirationProvisioning  schema.Date           `bson:"expiration_provisioning" json:"expiration_provisioning"`
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
 }
@@ -118,6 +117,7 @@ func (e ResultStateEnum) String() string {
 type ReservationWorkload struct {
 	WorkloadId string           `bson:"workload_id" json:"workload_id"`
 	User       string           `bson:"user" json:"user"`
+	PoolID     int64            `bson:"pool_id" json:"pool_id"`
 	Type       WorkloadTypeEnum `bson:"type" json:"type"`
 	Content    interface{}      `bson:"content" json:"content"`
 	Created    schema.Date      `bson:"created" json:"created"`

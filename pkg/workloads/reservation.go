@@ -40,7 +40,7 @@ type (
 	// ReservationCreateResponse wraps reservation create response
 	ReservationCreateResponse struct {
 		ID                schema.ID                             `json:"reservation_id"`
-		EscrowInformation escrowtypes.CustomerEscrowInformation `json:"escrow_information"`
+		EscrowInformation escrowtypes.CustomerEscrowInformation `json:"escrow_information,omitempty"`
 	}
 )
 
@@ -193,6 +193,26 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	reservation.Epoch = schema.Date{Time: time.Now()}
 
+	pooledWorkloads := 0
+	workloads := reservation.Workloads("")
+	for _, workload := range workloads {
+		if workload.PoolID != 0 {
+			pooledWorkloads++
+			allowed, err := a.capacityPlanner.IsAllowed(workload.PoolID, reservation.CustomerTid, workload.NodeID)
+			if err != nil {
+				return nil, mw.Error(err)
+			}
+			if !allowed {
+				return nil, mw.UnAuthorized(fmt.Errorf("workload %s is not authorized to run in pool %d", workload.WorkloadId, workload.PoolID))
+			}
+		}
+	}
+	// only accept a reservation where all workloads are pooled, or no workloads
+	// are pooled
+	if pooledWorkloads != 0 && pooledWorkloads != len(workloads) {
+		return nil, mw.Forbidden(errors.New("a reservation cannot contain a mix of workloads with capacity pool, and without capacity pool"))
+	}
+
 	id, err := types.ReservationCreate(r.Context(), db, reservation)
 	if err != nil {
 		return nil, mw.Error(err)
@@ -203,15 +223,19 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	escrowDetails, err := a.escrow.RegisterReservation(generated.Reservation(reservation), currencies)
-	if err != nil {
-		return nil, mw.Error(err)
+	var escrowDetails escrowtypes.CustomerEscrowInformation
+	if pooledWorkloads == 0 {
+		escrowDetails, err = a.escrow.RegisterReservation(generated.Reservation(reservation), currencies)
+		if err != nil {
+			return nil, mw.Error(err)
+		}
 	}
 
 	return ReservationCreateResponse{
 		ID:                reservation.ID,
 		EscrowInformation: escrowDetails,
 	}, mw.Created()
+
 }
 
 func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
