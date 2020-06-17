@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -50,24 +49,16 @@ type (
 	// very small, this is not a problem for over purchasing, and it simplifies
 	// some stuff on our end.
 	ReservationData struct {
-		PoolID                 int64       `bson:"pool_id" json:"pool_id"`
-		CUs                    uint64      `bson:"cus" json:"c_us"`
-		SUs                    uint64      `bson:"sus" json:"s_us"`
-		NodeIDs                []string    `bson:"node_ids" json:"node_ids"`
-		ExpirationProvisioning schema.Date `bson:"expiration_provisioning" json:"expiration_provisioning"` // Needed so a new pool does not hang forever
-		Currencies             []string    `bson:"currencies" json:"currencies"`
+		PoolID     int64    `bson:"pool_id" json:"pool_id"`
+		CUs        uint64   `bson:"cus" json:"c_us"`
+		SUs        uint64   `bson:"sus" json:"s_us"`
+		NodeIDs    []string `bson:"node_ids" json:"node_ids"`
+		Currencies []string `bson:"currencies" json:"currencies"`
 	}
 )
 
 // Validate the reservation
 func (pr *Reservation) Validate() error {
-	if pr.DataReservation.ExpirationProvisioning.Before(time.Now()) {
-		return errors.New("expiration for capacity purchase payment can not be in the past")
-	}
-
-	if pr.DataReservation.ExpirationProvisioning.After(time.Now().Add(time.Hour)) {
-		return errors.New("expiration for capacity purchase can be at most 1 hour in the future")
-	}
 
 	if pr.CustomerTid == 0 {
 		return errors.New("customer_tid is required")
