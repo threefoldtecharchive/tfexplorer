@@ -322,10 +322,11 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 
 	data := &r.DataReservation
 
-	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string) Workload {
+	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string, poolID int64) Workload {
 		return Workload{
 			ReservationWorkload: generated.ReservationWorkload{
 				WorkloadId: wid,
+				PoolID:     poolID,
 				User:       fmt.Sprint(r.CustomerTid),
 				Type:       t,
 				Created:    r.Epoch,
@@ -344,7 +345,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeContainer,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -357,7 +359,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeVolume,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -369,7 +372,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeZDB,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -381,7 +385,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeKubernetes,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -393,7 +398,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeProxy,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -405,7 +411,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeReverseProxy,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -417,7 +424,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeSubDomain,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 
@@ -429,7 +437,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeDomainDelegate,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 	}
@@ -440,7 +449,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl := newWrkl(
 			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 			generated.WorkloadTypeGateway4To6,
-			wl.NodeId)
+			wl.NodeId,
+			wl.PoolId)
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 	}
@@ -465,7 +475,8 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			wrkl := newWrkl(
 				fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
 				generated.WorkloadTypeNetwork,
-				nr.NodeId)
+				nr.NodeId,
+				nr.PoolId)
 			wrkl.Content = wl
 			workloads = append(workloads, wrkl)
 		}
