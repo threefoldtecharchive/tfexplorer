@@ -125,8 +125,18 @@ func (p *Pipeline) Next() (Reservation, bool) {
 				p.r.NextAction = generated.NextActionPay
 			}
 		case generated.NextActionPay:
-			// Pay needs to block, until the escrow moves us past this point
-			slog.Debug().Msg("awaiting reservation payment")
+			// Pay needs to block, until the escrow moves us past this point, but
+			// only in case we are dealing with a deprecated style reservation.
+			// Reservations who's workloads are attached to pools can deploy immediatly.
+			// NOTE: validation of the pools is static, and must happen when the
+			// explorer receives the reservation.
+			wrklds := p.r.Workloads("")
+			if len(wrklds) > 0 && wrklds[0].PoolID == 0 {
+				slog.Debug().Msg("awaiting reservation payment")
+				break
+			}
+			slog.Debug().Msg("reservation workloads attached to capacity pools - continue to deploy step")
+			p.r.NextAction = generated.NextActionDeploy
 		case generated.NextActionDeploy:
 			//nothing to do
 			slog.Debug().Msg("let's deploy")

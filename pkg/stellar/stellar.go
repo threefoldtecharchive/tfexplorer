@@ -3,7 +3,6 @@ package stellar
 import (
 	"fmt"
 	"math/big"
-	"strconv"
 
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/amount"
@@ -15,7 +14,6 @@ import (
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
-	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 type (
@@ -280,7 +278,7 @@ func (w *Wallet) setupEscrowMultisig(sourceAccount hProtocol.Account) []txnbuild
 
 // GetBalance gets balance for an address and a given reservation id. It also returns
 // a list of addresses which funded the given address.
-func (w *Wallet) GetBalance(address string, id schema.ID, asset Asset) (xdr.Int64, []string, error) {
+func (w *Wallet) GetBalance(address string, memo string, asset Asset) (xdr.Int64, []string, error) {
 	if address == "" {
 		err := fmt.Errorf("trying to get the balance of an empty address. this should never happen")
 		log.Warn().Err(err).Send()
@@ -310,7 +308,7 @@ func (w *Wallet) GetBalance(address string, id schema.ID, asset Asset) (xdr.Int6
 	donors := make(map[string]struct{})
 	for len(txes.Embedded.Records) != 0 {
 		for _, tx := range txes.Embedded.Records {
-			if tx.Memo == strconv.FormatInt(int64(id), 10) {
+			if tx.Memo == memo {
 				effectsReq := horizonclient.EffectRequest{
 					ForTransaction: tx.Hash,
 				}
@@ -387,20 +385,20 @@ func (w *Wallet) GetBalance(address string, id schema.ID, asset Asset) (xdr.Int6
 	log.Info().
 		Int64("balance", int64(total)).
 		Str("address", address).
-		Int64("id", int64(id)).Msgf("status of balance for reservation")
+		Str("memo", memo).Msgf("status of balance for reservation")
 	return total, donorList, nil
 }
 
 // Refund an escrow address for a reservation. This will transfer all funds
 // for this reservation that are currently on the address (if any), to (some of)
 // the addresses which these funds came from.
-func (w *Wallet) Refund(encryptedSeed string, id schema.ID, asset Asset) error {
+func (w *Wallet) Refund(encryptedSeed string, memo string, asset Asset) error {
 	keypair, err := w.keypairFromEncryptedSeed(encryptedSeed)
 	if err != nil {
 		return errors.Wrap(err, "could not get keypair from encrypted seed")
 	}
 
-	amount, funders, err := w.GetBalance(keypair.Address(), id, asset)
+	amount, funders, err := w.GetBalance(keypair.Address(), memo, asset)
 	if err != nil {
 		return errors.Wrap(err, "failed to get balance")
 	}
@@ -426,12 +424,11 @@ func (w *Wallet) Refund(encryptedSeed string, id schema.ID, asset Asset) error {
 		SourceAccount: &sourceAccount,
 	}
 
-	formattedMemo := fmt.Sprintf("%d", id)
-	memo := txnbuild.MemoText(formattedMemo)
+	memoText := txnbuild.MemoText(memo)
 	tx := txnbuild.TransactionParams{
 		Operations: []txnbuild.Operation{&paymentOP},
 		Timebounds: txnbuild.NewTimeout(300),
-		Memo:       memo,
+		Memo:       memoText,
 	}
 
 	fundedTx, err := w.fundTransaction(&tx)
@@ -449,7 +446,7 @@ func (w *Wallet) Refund(encryptedSeed string, id schema.ID, asset Asset) error {
 
 // PayoutFarmers pays a group of farmers, from an escrow account. The escrow
 // account must be provided as the encrypted string of the seed.
-func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, id schema.ID, asset Asset) error {
+func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) error {
 	keypair, err := w.keypairFromEncryptedSeed(encryptedSeed)
 	if err != nil {
 		return errors.Wrap(err, "could not get keypair from encrypted seed")
@@ -473,12 +470,11 @@ func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, 
 		})
 	}
 
-	formattedMemo := fmt.Sprintf("%d", id)
-	memo := txnbuild.MemoText(formattedMemo)
+	memoText := txnbuild.MemoText(memo)
 	tx := txnbuild.TransactionParams{
 		Operations: paymentOps,
 		Timebounds: txnbuild.NewTimeout(300),
-		Memo:       memo,
+		Memo:       memoText,
 	}
 
 	fundedTx, err := w.fundTransaction(&tx)

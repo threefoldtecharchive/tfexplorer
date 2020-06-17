@@ -150,6 +150,11 @@ func (e *Stellar) Run(ctx context.Context) error {
 				log.Error().Err(err).Msgf("failed to refund expired reservations")
 			}
 
+			log.Info().Msg("scanning for expired capacity escrows")
+			if err := e.refundExpiredCapacityReservations(); err != nil {
+				log.Error().Err(err).Msgf("failed to refund expired capacity reservations")
+			}
+
 		case job := <-e.reservationChannel:
 			log.Info().Int64("reservation_id", int64(job.reservation.ID)).Msg("processing new reservation escrow for reservation")
 			details, err := e.processReservation(job.reservation, job.supportedCurrencyCodes)
@@ -221,6 +226,28 @@ func (e *Stellar) refundExpiredReservations() error {
 	return nil
 }
 
+func (e *Stellar) refundExpiredCapacityReservations() error {
+	// load expired escrows
+	reservationEscrows, err := types.GetAllExpiredCapacityReservationPaymentInfos(e.ctx, e.db)
+	if err != nil {
+		return errors.Wrap(err, "failed to load active reservations from escrow")
+	}
+	for _, escrowInfo := range reservationEscrows {
+		log.Info().Int64("id", int64(escrowInfo.ReservationID)).Msg("expired escrow")
+
+		if err := e.refundCapacityEscrow(escrowInfo); err != nil {
+			log.Error().Err(err).Msgf("failed to refund reservation escrow")
+			continue
+		}
+
+		escrowInfo.Canceled = true
+		if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
+			log.Error().Err(err).Msgf("failed to mark expired reservation escrow info as cancelled")
+		}
+	}
+	return nil
+}
+
 // checkReservations checks all the active reservations and marks those who are funded.
 // if a reservation is funded then it will mark this reservation as to DEPLOY.
 // if its underfunded it will throw an error.
@@ -283,7 +310,7 @@ func (e *Stellar) checkReservationPaid(escrowInfo types.ReservationPaymentInform
 		requiredValue += escrowAccount.TotalAmount
 	}
 
-	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, escrowInfo.ReservationID, escrowInfo.Asset)
+	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset)
 	if err != nil {
 		return errors.Wrap(err, "failed to verify escrow account balance")
 	}
@@ -353,7 +380,7 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 	// calculate total amount needed for reservation
 	requiredValue := escrowInfo.Amount
 
-	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, escrowInfo.ReservationID, escrowInfo.Asset)
+	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset)
 	if err != nil {
 		return errors.Wrap(err, "failed to verify escrow account balance")
 	}
@@ -672,12 +699,12 @@ func (e *Stellar) payoutFarmers(id schema.ID) error {
 		log.Error().Msgf("failed to load escrow address info: %s", err)
 		return errors.Wrap(err, "could not load escrow address info")
 	}
-	if err = e.wallet.PayoutFarmers(addressInfo.Secret, paymentInfo, id, rpi.Asset); err != nil {
+	if err = e.wallet.PayoutFarmers(addressInfo.Secret, paymentInfo, reservationMemo(id), rpi.Asset); err != nil {
 		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, id)
 		return errors.Wrap(err, "could not pay farmer")
 	}
 	// now refund any possible overpayment
-	if err = e.wallet.Refund(addressInfo.Secret, id, rpi.Asset); err != nil {
+	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(id), rpi.Asset); err != nil {
 		log.Error().Msgf("failed to refund overpayment farmer: %s", err)
 		return errors.Wrap(err, "could not refund overpayment")
 	}
@@ -758,12 +785,12 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 		log.Error().Msgf("failed to load escrow address info: %s", err)
 		return errors.Wrap(err, "could not load escrow address info")
 	}
-	if err = e.wallet.PayoutFarmers(addressInfo.Secret, paymentInfo, rpi.ReservationID, rpi.Asset); err != nil {
+	if err = e.wallet.PayoutFarmers(addressInfo.Secret, paymentInfo, capacityReservationMemo(rpi.ReservationID), rpi.Asset); err != nil {
 		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, rpi.ReservationID)
 		return errors.Wrap(err, "could not pay farmer")
 	}
 	// now refund any possible overpayment
-	if err = e.wallet.Refund(addressInfo.Secret, rpi.ReservationID, rpi.Asset); err != nil {
+	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(rpi.ReservationID), rpi.Asset); err != nil {
 		log.Error().Msgf("failed to refund overpayment farmer: %s", err)
 		return errors.Wrap(err, "could not refund overpayment")
 	}
@@ -792,7 +819,28 @@ func (e *Stellar) refundEscrow(escrowInfo types.ReservationPaymentInformation) e
 		return errors.Wrap(err, "failed to load escrow info")
 	}
 
-	if err = e.wallet.Refund(addressInfo.Secret, escrowInfo.ReservationID, escrowInfo.Asset); err != nil {
+	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
+		return errors.Wrap(err, "failed to refund clients")
+	}
+
+	slog.Info().Msgf("refunded client for escrow")
+	return nil
+}
+
+func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPaymentInformation) error {
+	slog := log.With().
+		Str("address", escrowInfo.Address).
+		Int64("reservation_id", int64(escrowInfo.ReservationID)).
+		Logger()
+
+	slog.Info().Msgf("try to refund client for escrow")
+
+	addressInfo, err := types.CustomerAddressByAddress(e.ctx, e.db, escrowInfo.Address)
+	if err != nil {
+		return errors.Wrap(err, "failed to load escrow info")
+	}
+
+	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
 
@@ -954,4 +1002,12 @@ func addressByAsset(addrs []gdirectory.WalletAddress, asset stellar.Asset) (stri
 		}
 	}
 	return "", fmt.Errorf("not address found for asset %s", asset)
+}
+
+func reservationMemo(id schema.ID) string {
+	return fmt.Sprintf("%d", id)
+}
+
+func capacityReservationMemo(id schema.ID) string {
+	return fmt.Sprintf("p-%d", id)
 }
