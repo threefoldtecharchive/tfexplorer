@@ -229,6 +229,12 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		if err != nil {
 			return nil, mw.Error(err)
 		}
+	} else {
+		// immediately deploy the reservation as it is attached to a pool
+		if err := types.ReservationToDeploy(r.Context(), db, &reservation); err != nil {
+			log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
+			return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
+		}
 	}
 
 	return ReservationCreateResponse{
@@ -510,12 +516,6 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 			obj.Content = data
 		case generated.WorkloadTypeGateway4To6:
 			var data generated.Gateway4To6
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-		case generated.WorkloadTypeCapacityPool:
-			var data generated.CapacityPool
 			if err := bson.Unmarshal(wl.Content, &data); err != nil {
 				return nil, err
 			}
