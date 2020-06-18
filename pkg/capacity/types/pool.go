@@ -159,8 +159,9 @@ func (p *Pool) syncPoolExpiration() {
 		shortestExpiration = timeToSuEmpty
 	}
 
-	exp, _ := shortestExpiration.Int64()
-	p.EmptyAt = p.LastUpdated + exp
+	expiration := shortestExpiration.Add(shortestExpiration, big.NewFloat(float64(p.LastUpdated)))
+	xp, _ := expiration.Int64()
+	p.EmptyAt = xp
 }
 
 // CapacityPoolCreate save new capacity pool to the database
