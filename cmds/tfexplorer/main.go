@@ -203,7 +203,10 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	if err = capacitydb.Setup(context.Background(), db.Database()); err != nil {
 		log.Fatal().Err(err).Msg("failed to create capacity database indexes")
 	}
-	if err = workloads.Setup(apiRouter, db.Database(), e, capacity.NewNaivePlanner(e, db.Database())); err != nil {
+
+	planner := capacity.NewNaivePlanner(e, db.Database())
+	go planner.Run(context.Background())
+	if err = workloads.Setup(apiRouter, db.Database(), e, planner); err != nil {
 		log.Error().Err(err).Msg("failed to register package")
 	}
 
