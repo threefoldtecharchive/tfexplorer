@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"math"
+	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
@@ -135,25 +136,31 @@ func (p *Pool) syncPoolExpiration() {
 	// set expiration to the max possible length. Note that we base the initial
 	// calculation off an int64 rather than a float64, since a float64 would
 	// overflow the eventual int64 timestamp we calculate.
-	var timeToCuEmpty float64
+	timeToCuEmpty := big.NewFloat(0)
+	// set to same precision as int64 to avoid rounding errors,
+	// mainly if the active cu is 0
+	timeToCuEmpty.SetPrec(64)
 	if p.ActiveCU == 0 {
-		timeToCuEmpty = math.MaxInt64 - float64(p.LastUpdated)
+		timeToCuEmpty.Sub(big.NewFloat(math.MaxInt64), big.NewFloat(float64(p.LastUpdated)))
 	} else {
-		timeToCuEmpty = p.Cus / p.ActiveCU
+		timeToCuEmpty.Quo(big.NewFloat(p.Cus), big.NewFloat(p.ActiveCU))
 	}
-	var timeToSuEmpty float64
+
+	timeToSuEmpty := big.NewFloat(0)
+	timeToSuEmpty.SetPrec(64)
 	if p.ActiveSU == 0 {
-		timeToSuEmpty = math.MaxInt64 - float64(p.LastUpdated)
+		timeToSuEmpty.Sub(big.NewFloat(math.MaxInt64), big.NewFloat(float64(p.LastUpdated)))
 	} else {
-		timeToSuEmpty = p.Sus / p.ActiveSU
+		timeToSuEmpty.Quo(big.NewFloat(p.Sus), big.NewFloat(p.ActiveSU))
 	}
 
 	shortestExpiration := timeToCuEmpty
-	if timeToSuEmpty < shortestExpiration {
+	if timeToSuEmpty.Cmp(shortestExpiration) == -1 {
 		shortestExpiration = timeToSuEmpty
 	}
 
-	p.EmptyAt = p.LastUpdated + int64(math.Floor(shortestExpiration))
+	exp, _ := shortestExpiration.Int64()
+	p.EmptyAt = p.LastUpdated + exp
 }
 
 // CapacityPoolCreate save new capacity pool to the database
