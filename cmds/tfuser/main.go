@@ -339,6 +339,11 @@ func main() {
 							Name:  "stats",
 							Usage: "like process logs, but for metrics (metrics are pushed as json)",
 						},
+						cli.Uint64Flag{
+							Name:  "poolID, p",
+							Usage: "ID of the pool",
+							Value: 0,
+						},
 					},
 					Action: generateContainer,
 				},
@@ -364,6 +369,11 @@ func main() {
 									Name:     "type, t",
 									Usage:    "Type of disk to use, HHD or SSD",
 									Required: true,
+								},
+								cli.Uint64Flag{
+									Name:  "poolID, p",
+									Usage: "ID of the pool",
+									Value: 0,
 								},
 							},
 							Action: generateVolume,
@@ -399,6 +409,11 @@ func main() {
 								cli.BoolFlag{
 									Name:  "public",
 									Usage: "TODO",
+								},
+								cli.Uint64Flag{
+									Name:  "poolID, p",
+									Usage: "ID of the pool",
+									Value: 0,
 								},
 							},
 							Action: generateZDB,
@@ -438,6 +453,11 @@ func main() {
 						cli.StringSliceFlag{
 							Name:  "ssh-keys",
 							Usage: "Ssh keys to authorize for the vm. Can be either a full ssh key, or a \"github:username\" form which will pull the ssh keys from github",
+						},
+						cli.Uint64Flag{
+							Name:  "poolID, p",
+							Usage: "ID of the pool",
+							Value: 0,
 						},
 					},
 					Action: generateKubernetes,
@@ -527,6 +547,53 @@ func main() {
 				},
 			},
 			Action: cmdsLive,
+		},
+		{
+			Name:   "pool",
+			Usage:  "Capacity pool actions",
+			Before: requireSeed,
+			Subcommands: []cli.Command{
+				{
+					Name:   "create",
+					Usage:  "Create a capacity pool",
+					Before: requireSeed,
+					Flags: []cli.Flag{
+						cli.IntFlag{
+							Name:  "cus",
+							Usage: "number of compute unit seconds",
+						},
+						cli.IntFlag{
+							Name:  "sus",
+							Usage: "number of storage unit seconds",
+						},
+						cli.StringSliceFlag{
+							Name:  "nodeIDs",
+							Usage: "an array of node ids to deploy the capacity pool on",
+						},
+						cli.StringSliceFlag{
+							Name:  "asset",
+							Usage: "add an asset which is acceptable to pay the reservation",
+						},
+						cli.BoolFlag{
+							Name:  "dry-run",
+							Usage: "dry run the deployment",
+						},
+					},
+					Action: cmdsCreatePool,
+				},
+				{
+					Name:   "get",
+					Usage:  "Get a capacity pool",
+					Before: requireSeed,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "poolID",
+							Usage: "id of the pool",
+						},
+					},
+					Action: cmdsGetPool,
+				},
+			},
 		},
 	}
 

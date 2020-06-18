@@ -99,3 +99,9 @@ func (k8s *K8sBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregat
 	k8s.K8S.StatsAggregator = aggregators
 	return k8s
 }
+
+// WithPoolID sets the poolID to the k8s
+func (k8s *K8sBuilder) WithPoolID(poolID int64) *K8sBuilder {
+	k8s.PoolId = poolID
+	return k8s
+}

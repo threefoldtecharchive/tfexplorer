@@ -143,3 +143,9 @@ func (c *ContainerBuilder) WithContainerCapacity(cap workloads.ContainerCapacity
 	c.Container.Capacity = cap
 	return c
 }
+
+// WithPoolID sets the poolID to the container
+func (c *ContainerBuilder) WithPoolID(poolID int64) *ContainerBuilder {
+	c.Container.PoolId = poolID
+	return c
+}

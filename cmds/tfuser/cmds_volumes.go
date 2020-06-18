@@ -31,5 +31,10 @@ func generateVolume(c *cli.Context) error {
 
 	volumeBuilder := builders.NewVolumeBuilder(c.String("node"), s, volumeType)
 	volumeBuilder.WithSize(s)
+
+	if c.Int64("poolID") != 0 {
+		volumeBuilder.WithPoolID(c.Int64("poolID"))
+	}
+
 	return writeWorkload(c.GlobalString("output"), volumeBuilder.Build())
 }

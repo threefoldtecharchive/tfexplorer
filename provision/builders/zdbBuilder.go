@@ -97,3 +97,9 @@ func (z *ZDBBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator
 	z.ZDB.StatsAggregator = aggregators
 	return z
 }
+
+// WithPoolID sets the poolID to the zdb
+func (z *ZDBBuilder) WithPoolID(poolID int64) *ZDBBuilder {
+	z.ZDB.PoolId = poolID
+	return z
+}
