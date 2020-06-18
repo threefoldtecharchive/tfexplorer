@@ -626,6 +626,11 @@ func (e *Stellar) refundClients(id schema.ID) error {
 func (e *Stellar) payoutFarmers(id schema.ID) error {
 	rpi, err := types.ReservationPaymentInfoGet(e.ctx, e.db, id)
 	if err != nil {
+		if errors.Is(err, types.ErrEscrowNotFound) {
+			// reservation deployed for which there is no escrow, this is possible
+			// for a reservation attached to capacity pools. Don't worry about it.
+			return nil
+		}
 		return errors.Wrap(err, "failed to get reservation escrow info")
 	}
 	if rpi.Released || rpi.Canceled {
