@@ -54,7 +54,11 @@ func (e *Free) RegisterReservation(reservation workloads.Reservation, _ []string
 
 // CapacityReservation implements the escrow interface
 func (e *Free) CapacityReservation(info types.CapacityReservationInfo, _ int64, _ []string, _ []string) (detail types.CustomerCapacityEscrowInformation, err error) {
-	e.capacityChan <- info
+	// free escrow does not run in its own goroutine, so it would block and cause
+	// a deadlock in the planner
+	go func() {
+		e.capacityChan <- info
+	}()
 
 	return detail, nil
 }
