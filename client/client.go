@@ -8,6 +8,8 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/models/generated/phonebook"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	tfcapacity "github.com/threefoldtech/tfexplorer/pkg/capacity"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/capacity"
@@ -79,6 +81,9 @@ type Workloads interface {
 	WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error)
 	WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
 	WorkloadPutDeleted(nodeID, gwid string) error
+
+	PoolCreate(reservation tfcapacity.Reservation) (resp wrklds.ReservationCreateResponse, err error)
+	PoolGet(poolID string) (result types.Pool, err error)
 }
 
 // Identity is used by the client to authenticate to the explorer API

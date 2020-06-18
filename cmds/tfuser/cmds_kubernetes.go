@@ -66,5 +66,9 @@ func generateKubernetes(c *cli.Context) error {
 		WithMasterIPs(masterIPs).
 		WithSSHKeys(sshKeys)
 
+	if c.Int64("poolID") != 0 {
+		kube.WithPoolID(c.Int64("poolID"))
+	}
+
 	return writeWorkload(c.GlobalString("schema"), kube.Build())
 }

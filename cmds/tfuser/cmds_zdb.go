@@ -49,6 +49,10 @@ func generateZDB(c *cli.Context) error {
 	zdbBuilder.WithSize(size)
 	zdbBuilder.WithPassword(password).WithPublic(public)
 
+	if c.Int64("poolID") != 0 {
+		zdbBuilder.WithPoolID(c.Int64("poolID"))
+	}
+
 	zdb, err := zdbBuilder.Build()
 	if err != nil {
 		return errors.Wrap(err, "failed to build to build zdb")

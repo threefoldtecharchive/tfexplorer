@@ -8,6 +8,7 @@ import (
 	"github.com/threefoldtech/tfexplorer"
 	"github.com/threefoldtech/tfexplorer/client"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 )
@@ -65,6 +66,52 @@ func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies
 	_, signature, err := signer.SignHex(reservation.Json)
 	if err != nil {
 		return workloads.Reservation{}, errors.Wrap(err, "failed to sign the reservation")
+	}
+
+	reservation.CustomerSignature = signature
+
+	return reservation, nil
+}
+
+// DeployCapacityPool deploys the reservation
+func (r *ReservationClient) DeployCapacityPool(reservation capacity.Reservation, currencies []string) (wrklds.ReservationCreateResponse, error) {
+	reservationToCreate, err := r.DryRunCapacity(reservation, currencies)
+	if err != nil {
+		return wrklds.ReservationCreateResponse{}, nil
+	}
+
+	fmt.Printf("%+v", reservationToCreate)
+
+	response, err := r.explorer.Workloads.PoolCreate(reservationToCreate)
+	if err != nil {
+		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send reservation")
+	}
+
+	return response, nil
+}
+
+// DryRunCapacity will return the reservation to deploy and marshals the data of the reservation
+func (r *ReservationClient) DryRunCapacity(reservation capacity.Reservation, currencies []string) (capacity.Reservation, error) {
+	userID := int64(r.userID.ThreebotID)
+	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
+	if err != nil {
+		return capacity.Reservation{}, errors.Wrap(err, "could not load signer")
+	}
+
+	reservation.CustomerTid = userID
+
+	// set allowed the currencies as provided by the user
+	reservation.DataReservation.Currencies = currencies
+
+	bytes, err := json.Marshal(reservation.DataReservation)
+	if err != nil {
+		return capacity.Reservation{}, err
+	}
+
+	reservation.JSON = string(bytes)
+	_, signature, err := signer.SignHex(reservation.JSON)
+	if err != nil {
+		return capacity.Reservation{}, errors.Wrap(err, "failed to sign the reservation")
 	}
 
 	reservation.CustomerSignature = signature

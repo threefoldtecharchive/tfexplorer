@@ -66,3 +66,9 @@ func (v *VolumeBuilder) WithType(diskType workloads.VolumeTypeEnum) *VolumeBuild
 	v.Volume.Type = diskType
 	return v
 }
+
+// WithPoolID sets the poolID to the volume
+func (v *VolumeBuilder) WithPoolID(poolID int64) *VolumeBuilder {
+	v.Volume.PoolId = poolID
+	return v
+}
