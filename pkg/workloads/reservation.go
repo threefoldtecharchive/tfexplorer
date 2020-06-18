@@ -18,6 +18,7 @@ import (
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity"
+	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
@@ -322,12 +323,15 @@ func (a *API) getPool(r *http.Request) (interface{}, mw.Response) {
 	idstr := mux.Vars(r)["id"]
 
 	id, err := strconv.ParseInt(idstr, 10, 64)
-	if err == nil {
+	if err != nil {
 		return nil, mw.BadRequest(errors.New("id must be an integer"))
 	}
 
 	pool, err := a.capacityPlanner.PoolByID(id)
 	if err != nil {
+		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
+			return nil, mw.NotFound(errors.New("capacity pool not found"))
+		}
 		return nil, mw.Error(err)
 	}
 
@@ -338,8 +342,8 @@ func (a *API) listPools(r *http.Request) (interface{}, mw.Response) {
 	ownerstr := mux.Vars(r)["owner"]
 
 	owner, err := strconv.ParseInt(ownerstr, 10, 64)
-	if err == nil {
-		return nil, mw.BadRequest(errors.New("id must be an integer"))
+	if err != nil {
+		return nil, mw.BadRequest(errors.New("owner id must be an integer"))
 	}
 
 	pool, err := a.capacityPlanner.PoolsForOwner(owner)
