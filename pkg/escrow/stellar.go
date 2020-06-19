@@ -109,15 +109,16 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 	}
 
 	return &Stellar{
-		wallet:                  wallet,
-		db:                      db,
-		foundationAddress:       addr,
-		nodeAPI:                 &directory.NodeAPI{},
-		farmAPI:                 &directory.FarmAPI{},
-		reservationChannel:      jobChannel,
-		deployedChannel:         deployChannel,
-		cancelledChannel:        cancelChannel,
-		paidCapacityInfoChannel: paidCapacityInfoChannel,
+		wallet:                     wallet,
+		db:                         db,
+		foundationAddress:          addr,
+		nodeAPI:                    &directory.NodeAPI{},
+		farmAPI:                    &directory.FarmAPI{},
+		reservationChannel:         jobChannel,
+		deployedChannel:            deployChannel,
+		cancelledChannel:           cancelChannel,
+		paidCapacityInfoChannel:    paidCapacityInfoChannel,
+		capacityReservationChannel: make(chan capacityReservationRegisterJob),
 	}
 }
 
@@ -452,7 +453,7 @@ func (e *Stellar) processReservation(reservation workloads.Reservation, offeredC
 			break
 		}
 		// check if all used farms have an address for this asset set up
-		supported, err := e.checkAssetSupport(farmIDs, asset)
+		supported, err := e.checkAssetSupport(farmIDs, currency)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "could not verify asset support")
 		}
@@ -554,7 +555,7 @@ func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo,
 			break
 		}
 		// check if all used farms have an address for this asset set up
-		supported, err := e.checkAssetSupport(farmIDs, asset)
+		supported, err := e.checkAssetSupport(farmIDs, currency)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "could not verify asset support")
 		}
