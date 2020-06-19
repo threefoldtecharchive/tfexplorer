@@ -228,3 +228,13 @@ func (w *httpWorkloads) PoolGet(poolID string) (result types.Pool, err error) {
 
 	return pool, nil
 }
+
+func (w *httpWorkloads) PoolsGetByOwner(ownerID string) (result []types.Pool, err error) {
+	var pools []types.Pool
+	_, err = w.get(w.url("reservations", "pools", "owner", ownerID), nil, &pools, http.StatusOK)
+	if err != nil {
+		return
+	}
+
+	return pools, nil
+}

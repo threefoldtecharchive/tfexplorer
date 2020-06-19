@@ -21,6 +21,17 @@ func cmdsGetPool(c *cli.Context) error {
 	return nil
 }
 
+func cmdsGetPoolsByOwner(c *cli.Context) error {
+	pools, err := bcdb.Workloads.PoolsGetByOwner(c.String("ownerID"))
+	if err != nil {
+		return err
+	}
+	for _, pool := range pools {
+		fmt.Printf("%+v \n", pool)
+	}
+	return nil
+}
+
 func cmdsCreatePool(c *cli.Context) error {
 	var (
 		assets  = c.StringSlice("asset")
@@ -60,7 +71,7 @@ func cmdsCreatePool(c *cli.Context) error {
 		totalAmount += detail.TotalAmount
 	}
 
-	fmt.Printf("Reservation sent to node bcdb\n")
+	fmt.Printf("Pool reservation sent to node bcdb\n")
 	fmt.Printf("Resource: /reservations/pools/%v\n", response.ID)
 	fmt.Println()
 

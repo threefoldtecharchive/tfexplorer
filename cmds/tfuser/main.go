@@ -590,11 +590,25 @@ func main() {
 					Before: requireSeed,
 					Flags: []cli.Flag{
 						cli.StringFlag{
-							Name:  "poolID",
-							Usage: "id of the pool",
+							Name:     "poolID",
+							Usage:    "id of the pool",
+							Required: true,
 						},
 					},
 					Action: cmdsGetPool,
+				},
+				{
+					Name:   "list",
+					Usage:  "List capacity pools by owner ID",
+					Before: requireSeed,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:     "ownerID",
+							Usage:    "id of the owner of the pools",
+							Required: true,
+						},
+					},
+					Action: cmdsGetPoolsByOwner,
 				},
 			},
 		},

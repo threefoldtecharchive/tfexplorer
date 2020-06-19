@@ -84,6 +84,7 @@ type Workloads interface {
 
 	PoolCreate(reservation tfcapacity.Reservation) (resp wrklds.ReservationCreateResponse, err error)
 	PoolGet(poolID string) (result types.Pool, err error)
+	PoolsGetByOwner(ownerID string) (result []types.Pool, err error)
 }
 
 // Identity is used by the client to authenticate to the explorer API
