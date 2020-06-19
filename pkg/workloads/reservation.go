@@ -43,6 +43,12 @@ type (
 		ID                schema.ID                             `json:"reservation_id"`
 		EscrowInformation escrowtypes.CustomerEscrowInformation `json:"escrow_information,omitempty"`
 	}
+
+	// CapacityPoolCreateResponse wraps capacity pool reservation create response
+	CapacityPoolCreateResponse struct {
+		ID                schema.ID                                     `json:"reservation_id"`
+		EscrowInformation escrowtypes.CustomerCapacityEscrowInformation `json:"escrow_information,omitempty"`
+	}
 )
 
 // freeTFT currency code
@@ -316,7 +322,10 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	return info, mw.Created()
+	return CapacityPoolCreateResponse{
+		ID:                reservation.ID,
+		EscrowInformation: info,
+	}, mw.Created()
 }
 
 func (a *API) getPool(r *http.Request) (interface{}, mw.Response) {

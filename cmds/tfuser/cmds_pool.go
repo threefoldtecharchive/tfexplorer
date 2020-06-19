@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/provision"
 	"github.com/threefoldtech/tfexplorer/provision/builders"
 	"github.com/urfave/cli"
@@ -66,25 +65,14 @@ func cmdsCreatePool(c *cli.Context) error {
 		return errors.Wrap(err, "failed to deploy reservation")
 	}
 
-	totalAmount := xdr.Int64(0)
-	for _, detail := range response.EscrowInformation.Details {
-		totalAmount += detail.TotalAmount
-	}
-
 	fmt.Printf("Pool reservation sent to node bcdb\n")
 	fmt.Printf("Resource: /reservations/pools/%v\n", response.ID)
 	fmt.Println()
 
-	fmt.Printf("Reservation id: %d \n", response.ID)
+	fmt.Printf("Capacity reservation id: %d \n", response.ID)
 	fmt.Printf("Asset to pay: %s\n", response.EscrowInformation.Asset)
 	fmt.Printf("Reservation escrow address: %s \n", response.EscrowInformation.Address)
-	fmt.Printf("Reservation amount: %s %s\n", formatCurrency(totalAmount), response.EscrowInformation.Asset.Code())
-
-	for _, detail := range response.EscrowInformation.Details {
-		fmt.Println()
-		fmt.Printf("FarmerID: %v\n", detail.FarmerID)
-		fmt.Printf("Amount: %s\n", formatCurrency(detail.TotalAmount))
-	}
+	fmt.Printf("Reservation amount: %s %s\n", formatCurrency(response.EscrowInformation.Amount), response.EscrowInformation.Asset.Code())
 
 	return nil
 }

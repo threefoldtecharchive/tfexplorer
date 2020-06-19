@@ -99,7 +99,7 @@ type (
 		WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
 		WorkloadPutDeleted(nodeID, gwid string) error
 
-		PoolCreate(reservation tfcapacity.Reservation) (resp wrklds.ReservationCreateResponse, err error)
+		PoolCreate(reservation tfcapacity.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error)
 		PoolGet(poolID string) (result types.Pool, err error)
 		PoolsGetByOwner(ownerID string) (result []types.Pool, err error)
 	}

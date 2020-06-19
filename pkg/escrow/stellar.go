@@ -592,6 +592,7 @@ func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo,
 		Paid:          false,
 		Released:      false,
 		Canceled:      false,
+		FarmerID:      schema.ID(node.FarmId),
 	}
 	err = types.CapacityReservationPaymentInfoCreate(e.ctx, e.db, reservationPaymentInfo)
 	if err != nil {
