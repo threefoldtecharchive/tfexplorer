@@ -74,17 +74,17 @@ func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies
 }
 
 // DeployCapacityPool deploys the reservation
-func (r *ReservationClient) DeployCapacityPool(reservation capacity.Reservation, currencies []string) (wrklds.ReservationCreateResponse, error) {
+func (r *ReservationClient) DeployCapacityPool(reservation capacity.Reservation, currencies []string) (wrklds.CapacityPoolCreateResponse, error) {
 	reservationToCreate, err := r.DryRunCapacity(reservation, currencies)
 	if err != nil {
-		return wrklds.ReservationCreateResponse{}, nil
+		return wrklds.CapacityPoolCreateResponse{}, nil
 	}
 
 	fmt.Printf("%+v", reservationToCreate)
 
 	response, err := r.explorer.Workloads.PoolCreate(reservationToCreate)
 	if err != nil {
-		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send reservation")
+		return wrklds.CapacityPoolCreateResponse{}, errors.Wrap(err, "failed to send reservation")
 	}
 
 	return response, nil

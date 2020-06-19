@@ -214,7 +214,7 @@ func (w *httpWorkloads) WorkloadPutDeleted(nodeID, gwid string) error {
 	return err
 }
 
-func (w *httpWorkloads) PoolCreate(reservation capacity.Reservation) (resp wrklds.ReservationCreateResponse, err error) {
+func (w *httpWorkloads) PoolCreate(reservation capacity.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error) {
 	_, err = w.post(w.url("reservations", "pools"), reservation, &resp, http.StatusCreated)
 	return
 }
