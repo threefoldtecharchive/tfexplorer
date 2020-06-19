@@ -80,6 +80,9 @@ type (
 const (
 	// interval between every check of active escrow accounts
 	balanceCheckInterval = time.Minute * 1
+
+	// maximum time for a capacity reservation
+	capacityReservationTimeout = time.Hour * 1
 )
 
 const (
@@ -582,7 +585,7 @@ func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo,
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{
 		ReservationID: info.ID,
 		Address:       address,
-		Expiration:    schema.Date{Time: time.Now()},
+		Expiration:    schema.Date{Time: time.Now().Add(capacityReservationTimeout)},
 		Asset:         asset,
 		Amount:        amount,
 		Info:          info,
