@@ -14,7 +14,7 @@ import (
 
 var (
 	bcdb     *client.Client
-	mainui   = &tfexplorer.UserIdentity{}
+	mainui   *tfexplorer.UserIdentity
 	bcdbAddr string
 	mainSeed string
 )
@@ -65,16 +65,16 @@ func main() {
 
 		if seed := c.String("seed"); seed != "" {
 			mainSeed = seed
-
+			mainui = &tfexplorer.UserIdentity{}
 			err = mainui.Load(seed)
 			if err != nil {
 				return err
 			}
+		}
 
-			bcdb, err = client.NewClient(bcdbAddr, mainui)
-			if err != nil {
-				return err
-			}
+		bcdb, err = client.NewClient(bcdbAddr, mainui)
+		if err != nil {
+			return err
 		}
 
 		return nil
