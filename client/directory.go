@@ -86,6 +86,10 @@ func (fi *httpFarmIter) Next() (*directory.Farm, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get farms")
 		}
+		if len(farms) == 0 {
+			// iteration finished, no more  farms
+			return nil, nil
+		}
 		fi.cache = farms
 		fi.cacheIdx = 0
 		fi.page++
@@ -209,6 +213,10 @@ func (ni *httpNodeIter) Next() (*directory.Node, error) {
 		nodes, err := ni.cl.NodeList(filter, pager)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get nodes")
+		}
+		if len(nodes) == 0 {
+			// no more nodes, iteration finished
+			return nil, nil
 		}
 		ni.cache = nodes
 		ni.cacheIdx = 0
