@@ -581,6 +581,10 @@ func main() {
 							Name:  "dry-run",
 							Usage: "dry run the deployment",
 						},
+						cli.IntFlag{
+							Name:  "poolID",
+							Usage: "if pool id is given then it will extend the existing one",
+						},
 					},
 					Action: cmdsCreatePool,
 				},

@@ -38,6 +38,7 @@ func cmdsCreatePool(c *cli.Context) error {
 		sus     = c.Uint64("sus")
 		cus     = c.Uint64("cus")
 		nodeIDs = c.StringSlice("nodeIDs")
+		poolID  = c.Int64("poolID")
 		err     error
 	)
 
@@ -48,6 +49,10 @@ func cmdsCreatePool(c *cli.Context) error {
 		WithCUs(cus).
 		WithNodeIDs(nodeIDs).
 		WithCurrencies(assets)
+
+	if poolID != 0 {
+		capacityBuilder.WithPoolID(poolID)
+	}
 
 	reservationClient := provision.NewReservationClient(bcdb, mainui)
 	if dryRun {
