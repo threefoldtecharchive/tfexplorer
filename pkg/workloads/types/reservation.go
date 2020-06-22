@@ -201,12 +201,21 @@ func (r *Reservation) Validate() error {
 	// seems go doesn't allow : workloaders=append(workloaders, r.DataReservation.Containers)
 	// so we have to loop
 	for _, w := range r.DataReservation.Containers {
+		if w.Capacity.DiskType != generated.DiskTypeSSD {
+			return errors.New("Container disktype is not valid, it should be SSD")
+		}
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Volumes {
+		if w.Type != generated.VolumeTypeSSD {
+			return errors.New("Volume disktype is not valid, it should be SSD")
+		}
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Zdbs {
+		if w.DiskType != generated.DiskTypeHDD {
+			return errors.New("ZDB disktype is not valid, it should be HDD")
+		}
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Kubernetes {
