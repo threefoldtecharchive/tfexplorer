@@ -213,9 +213,6 @@ func (r *Reservation) Validate() error {
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Zdbs {
-		if w.DiskType != generated.DiskTypeHDD {
-			return errors.New("ZDB disktype is not valid, it should be HDD")
-		}
 		workloaders = append(workloaders, w)
 	}
 	for _, w := range r.DataReservation.Kubernetes {
