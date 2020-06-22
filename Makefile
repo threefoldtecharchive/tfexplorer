@@ -7,7 +7,7 @@ dirty = $(shell test -n "`git diff --shortstat 2> /dev/null | tail -n1`" && echo
 version = github.com/threefoldtech/zos/pkg/version
 ldflags = '-w -s -X $(version).Branch=$(branch) -X $(version).Revision=$(revision) -X $(version).Dirty=$(dirty)'
 
-.PHONY: frontend server tfexplorer tffarmer tfuser
+.PHONY: frontend server tfexplorer tffarmer tfuser docs
 
 all: tfexplorer tffarmer
 
@@ -17,6 +17,7 @@ getdeps:
 	@echo "Installing misspell" && go install github.com/client9/misspell/cmd/misspell
 	@echo "Installing ineffassign" && go install github.com/gordonklaus/ineffassign
 	@echo "Installing statik" && go install github.com/rakyll/statik
+	@echo "Installing open api generator" && npm install @openapitools/openapi-generator-cli -g
 
 verifiers: vet fmt lint cyclo spelling staticcheck
 
@@ -75,6 +76,12 @@ tffarmer:
 	
 stellar:
 	cd cmds/stellar && go build -ldflags $(ldflags) -o $(OUT)/stellar
+
+docs:
+	cd docs && openapi-generator generate -i openapi.json -g html2
+	rm -rf docs/.openapi-generator
+	rm docs/.openapi-generator-ignore
+	mv docs/index.html frontend/public/docs.html
 
 clean:
 	rm -rf dist statik bin/*
