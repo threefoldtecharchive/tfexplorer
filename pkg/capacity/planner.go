@@ -20,7 +20,7 @@ type (
 		// Run the planner
 		Run(ctx context.Context)
 		// Reserve some capacity
-		Reserve(reservation Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error)
+		Reserve(reservation types.Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error)
 		// IsAllowed checks if the pool with the given id is owned by the given
 		// customer, and can deploy on the given node.
 		IsAllowed(id int64, customer int64, nodeID string) (bool, error)
@@ -43,16 +43,8 @@ type (
 		ctx context.Context
 	}
 
-	// PaymentInfo for a capacity reservation
-	// TODO: DEPRECATED
-	PaymentInfo struct {
-		ID     schema.ID `json:"id"`
-		Memo   string    `json:"memo"`
-		Amount uint64    `json:"amount"`
-	}
-
 	reserveJob struct {
-		reservation  Reservation
+		reservation  types.Reservation
 		currencies   []string
 		responseChan chan<- reserveResponse
 	}
@@ -123,8 +115,8 @@ func (p *NaivePlanner) Run(ctx context.Context) {
 				pools, err = p.poolsForOwner(job.owner)
 			}
 			job.responseChan <- listPoolResponse{pools: pools, err: err}
-		case info := <-p.escrow.PaidCapacity():
-			if err := p.addCapacity(info); err != nil {
+		case id := <-p.escrow.PaidCapacity():
+			if err := p.addCapacity(id); err != nil {
 				log.Error().Err(err).Msg("could not add capacity to pool")
 			}
 		}
@@ -132,7 +124,7 @@ func (p *NaivePlanner) Run(ctx context.Context) {
 }
 
 // Reserve implements Planner
-func (p *NaivePlanner) Reserve(reservation Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error) {
+func (p *NaivePlanner) Reserve(reservation types.Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error) {
 	ch := make(chan reserveResponse)
 	defer close(ch)
 
@@ -198,7 +190,7 @@ func (p *NaivePlanner) PoolsForOwner(owner int64) ([]types.Pool, error) {
 }
 
 // reserve some capacity
-func (p *NaivePlanner) reserve(reservation Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error) {
+func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error) {
 	var pi escrowtypes.CustomerCapacityEscrowInformation
 
 	data := reservation.DataReservation
@@ -215,19 +207,14 @@ func (p *NaivePlanner) reserve(reservation Reservation, currencies []string) (es
 
 	} else {
 		// create new pool
-		pool = types.NewPool(reservation.CustomerTid, data.NodeIDs)
+		pool = types.NewPool(reservation.ID, reservation.CustomerTid, data.NodeIDs)
 		pool, err = types.CapacityPoolCreate(p.ctx, p.db, pool)
 		if err != nil {
 			return pi, errors.Wrap(err, "could not create new capacity pool")
 		}
 	}
 
-	capInfo := escrowtypes.CapacityReservationInfo{
-		ID:  pool.ID,
-		CUs: data.CUs,
-		SUs: data.SUs,
-	}
-	pi, err = p.escrow.CapacityReservation(capInfo, reservation.CustomerTid, pool.NodeIDs, currencies)
+	pi, err = p.escrow.CapacityReservation(reservation, currencies)
 	if err != nil {
 		return pi, errors.Wrap(err, "could not set up capacity escrow")
 	}
@@ -270,13 +257,21 @@ func (p *NaivePlanner) poolsForOwner(owner int64) ([]types.Pool, error) {
 	return pools, nil
 }
 
-func (p *NaivePlanner) addCapacity(info escrowtypes.CapacityReservationInfo) error {
-	pool, err := types.GetPool(p.ctx, p.db, info.ID)
+func (p *NaivePlanner) addCapacity(id schema.ID) error {
+	reservation, err := types.CapacityReservationGet(p.ctx, p.db, id)
+	if err != nil {
+		return errors.Wrap(err, "could not load reservation")
+	}
+	poolID := reservation.ID
+	if reservation.DataReservation.PoolID != 0 {
+		poolID = schema.ID(reservation.DataReservation.PoolID)
+	}
+	pool, err := types.GetPool(p.ctx, p.db, poolID)
 	if err != nil {
 		return errors.Wrap(err, "could not load pool")
 	}
 
-	pool.AddCapacity(float64(info.CUs), float64(info.SUs))
+	pool.AddCapacity(float64(reservation.DataReservation.CUs), float64(reservation.DataReservation.SUs))
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
 		return errors.Wrap(err, "could not save pool")

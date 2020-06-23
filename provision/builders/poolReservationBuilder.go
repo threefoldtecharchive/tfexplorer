@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/threefoldtech/tfexplorer/pkg/capacity"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 )
 
 // CapacityReservationBuilder is a struct that can build reservations
 type CapacityReservationBuilder struct {
-	reservation capacity.Reservation
+	reservation types.Reservation
 }
 
 // NewCapacityReservationBuilder creates a new CapacityReservationBuilder
 func NewCapacityReservationBuilder() *CapacityReservationBuilder {
-	reservation := capacity.Reservation{}
+	reservation := types.Reservation{}
 	return &CapacityReservationBuilder{
 		reservation: reservation,
 	}
@@ -22,7 +22,7 @@ func NewCapacityReservationBuilder() *CapacityReservationBuilder {
 
 // LoadCapacityReservationBuilder loads a reservation builder based on a file path
 func LoadCapacityReservationBuilder(reader io.Reader) (*CapacityReservationBuilder, error) {
-	reservation := capacity.Reservation{}
+	reservation := types.Reservation{}
 	err := json.NewDecoder(reader).Decode(&reservation)
 	if err != nil {
 		return &CapacityReservationBuilder{}, err
@@ -48,7 +48,7 @@ func (r *CapacityReservationBuilder) Save(writer io.Writer) error {
 }
 
 // Build returns the reservation
-func (r *CapacityReservationBuilder) Build() capacity.Reservation {
+func (r *CapacityReservationBuilder) Build() types.Reservation {
 	return r.reservation
 }
 

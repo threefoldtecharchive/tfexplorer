@@ -253,7 +253,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
-	var reservation capacity.Reservation
+	var reservation capacitytypes.Reservation
 	if err := json.NewDecoder(r.Body).Decode(&reservation); err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -315,6 +315,11 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 
 	if err := reservation.Verify(user.Pubkey); err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
+	}
+
+	reservation, err = capacitytypes.CapacityReservationCreate(r.Context(), db, reservation)
+	if err != nil {
+		return nil, mw.Error(errors.Wrap(err, "could not insert reservation in db"))
 	}
 
 	info, err := a.capacityPlanner.Reserve(reservation, currencies)

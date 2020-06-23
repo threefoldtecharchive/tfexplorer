@@ -11,6 +11,7 @@ import (
 	"github.com/stellar/go/xdr"
 	gdirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
@@ -32,7 +33,7 @@ type (
 		deployedChannel            chan schema.ID
 		cancelledChannel           chan schema.ID
 
-		paidCapacityInfoChannel chan types.CapacityReservationInfo
+		paidCapacityInfoChannel chan schema.ID
 
 		nodeAPI NodeAPI
 		farmAPI FarmAPI
@@ -64,9 +65,7 @@ type (
 	}
 
 	capacityReservationRegisterJob struct {
-		info                   types.CapacityReservationInfo
-		customerTid            int64
-		nodeIDs                []string
+		reservation            capacitytypes.Reservation
 		supportedCurrencyCodes []string
 		responseChan           chan capacityReservationRegisterJobResponse
 	}
@@ -101,11 +100,6 @@ var (
 
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
 func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string) *Stellar {
-	jobChannel := make(chan reservationRegisterJob)
-	deployChannel := make(chan schema.ID)
-	cancelChannel := make(chan schema.ID)
-	paidCapacityInfoChannel := make(chan types.CapacityReservationInfo)
-
 	addr := foundationAddress
 	if addr == "" {
 		addr = wallet.PublicAddress()
@@ -117,10 +111,10 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 		foundationAddress:          addr,
 		nodeAPI:                    &directory.NodeAPI{},
 		farmAPI:                    &directory.FarmAPI{},
-		reservationChannel:         jobChannel,
-		deployedChannel:            deployChannel,
-		cancelledChannel:           cancelChannel,
-		paidCapacityInfoChannel:    paidCapacityInfoChannel,
+		reservationChannel:         make(chan reservationRegisterJob),
+		deployedChannel:            make(chan schema.ID),
+		cancelledChannel:           make(chan schema.ID),
+		paidCapacityInfoChannel:    make(chan schema.ID),
 		capacityReservationChannel: make(chan capacityReservationRegisterJob),
 	}
 }
@@ -174,12 +168,12 @@ func (e *Stellar) Run(ctx context.Context) error {
 			}
 
 		case job := <-e.capacityReservationChannel:
-			log.Info().Int64("reservation_id", int64(job.info.ID)).Msg("processing new reservation escrow for reservation")
-			details, err := e.processCapacityReservation(job.info, job.customerTid, job.nodeIDs, job.supportedCurrencyCodes)
+			log.Info().Int64("reservation_id", int64(job.reservation.ID)).Msg("processing new reservation escrow for reservation")
+			details, err := e.processCapacityReservation(job.reservation, job.supportedCurrencyCodes)
 			if err != nil {
 				log.Error().
 					Err(err).
-					Int64("reservation_id", int64(job.info.ID)).
+					Int64("reservation_id", int64(job.reservation.ID)).
 					Msgf("failed to check reservations")
 			}
 			job.responseChan <- capacityReservationRegisterJobResponse{
@@ -406,7 +400,7 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 	}
 
 	slog.Debug().Msg("escrow marked as paid")
-	e.paidCapacityInfoChannel <- escrowInfo.Info
+	e.paidCapacityInfoChannel <- escrowInfo.ReservationID
 	return nil
 }
 
@@ -511,7 +505,7 @@ func (e *Stellar) processReservation(reservation workloads.Reservation, offeredC
 
 // processCapacityReservation processes a single reservation
 // calculates resources and their costs
-func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo, customerTid int64, nodeIDs []string, offeredCurrencyCodes []string) (types.CustomerCapacityEscrowInformation, error) {
+func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservation, offeredCurrencyCodes []string) (types.CustomerCapacityEscrowInformation, error) {
 	var customerInfo types.CustomerCapacityEscrowInformation
 
 	// filter out unsupported currencies
@@ -541,7 +535,7 @@ func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo,
 	// Get the farm ID. For now a pool must span only a single farm, therefore
 	// all nodeID's must belong to the same farm. This must have been checked
 	// already in a higher lvl handler.
-	node, err := e.nodeAPI.Get(e.ctx, e.db, nodeIDs[0], false)
+	node, err := e.nodeAPI.Get(e.ctx, e.db, reservation.DataReservation.NodeIDs[0], false)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "could not get node")
 	}
@@ -572,23 +566,22 @@ func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo,
 		return customerInfo, ErrNoCurrencyShared
 	}
 
-	address, err := e.createOrLoadAccount(customerTid)
+	address, err := e.createOrLoadAccount(reservation.CustomerTid)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to get escrow address for customer")
 	}
 
-	amount, err := e.calculateCapacityReservationCost(info.CUs, info.SUs, node.FarmId)
+	amount, err := e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, node.FarmId)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to calculate capacity cost")
 	}
 
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{
-		ReservationID: info.ID,
+		ReservationID: reservation.ID,
 		Address:       address,
 		Expiration:    schema.Date{Time: time.Now().Add(capacityReservationTimeout)},
 		Asset:         asset,
 		Amount:        amount,
-		Info:          info,
 		Paid:          false,
 		Released:      false,
 		Canceled:      false,
@@ -598,7 +591,7 @@ func (e *Stellar) processCapacityReservation(info types.CapacityReservationInfo,
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to create reservation payment information")
 	}
-	log.Info().Int64("id", int64(info.ID)).Msg("processed reservation and created payment information")
+	log.Info().Int64("id", int64(reservation.ID)).Msg("processed reservation and created payment information")
 	customerInfo.Address = address
 	customerInfo.Asset = asset
 	customerInfo.Amount = amount
@@ -873,11 +866,9 @@ func (e *Stellar) RegisterReservation(reservation workloads.Reservation, support
 }
 
 // CapacityReservation implements Escrow
-func (e *Stellar) CapacityReservation(info types.CapacityReservationInfo, customerTid int64, nodeIDs []string, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error) {
+func (e *Stellar) CapacityReservation(reservation capacitytypes.Reservation, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error) {
 	job := capacityReservationRegisterJob{
-		info:                   info,
-		customerTid:            customerTid,
-		nodeIDs:                nodeIDs,
+		reservation:            reservation,
 		supportedCurrencyCodes: supportedCurrencies,
 		responseChan:           make(chan capacityReservationRegisterJobResponse),
 	}
@@ -889,7 +880,7 @@ func (e *Stellar) CapacityReservation(info types.CapacityReservationInfo, custom
 }
 
 // PaidCapacity implements Escrow
-func (e *Stellar) PaidCapacity() <-chan types.CapacityReservationInfo {
+func (e *Stellar) PaidCapacity() <-chan schema.ID {
 	return e.paidCapacityInfoChannel
 }
 
