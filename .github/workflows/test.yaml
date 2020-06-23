@@ -31,3 +31,9 @@ jobs:
         make test
       env:
         GO111MODULE: on
+
+    - name: Build docs
+      run: |
+        export PATH=/home/runner/go/bin:$PATH
+        make docs
+        
