@@ -265,6 +265,45 @@
         }
       }
     },
+    "/farms/{farmId}/{nodeId}": {
+      "delete": {
+        "tags": [
+          "farms"
+        ],
+        "summary": "Delete a node from a farm",
+        "description": "Delete a node from a farm",
+        "operationId": "deleteFarmNode",
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "description": "ID of the farm",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "ID of the node to delete",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/nodes": {
       "get": {
         "tags": [
