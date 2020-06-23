@@ -12,12 +12,12 @@ autonumber
 == Farm preparation ==
 farmer -> tfexplorer: configure prices
 == Reasearch for nodes ==
-user <-> tfexplorer: Select which node to use and the amount of capacity per node
+user <-> tfexplorer: Select which nodes to use and the amount of capacity that can be used accross these nodes
 == Resource reservation ==
-user -> tfexplorer: Send list of nodes and amount of capacity to reserve per node
+user -> tfexplorer: Send list of nodes and amount of capacity to reserve
 tfexplorer -> tfexplorer: calculate token amount
 tfexplorer -> farmer: Farmer validate he agrees with the capacity reservation
-farmer --> tfexplorer: confirm capacity is locked
+farmer --> tfexplorer: confirm capacity reservation is accepted
 tfexplorer --> user: respond with payment request
 user -> blockchain: pay reservation
 alt payment sucessfull
