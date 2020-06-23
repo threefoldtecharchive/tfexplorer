@@ -130,7 +130,7 @@ func CapacityReservationGet(ctx context.Context, db *mongo.Database, id schema.I
 		if err == mongo.ErrNoDocuments {
 			return reservation, ErrPoolNotFound
 		}
-		return reservation, errors.Wrap(err, "could not load pool")
+		return reservation, errors.Wrap(err, "could not load reservation")
 	}
 	err := res.Decode(&reservation)
 	return reservation, err
