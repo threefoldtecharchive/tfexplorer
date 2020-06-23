@@ -37,11 +37,11 @@ type (
 	// decide to merge the 2 reservation types in the future, which we should still
 	// do.
 	Reservation struct {
-		ID                schema.ID       `json:"id"`
-		JSON              string          `json:"json"`
-		DataReservation   ReservationData `json:"data_reservation"`
-		CustomerTid       int64           `json:"customer_tid"`
-		CustomerSignature string          `json:"customer_signature"`
+		ID                schema.ID       `bson:"_id" json:"id"`
+		JSON              string          `bson:"json" json:"json"`
+		DataReservation   ReservationData `bson:"data_reservation" json:"data_reservation"`
+		CustomerTid       int64           `bson:"customer_tid" json:"customer_tid"`
+		CustomerSignature string          `bson:"customer_signature" json:"customer_signature"`
 	}
 
 	// ReservationData is the actual data sent in a capacity pool reservation. If
