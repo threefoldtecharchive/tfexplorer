@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -65,13 +64,16 @@ var (
 	// ErrPoolNotFound is returned when looking for a specific pool, which is not
 	// there.
 	ErrPoolNotFound = errors.New("the specified pool could not be found")
+	// ErrReservationNotFound is returned when a reservation with a given ID is not there
+	ErrReservationNotFound = errors.New("the specified reservation was not found")
 )
 
 // NewPool sets up a new pool, ready to use, with the given data.
 //
 // The pool will not have an ID set, this happens on first save.
-func NewPool(ownerID int64, nodeIDs []string) Pool {
+func NewPool(id schema.ID, ownerID int64, nodeIDs []string) Pool {
 	return Pool{
+		ID:          id,
 		Cus:         0,
 		Sus:         0,
 		NodeIDs:     nodeIDs,
@@ -166,9 +168,6 @@ func (p *Pool) syncPoolExpiration() {
 
 // CapacityPoolCreate save new capacity pool to the database
 func CapacityPoolCreate(ctx context.Context, db *mongo.Database, pool Pool) (Pool, error) {
-	id := models.MustID(ctx, db, CapacityPoolCollection)
-	pool.ID = id
-
 	_, err := db.Collection(CapacityPoolCollection).InsertOne(ctx, pool)
 	if err != nil {
 		return pool, err

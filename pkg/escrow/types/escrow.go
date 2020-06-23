@@ -56,13 +56,12 @@ type (
 
 	// CapacityReservationPaymentInformation stores the reservation payment information
 	CapacityReservationPaymentInformation struct {
-		ReservationID schema.ID               `bson:"_id"`
-		FarmerID      schema.ID               `bson:"farmer_id"`
-		Address       string                  `bson:"address"`
-		Expiration    schema.Date             `bson:"expiration"`
-		Asset         stellar.Asset           `bson:"asset"`
-		Amount        xdr.Int64               `bson:"amount"`
-		Info          CapacityReservationInfo `bson:"info"`
+		ReservationID schema.ID     `bson:"_id"`
+		FarmerID      schema.ID     `bson:"farmer_id"`
+		Address       string        `bson:"address"`
+		Expiration    schema.Date   `bson:"expiration"`
+		Asset         stellar.Asset `bson:"asset"`
+		Amount        xdr.Int64     `bson:"amount"`
 		// Paid indicates the capacity reservation escrows have been fully funded,
 		// resulting in the new funds being allocated into the pool (creating
 		// the pool in case it did not exist yet)

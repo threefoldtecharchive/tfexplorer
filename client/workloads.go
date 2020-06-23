@@ -9,7 +9,6 @@ import (
 
 	"github.com/stellar/go/support/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
-	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -214,7 +213,7 @@ func (w *httpWorkloads) WorkloadPutDeleted(nodeID, gwid string) error {
 	return err
 }
 
-func (w *httpWorkloads) PoolCreate(reservation capacity.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error) {
+func (w *httpWorkloads) PoolCreate(reservation types.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error) {
 	_, err = w.post(w.url("reservations", "pools"), reservation, &resp, http.StatusCreated)
 	return
 }

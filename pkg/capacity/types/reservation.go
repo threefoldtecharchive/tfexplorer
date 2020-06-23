@@ -1,14 +1,18 @@
-package capacity
+package types
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type (
@@ -57,6 +61,11 @@ type (
 	}
 )
 
+const (
+	// CapacityReservationCollection db collection name
+	CapacityReservationCollection = "capacity-reservations"
+)
+
 // Validate the reservation
 func (pr *Reservation) Validate() error {
 
@@ -98,4 +107,31 @@ func (pr *Reservation) Verify(pk string) error {
 	}
 
 	return crypto.Verify(key, []byte(pr.JSON), signature)
+}
+
+// CapacityReservationCreate saves a new capacity reservation to the database
+func CapacityReservationCreate(ctx context.Context, db *mongo.Database, reservation Reservation) (Reservation, error) {
+	id := models.MustID(ctx, db, CapacityReservationCollection)
+	reservation.ID = id
+
+	_, err := db.Collection(CapacityReservationCollection).InsertOne(ctx, reservation)
+	if err != nil {
+		return reservation, err
+	}
+
+	return reservation, nil
+}
+
+// CapacityReservationGet loads a capacity reservation with the given id
+func CapacityReservationGet(ctx context.Context, db *mongo.Database, id schema.ID) (Reservation, error) {
+	var reservation Reservation
+	res := db.Collection(CapacityReservationCollection).FindOne(ctx, bson.M{"_id": id})
+	if err := res.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return reservation, ErrPoolNotFound
+		}
+		return reservation, errors.Wrap(err, "could not load pool")
+	}
+	err := res.Decode(&reservation)
+	return reservation, err
 }

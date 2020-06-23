@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	workloadstypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -18,20 +19,20 @@ type (
 		RegisterReservation(reservation workloads.Reservation, supportedCurrencies []string) (types.CustomerEscrowInformation, error)
 		ReservationDeployed(reservationID schema.ID)
 		ReservationCanceled(reservationID schema.ID)
-		CapacityReservation(reservation types.CapacityReservationInfo, customerTid int64, nodeIDs []string, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error)
-		PaidCapacity() <-chan types.CapacityReservationInfo
+		CapacityReservation(reservation capacitytypes.Reservation, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error)
+		PaidCapacity() <-chan schema.ID
 	}
 )
 
 // Free implements the Escrow interface in a way that makes all reservation free
 type Free struct {
 	db           *mongo.Database
-	capacityChan chan types.CapacityReservationInfo
+	capacityChan chan schema.ID
 }
 
 // NewFree creates a new EscrowFree object
 func NewFree(db *mongo.Database) *Free {
-	return &Free{db: db, capacityChan: make(chan types.CapacityReservationInfo)}
+	return &Free{db: db, capacityChan: make(chan schema.ID)}
 }
 
 // Run implements the escrow interface
@@ -53,11 +54,11 @@ func (e *Free) RegisterReservation(reservation workloads.Reservation, _ []string
 }
 
 // CapacityReservation implements the escrow interface
-func (e *Free) CapacityReservation(info types.CapacityReservationInfo, _ int64, _ []string, _ []string) (detail types.CustomerCapacityEscrowInformation, err error) {
+func (e *Free) CapacityReservation(reservation capacitytypes.Reservation, _ []string) (detail types.CustomerCapacityEscrowInformation, err error) {
 	// free escrow does not run in its own goroutine, so it would block and cause
 	// a deadlock in the planner
 	go func() {
-		e.capacityChan <- info
+		e.capacityChan <- reservation.ID
 	}()
 
 	return detail, nil
@@ -70,6 +71,6 @@ func (e *Free) ReservationDeployed(reservationID schema.ID) {}
 func (e *Free) ReservationCanceled(reservationID schema.ID) {}
 
 // PaidCapacity implements the escrow interface
-func (e *Free) PaidCapacity() <-chan types.CapacityReservationInfo {
+func (e *Free) PaidCapacity() <-chan schema.ID {
 	return e.capacityChan
 }
