@@ -204,15 +204,16 @@ func NewResourceAmount() (ResourceAmount, error) {
 }
 
 type WorkloadAmount struct {
-	Network        uint16 `bson:"network" json:"network"`
-	Volume         uint16 `bson:"volume" json:"volume"`
-	ZDBNamespace   uint16 `bson:"zdb_namespace" json:"zdb_namespace"`
-	Container      uint16 `bson:"container" json:"container"`
-	K8sVM          uint16 `bson:"k8s_vm" json:"k8s_vm"`
-	Proxy          uint16 `bson:"proxy" json:"proxy"`
-	ReverseProxy   uint16 `bson:"reverse_proxy" json:"reverse_proxy"`
-	Subdomain      uint16 `bson:"subdomain" json:"subdomain"`
-	DelegateDomain uint16 `bson:"delegate_domain" json:"delegate_domain"`
+	Network         uint16 `bson:"network" json:"network"`
+	NetworkResource uint16 `bson:"network_resource" json:"network_resource"`
+	Volume          uint16 `bson:"volume" json:"volume"`
+	ZDBNamespace    uint16 `bson:"zdb_namespace" json:"zdb_namespace"`
+	Container       uint16 `bson:"container" json:"container"`
+	K8sVM           uint16 `bson:"k8s_vm" json:"k8s_vm"`
+	Proxy           uint16 `bson:"proxy" json:"proxy"`
+	ReverseProxy    uint16 `bson:"reverse_proxy" json:"reverse_proxy"`
+	Subdomain       uint16 `bson:"subdomain" json:"subdomain"`
+	DelegateDomain  uint16 `bson:"delegate_domain" json:"delegate_domain"`
 }
 
 type Proof struct {

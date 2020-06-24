@@ -184,6 +184,7 @@ func (r *Reservation) Validate() error {
 
 	totalWl := len(r.DataReservation.Containers) +
 		len(r.DataReservation.Networks) +
+		len(r.DataReservation.NetworkResources) +
 		len(r.DataReservation.Volumes) +
 		len(r.DataReservation.Zdbs) +
 		len(r.DataReservation.Proxies) +
@@ -191,7 +192,6 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.Subdomains) +
 		len(r.DataReservation.DomainDelegates) +
 		len(r.DataReservation.Gateway4To6s)
-		// len(r.DataReservation.CapacityPools)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -454,17 +454,6 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 		wrkl.Content = wl
 		workloads = append(workloads, wrkl)
 	}
-	// for _, wl := range data.CapacityPools {
-	// 	if len(nodeID) > 0 && wl.NodeId != nodeID {
-	// 		continue
-	// 	}
-	// 	wrkl := newWrkl(
-	// 		fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-	// 		generated.WorkloadTypeCapacityPool,
-	// 		wl.NodeId)
-	// 	wrkl.Content = wl
-	// 	workloads = append(workloads, wrkl)
-	// }
 	for _, wl := range data.Networks {
 		for _, nr := range wl.NetworkResources {
 
@@ -480,6 +469,19 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			wrkl.Content = wl
 			workloads = append(workloads, wrkl)
 		}
+	}
+	for _, wl := range data.NetworkResources {
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+
+		wrkl := newWrkl(
+			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
+			generated.WorkloadTypeNetwork,
+			wl.NodeId,
+			wl.PoolId)
+		wrkl.Content = wl
+		workloads = append(workloads, wrkl)
 	}
 
 	return workloads
@@ -514,6 +516,10 @@ func (r *Reservation) NodeIDs() []string {
 		}
 	}
 
+	for _, w := range r.DataReservation.NetworkResources {
+		ids[w.NodeId] = struct{}{}
+	}
+
 	for _, w := range r.DataReservation.Zdbs {
 		ids[w.NodeId] = struct{}{}
 	}
@@ -525,10 +531,6 @@ func (r *Reservation) NodeIDs() []string {
 	for _, w := range r.DataReservation.Kubernetes {
 		ids[w.NodeId] = struct{}{}
 	}
-
-	// for _, w := range r.DataReservation.CapacityPools {
-	// 	ids[w.NodeId] = struct{}{}
-	// }
 
 	nodeIDs := make([]string, 0, len(ids))
 	for nid := range ids {

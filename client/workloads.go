@@ -99,6 +99,12 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 			return result, err
 		}
 		result.Content = o
+	case workloads.WorkloadTypeNetworkResource:
+		var o workloads.NetworkResource
+		if err := json.Unmarshal(wl.Content, &o); err != nil {
+			return result, err
+		}
+		result.Content = o
 	case workloads.WorkloadTypeVolume:
 		var o workloads.Volume
 		if err := json.Unmarshal(wl.Content, &o); err != nil {

@@ -530,6 +530,13 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 			}
 			obj.Content = data
 
+		case generated.WorkloadTypeNetworkResource:
+			var data generated.NetworkResource
+			if err := bson.Unmarshal(wl.Content, &data); err != nil {
+				return nil, err
+			}
+			obj.Content = data
+
 		case generated.WorkloadTypeKubernetes:
 			var data generated.K8S
 			if err := bson.Unmarshal(wl.Content, &data); err != nil {
