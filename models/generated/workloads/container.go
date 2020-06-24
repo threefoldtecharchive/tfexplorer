@@ -1,6 +1,10 @@
 package workloads
 
-import "net"
+import (
+	"net"
+
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type Container struct {
 	WorkloadId        int64               `bson:"workload_id" json:"workload_id"`
@@ -18,6 +22,18 @@ type Container struct {
 	FarmerTid         int64               `bson:"farmer_tid" json:"farmer_tid"`
 	Capacity          ContainerCapacity   `bson:"capcity" json:"capacity"`
 	PoolId            int64               `bson:"pool_id" json:"pool_id"`
+
+	ID                  schema.ID          `bson:"_id" json:"id"`
+	Json                string             `bson:"json" json:"json"`
+	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
+	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
+	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
+	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
+	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
+	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
+	Metadata            string             `bson:"metadata" json:"metadata"`
+	Results             []Result           `bson:"results" json:"results"`
 }
 
 func (c Container) WorkloadID() int64 {

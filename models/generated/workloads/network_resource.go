@@ -17,4 +17,16 @@ type NetworkResource struct {
 	Iprange                      schema.IPRange    `bson:"iprange" json:"iprange"`
 	Peers                        []WireguardPeer   `bson:"peers" json:"peers"`
 	PoolId                       int64             `bson:"pool_id" json:"pool_id"`
+
+	ID                  schema.ID          `bson:"_id" json:"id"`
+	Json                string             `bson:"json" json:"json"`
+	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
+	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
+	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
+	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
+	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
+	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
+	Metadata            string             `bson:"metadata" json:"metadata"`
+	Results             []Result           `bson:"results" json:"results"`
 }
