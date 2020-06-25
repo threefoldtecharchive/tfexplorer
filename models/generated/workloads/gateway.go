@@ -21,7 +21,8 @@ type GatewayProxy struct {
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
-	Results             []Result           `bson:"results" json:"results"`
+	Result              Result             `bson:"result" json:"result"`
+	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
 func (g GatewayProxy) WorkloadID() int64 {
@@ -45,7 +46,8 @@ type GatewayReverseProxy struct {
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
-	Results             []Result           `bson:"results" json:"results"`
+	Result              Result             `bson:"result" json:"result"`
+	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
 func (g GatewayReverseProxy) WorkloadID() int64 {
@@ -69,7 +71,8 @@ type GatewaySubdomain struct {
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
-	Results             []Result           `bson:"results" json:"results"`
+	Result              Result             `bson:"result" json:"result"`
+	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
 func (g GatewaySubdomain) WorkloadID() int64 {
@@ -92,7 +95,8 @@ type GatewayDelegate struct {
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
-	Results             []Result           `bson:"results" json:"results"`
+	Result              Result             `bson:"result" json:"result"`
+	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
 func (g GatewayDelegate) WorkloadID() int64 {
@@ -115,7 +119,8 @@ type Gateway4To6 struct {
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
-	Results             []Result           `bson:"results" json:"results"`
+	Result              Result             `bson:"result" json:"result"`
+	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
 func (g Gateway4To6) WorkloadID() int64 {
