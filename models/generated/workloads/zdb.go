@@ -24,7 +24,8 @@ type ZDB struct {
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
-	Results             []Result           `bson:"results" json:"results"`
+	Result              Result             `bson:"result" json:"result"`
+	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
 func (z ZDB) WorkloadID() int64 {
