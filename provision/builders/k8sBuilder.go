@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"io"
 	"net"
+	"time"
 
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 // K8sBuilder is a struct that can build K8S's
@@ -22,6 +24,7 @@ func NewK8sBuilder(nodeID, networkID, secret string, size int64, IP net.IP) *K8s
 			Ipaddress:     IP,
 			ClusterSecret: secret,
 			Size:          size,
+			WorkloadType:  workloads.WorkloadTypeKubernetes,
 		},
 	}
 }
@@ -49,6 +52,7 @@ func (k8s *K8sBuilder) Save(writer io.Writer) error {
 
 // Build returns the kubernetes
 func (k8s *K8sBuilder) Build() workloads.K8S {
+	k8s.Epoch = schema.Date{Time: time.Now()}
 	return k8s.K8S
 }
 

@@ -21,12 +21,12 @@ type httpWorkloads struct {
 	*httpClient
 }
 
-func (w *httpWorkloads) Create(reservation workloads.Reservation) (resp wrklds.ReservationCreateResponse, err error) {
-	_, err = w.post(w.url("reservations"), reservation, &resp, http.StatusCreated)
+func (w *httpWorkloads) Create(workload workloads.Workloader) (resp wrklds.ReservationCreateResponse, err error) {
+	_, err = w.post(w.url("reservations"), workload, &resp, http.StatusCreated)
 	return
 }
 
-func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Reservation, err error) {
+func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (workloads []workloads.Workloader, err error) {
 	query := url.Values{}
 	if nextAction != nil {
 		query.Set("next_action", fmt.Sprintf("%d", nextAction))
@@ -36,12 +36,12 @@ func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid i
 	}
 	page.apply(query)
 
-	_, err = w.get(w.url("reservations"), query, &reservation, http.StatusOK)
+	_, err = w.get(w.url("reservations"), query, &workloads, http.StatusOK)
 	return
 }
 
-func (w *httpWorkloads) Get(id schema.ID) (reservation workloads.Reservation, err error) {
-	_, err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &reservation, http.StatusOK)
+func (w *httpWorkloads) Get(id schema.ID) (workload workloads.Workloader, err error) {
+	_, err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &workload, http.StatusOK)
 	return
 }
 

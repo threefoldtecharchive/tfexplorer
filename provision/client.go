@@ -3,6 +3,7 @@ package provision
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer"
@@ -27,9 +28,9 @@ func NewReservationClient(explorer *client.Client, userID *tfexplorer.UserIdenti
 	}
 }
 
-// Deploy deploys the reservation
-func (r *ReservationClient) Deploy(reservation workloads.Reservation, currencies []string) (wrklds.ReservationCreateResponse, error) {
-	reservationToCreate, err := r.DryRun(reservation, currencies)
+// Deploy the workload
+func (r *ReservationClient) Deploy(workload workloads.Workloader, currencies []string, expirationProvisioning time.Time) (wrklds.ReservationCreateResponse, error) {
+	reservationToCreate, err := r.DryRun(workload, currencies, expirationProvisioning)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, nil
 	}
@@ -38,39 +39,43 @@ func (r *ReservationClient) Deploy(reservation workloads.Reservation, currencies
 
 	response, err := r.explorer.Workloads.Create(reservationToCreate)
 	if err != nil {
-		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send reservation")
+		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send workload")
 	}
 
 	return response, nil
 }
 
-// DryRun will return the reservation to deploy and marshals the data of the reservation
-func (r *ReservationClient) DryRun(reservation workloads.Reservation, currencies []string) (workloads.Reservation, error) {
+// DryRun will return the workload to deploy and marshals the data of the workload
+func (r *ReservationClient) DryRun(workload workloads.Workloader, currencies []string, expirationProvisioning time.Time) (workloads.Workloader, error) {
 	userID := int64(r.userID.ThreebotID)
 	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
 	if err != nil {
-		return workloads.Reservation{}, errors.Wrap(err, "could not load signer")
+		return nil, errors.Wrap(err, "could not load signer")
 	}
 
-	reservation.CustomerTid = userID
+	workload.SetCustomerTid(userID)
 
 	// set allowed the currencies as provided by the user
-	reservation.DataReservation.Currencies = currencies
+	workload.SetCurrencies(currencies)
 
-	bytes, err := json.Marshal(reservation.DataReservation)
+	workload.SetExpirationProvisioning(schema.Date{Time: expirationProvisioning})
+
+	bytes, err := json.Marshal(workload)
 	if err != nil {
-		return workloads.Reservation{}, err
+		return nil, err
 	}
 
-	reservation.Json = string(bytes)
-	_, signature, err := signer.SignHex(reservation.Json)
+	json := string(bytes)
+	workload.SetJson(json)
+
+	_, signature, err := signer.SignHex(json)
 	if err != nil {
-		return workloads.Reservation{}, errors.Wrap(err, "failed to sign the reservation")
+		return nil, errors.Wrap(err, "failed to sign the reservation")
 	}
 
-	reservation.CustomerSignature = signature
+	workload.SetCustomerSignature(signature)
 
-	return reservation, nil
+	return workload, nil
 }
 
 // DeployCapacityPool deploys the reservation
@@ -133,7 +138,7 @@ func (r *ReservationClient) DeleteReservation(resID int64) error {
 		return errors.Wrapf(err, "failed to load signer")
 	}
 
-	_, signature, err := signer.SignHex(resID, reservation.Json)
+	_, signature, err := signer.SignHex(resID, reservation.GetJson())
 	if err != nil {
 		return errors.Wrap(err, "failed to sign the reservation")
 	}

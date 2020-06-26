@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 // ContainerBuilder is a struct that can build containers
@@ -26,6 +28,7 @@ func NewContainerBuilder(nodeID, flist string, network []workloads.NetworkConnec
 				Cpu:    1,
 				Memory: 512,
 			},
+			WorkloadType: workloads.WorkloadTypeContainer,
 		},
 	}
 }
@@ -69,6 +72,8 @@ func (c *ContainerBuilder) Build() (workloads.Container, error) {
 		c.Container.SecretEnvironment[k] = secret
 	}
 	c.Container.Environment = make(map[string]string)
+	c.Epoch = schema.Date{Time: time.Now()}
+
 	return c.Container, nil
 }
 

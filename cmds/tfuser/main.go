@@ -482,24 +482,8 @@ func main() {
 					Usage: "dry run, prints the reservation instead of registering it",
 				},
 				cli.StringSliceFlag{
-					Name:  "volume",
-					Usage: "add a volume to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "zdb",
-					Usage: "add a zdb to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "container",
-					Usage: "add a container to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "kube",
-					Usage: "add a kube to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "network",
-					Usage: "add a network to provision",
+					Name:  "workload",
+					Usage: "workload to provision",
 				},
 			},
 			Action: cmdsProvision,
