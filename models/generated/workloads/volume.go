@@ -31,8 +31,100 @@ type Volume struct {
 	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
-func (v Volume) WorkloadID() int64 {
+func (v *Volume) WorkloadID() int64 {
 	return v.WorkloadId
+}
+
+func (v *Volume) GetWorkloadType() WorkloadTypeEnum {
+	return v.WorkloadType
+}
+
+func (v *Volume) GetID() schema.ID {
+	return v.ID
+}
+
+func (v *Volume) SetID(id schema.ID) {
+	v.ID = id
+}
+
+func (v *Volume) GetJson() string {
+	return v.Json
+}
+
+func (v *Volume) GetCustomerTid() int64 {
+	return v.CustomerTid
+}
+
+func (v *Volume) GetCustomerSignature() string {
+	return v.CustomerSignature
+}
+
+func (v *Volume) GetNextAction() NextActionEnum {
+	return v.NextAction
+}
+
+func (v *Volume) SetNextAction(next NextActionEnum) {
+	v.NextAction = next
+}
+
+func (v *Volume) GetSignaturesProvision() []SigningSignature {
+	return v.SignaturesProvision
+}
+
+func (v *Volume) PushSignatureProvision(signature SigningSignature) {
+	v.SignaturesProvision = append(v.SignaturesProvision, signature)
+}
+
+func (v *Volume) GetSignatureFarmer() SigningSignature {
+	return v.SignatureFarmer
+}
+
+func (v *Volume) SetSignatureFarmer(signature SigningSignature) {
+	v.SignatureFarmer = signature
+}
+
+func (v *Volume) GetSignaturesDelete() []SigningSignature {
+	return v.SignaturesDelete
+}
+
+func (v *Volume) PushSignatureDelete(signature SigningSignature) {
+	v.SignaturesDelete = append(v.SignaturesDelete, signature)
+}
+
+func (v *Volume) GetEpoch() schema.Date {
+	return v.Epoch
+}
+
+func (v *Volume) GetMetadata() string {
+	return v.Metadata
+}
+
+func (v *Volume) GetResult() Result {
+	return v.Result
+}
+
+func (v *Volume) SetResult(result Result) {
+	v.Result = result
+}
+
+func (v *Volume) GetDescription() string {
+	return v.Description
+}
+
+func (v *Volume) GetCurrencies() []string {
+	return v.Currencies
+}
+
+func (v *Volume) GetSigningRequestProvision() SigningRequest {
+	return v.SigningRequestProvision
+}
+
+func (v *Volume) GetSigningRequestDelete() SigningRequest {
+	return v.GetSigningRequestDelete()
+}
+
+func (v *Volume) GetExpirationProvisioning() schema.Date {
+	return v.ExpirationProvisioning
 }
 
 type VolumeTypeEnum uint8

@@ -202,35 +202,32 @@ func (r *Reservation) Validate() error {
 	// seems go doesn't allow : workloaders=append(workloaders, r.DataReservation.Containers)
 	// so we have to loop
 	for _, w := range r.DataReservation.Containers {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Volumes {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Zdbs {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Kubernetes {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Proxies {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.ReverseProxy {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Subdomains {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.DomainDelegates {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Gateway4To6s {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
-	// for _, w := range r.DataReservation.CapacityPools {
-	// 	workloaders = append(workloaders, w)
-	// }
 
 	for _, w := range workloaders {
 		if _, ok := ids[w.WorkloadID()]; ok {

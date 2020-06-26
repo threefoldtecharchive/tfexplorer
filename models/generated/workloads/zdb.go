@@ -34,8 +34,100 @@ type ZDB struct {
 	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
-func (z ZDB) WorkloadID() int64 {
+func (z *ZDB) WorkloadID() int64 {
 	return z.WorkloadId
+}
+
+func (z *ZDB) GetWorkloadType() WorkloadTypeEnum {
+	return z.WorkloadType
+}
+
+func (z *ZDB) GetID() schema.ID {
+	return z.ID
+}
+
+func (z *ZDB) SetID(id schema.ID) {
+	z.ID = id
+}
+
+func (z *ZDB) GetJson() string {
+	return z.Json
+}
+
+func (z *ZDB) GetCustomerTid() int64 {
+	return z.CustomerTid
+}
+
+func (z *ZDB) GetCustomerSignature() string {
+	return z.CustomerSignature
+}
+
+func (z *ZDB) GetNextAction() NextActionEnum {
+	return z.NextAction
+}
+
+func (z *ZDB) SetNextAction(next NextActionEnum) {
+	z.NextAction = next
+}
+
+func (z *ZDB) GetSignaturesProvision() []SigningSignature {
+	return z.SignaturesProvision
+}
+
+func (z *ZDB) PushSignatureProvision(signature SigningSignature) {
+	z.SignaturesProvision = append(z.SignaturesProvision, signature)
+}
+
+func (z *ZDB) GetSignatureFarmer() SigningSignature {
+	return z.SignatureFarmer
+}
+
+func (z *ZDB) SetSignatureFarmer(signature SigningSignature) {
+	z.SignatureFarmer = signature
+}
+
+func (z *ZDB) GetSignaturesDelete() []SigningSignature {
+	return z.SignaturesDelete
+}
+
+func (z *ZDB) PushSignatureDelete(signature SigningSignature) {
+	z.SignaturesDelete = append(z.SignaturesDelete, signature)
+}
+
+func (z *ZDB) GetEpoch() schema.Date {
+	return z.Epoch
+}
+
+func (z *ZDB) GetMetadata() string {
+	return z.Metadata
+}
+
+func (z *ZDB) GetResult() Result {
+	return z.Result
+}
+
+func (z *ZDB) SetResult(result Result) {
+	z.Result = result
+}
+
+func (z *ZDB) GetDescription() string {
+	return z.Description
+}
+
+func (z *ZDB) GetCurrencies() []string {
+	return z.Currencies
+}
+
+func (z *ZDB) GetSigningRequestProvision() SigningRequest {
+	return z.SigningRequestProvision
+}
+
+func (z *ZDB) GetSigningRequestDelete() SigningRequest {
+	return z.GetSigningRequestDelete()
+}
+
+func (z *ZDB) GetExpirationProvisioning() schema.Date {
+	return z.ExpirationProvisioning
 }
 
 type DiskTypeEnum uint8

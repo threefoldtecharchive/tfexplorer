@@ -43,8 +43,100 @@ type Container struct {
 	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
-func (c Container) WorkloadID() int64 {
+func (c *Container) WorkloadID() int64 {
 	return c.WorkloadId
+}
+
+func (c *Container) GetWorkloadType() WorkloadTypeEnum {
+	return c.WorkloadType
+}
+
+func (c *Container) GetID() schema.ID {
+	return c.ID
+}
+
+func (c *Container) SetID(id schema.ID) {
+	c.ID = id
+}
+
+func (c *Container) GetJson() string {
+	return c.Json
+}
+
+func (c *Container) GetCustomerTid() int64 {
+	return c.CustomerTid
+}
+
+func (c *Container) GetCustomerSignature() string {
+	return c.CustomerSignature
+}
+
+func (c *Container) GetNextAction() NextActionEnum {
+	return c.NextAction
+}
+
+func (c *Container) SetNextAction(next NextActionEnum) {
+	c.NextAction = next
+}
+
+func (c *Container) GetSignaturesProvision() []SigningSignature {
+	return c.SignaturesProvision
+}
+
+func (c *Container) PushSignatureProvision(signature SigningSignature) {
+	c.SignaturesProvision = append(c.SignaturesProvision, signature)
+}
+
+func (c *Container) GetSignatureFarmer() SigningSignature {
+	return c.SignatureFarmer
+}
+
+func (c *Container) SetSignatureFarmer(signature SigningSignature) {
+	c.SignatureFarmer = signature
+}
+
+func (c *Container) GetSignaturesDelete() []SigningSignature {
+	return c.SignaturesDelete
+}
+
+func (c *Container) PushSignatureDelete(signature SigningSignature) {
+	c.SignaturesDelete = append(c.SignaturesDelete, signature)
+}
+
+func (c *Container) GetEpoch() schema.Date {
+	return c.Epoch
+}
+
+func (c *Container) GetMetadata() string {
+	return c.Metadata
+}
+
+func (c *Container) GetResult() Result {
+	return c.Result
+}
+
+func (c *Container) SetResult(result Result) {
+	c.Result = result
+}
+
+func (c *Container) GetDescription() string {
+	return c.Description
+}
+
+func (c *Container) GetCurrencies() []string {
+	return c.Currencies
+}
+
+func (c *Container) GetSigningRequestProvision() SigningRequest {
+	return c.SigningRequestProvision
+}
+
+func (c *Container) GetSigningRequestDelete() SigningRequest {
+	return c.GetSigningRequestDelete()
+}
+
+func (c *Container) GetExpirationProvisioning() schema.Date {
+	return c.ExpirationProvisioning
 }
 
 type ContainerCapacity struct {
