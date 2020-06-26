@@ -128,7 +128,7 @@ func (k *K8S) GetSigningRequestProvision() SigningRequest {
 }
 
 func (k *K8S) GetSigningRequestDelete() SigningRequest {
-	return k.GetSigningRequestDelete()
+	return k.SigningRequestDelete
 }
 
 func (k *K8S) GetExpirationProvisioning() schema.Date {

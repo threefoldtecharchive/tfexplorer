@@ -123,7 +123,7 @@ func (z *ZDB) GetSigningRequestProvision() SigningRequest {
 }
 
 func (z *ZDB) GetSigningRequestDelete() SigningRequest {
-	return z.GetSigningRequestDelete()
+	return z.SigningRequestDelete
 }
 
 func (z *ZDB) GetExpirationProvisioning() schema.Date {

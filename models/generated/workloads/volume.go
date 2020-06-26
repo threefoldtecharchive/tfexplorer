@@ -120,7 +120,7 @@ func (v *Volume) GetSigningRequestProvision() SigningRequest {
 }
 
 func (v *Volume) GetSigningRequestDelete() SigningRequest {
-	return v.GetSigningRequestDelete()
+	return v.SigningRequestDelete
 }
 
 func (v *Volume) GetExpirationProvisioning() schema.Date {
