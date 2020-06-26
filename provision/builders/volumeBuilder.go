@@ -3,8 +3,10 @@ package builders
 import (
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 // VolumeBuilder is a struct that can build volumes
@@ -16,9 +18,10 @@ type VolumeBuilder struct {
 func NewVolumeBuilder(nodeID string, size int64, volumeType workloads.VolumeTypeEnum) *VolumeBuilder {
 	return &VolumeBuilder{
 		Volume: workloads.Volume{
-			NodeId: nodeID,
-			Size:   size,
-			Type:   volumeType,
+			NodeId:       nodeID,
+			Size:         size,
+			Type:         volumeType,
+			WorkloadType: workloads.WorkloadTypeVolume,
 		},
 	}
 }
@@ -46,6 +49,7 @@ func (v *VolumeBuilder) Save(writer io.Writer) error {
 
 // Build returns the volume
 func (v *VolumeBuilder) Build() workloads.Volume {
+	v.Epoch = schema.Date{Time: time.Now()}
 	return v.Volume
 }
 
