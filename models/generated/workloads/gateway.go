@@ -23,7 +23,7 @@ type GatewayProxy struct {
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
 	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
 	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
@@ -54,7 +54,7 @@ type GatewayReverseProxy struct {
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
 	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
 	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
@@ -85,7 +85,7 @@ type GatewaySubdomain struct {
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
 	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
 	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
@@ -115,7 +115,7 @@ type GatewayDelegate struct {
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
 	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
 	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
@@ -145,7 +145,7 @@ type Gateway4To6 struct {
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
 	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
 	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignaturesFarmer    []SigningSignature `bson:"signatures_farmer" json:"signatures_farmer"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
