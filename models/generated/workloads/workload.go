@@ -1,6 +1,11 @@
 package workloads
 
-import schema "github.com/threefoldtech/tfexplorer/schema"
+import (
+	"encoding/json"
+
+	"github.com/pkg/errors"
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type (
 	Workloader interface {
@@ -30,3 +35,64 @@ type (
 		GetExpirationProvisioning() schema.Date
 	}
 )
+
+// UnmarshalJSON decodes a workload from JSON format
+func UnmarshalJSON(buffer []byte) (Workloader, error) {
+	typeField := struct {
+		WorkloadType WorkloadTypeEnum `json:"workload_type"`
+	}{}
+
+	if err := json.Unmarshal(buffer, &typeField); err != nil {
+		return nil, errors.Wrap(err, "could not decode workload type")
+	}
+
+	var err error
+	var workload Workloader
+
+	switch typeField.WorkloadType {
+	case WorkloadTypeContainer:
+		var c Container
+		err = json.Unmarshal(buffer, &c)
+		workload = &c
+	case WorkloadTypeDomainDelegate:
+		var g GatewayDelegate
+		err = json.Unmarshal(buffer, &g)
+		workload = &g
+	case WorkloadTypeGateway4To6:
+		var g Gateway4To6
+		err = json.Unmarshal(buffer, &g)
+		workload = &g
+	case WorkloadTypeKubernetes:
+		var k K8S
+		err = json.Unmarshal(buffer, &k)
+		workload = &k
+	case WorkloadTypeNetworkResource:
+		var n NetworkResource
+		err = json.Unmarshal(buffer, &n)
+		workload = &n
+	case WorkloadTypeProxy:
+		var g GatewayProxy
+		err = json.Unmarshal(buffer, &g)
+		workload = &g
+	case WorkloadTypeReverseProxy:
+		var g GatewayReverseProxy
+		err = json.Unmarshal(buffer, &g)
+		workload = &g
+	case WorkloadTypeSubDomain:
+		var g GatewaySubdomain
+		err = json.Unmarshal(buffer, &g)
+		workload = &g
+	case WorkloadTypeVolume:
+		var v Volume
+		err = json.Unmarshal(buffer, &v)
+		workload = &v
+	case WorkloadTypeZDB:
+		var z ZDB
+		err = json.Unmarshal(buffer, &z)
+		workload = &z
+	default:
+		return nil, errors.New("unrecognized workload type")
+	}
+
+	return workload, err
+}
