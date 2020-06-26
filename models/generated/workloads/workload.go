@@ -23,5 +23,10 @@ type (
 		GetMetadata() string
 		GetResult() Result
 		SetResult(result Result)
+		GetDescription() string
+		GetCurrencies() []string
+		GetSigningRequestProvision() SigningRequest
+		GetSigningRequestDelete() SigningRequest
+		GetExpirationProvisioning() schema.Date
 	}
 )
