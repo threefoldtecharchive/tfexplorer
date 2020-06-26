@@ -130,6 +130,46 @@ func (z *ZDB) GetExpirationProvisioning() schema.Date {
 	return z.ExpirationProvisioning
 }
 
+func (z *ZDB) SetJson(json string) {
+	z.Json = json
+}
+
+func (z *ZDB) SetCustomerTid(tid int64) {
+	z.CustomerTid = tid
+}
+
+func (z *ZDB) SetCustomerSignature(signature string) {
+	z.CustomerSignature = signature
+}
+
+func (z *ZDB) SetEpoch(date schema.Date) {
+	z.Epoch = date
+}
+
+func (z *ZDB) SetMetadata(metadata string) {
+	z.Metadata = metadata
+}
+
+func (z *ZDB) SetDescription(description string) {
+	z.Description = description
+}
+
+func (z *ZDB) SetCurrencies(currencies []string) {
+	z.Currencies = currencies
+}
+
+func (z *ZDB) SetSigningRequestProvision(request SigningRequest) {
+	z.SigningRequestProvision = request
+}
+
+func (z *ZDB) SetSigningRequestDelete(request SigningRequest) {
+	z.SigningRequestDelete = request
+}
+
+func (z *ZDB) SetExpirationProvisioning(date schema.Date) {
+	z.ExpirationProvisioning = date
+}
+
 type DiskTypeEnum uint8
 
 const (

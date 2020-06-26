@@ -129,3 +129,43 @@ func (n *NetworkResource) GetSigningRequestDelete() SigningRequest {
 func (n *NetworkResource) GetExpirationProvisioning() schema.Date {
 	return n.ExpirationProvisioning
 }
+
+func (n *NetworkResource) SetJson(json string) {
+	n.Json = json
+}
+
+func (n *NetworkResource) SetCustomerTid(tid int64) {
+	n.CustomerTid = tid
+}
+
+func (n *NetworkResource) SetCustomerSignature(signature string) {
+	n.CustomerSignature = signature
+}
+
+func (n *NetworkResource) SetEpoch(date schema.Date) {
+	n.Epoch = date
+}
+
+func (n *NetworkResource) SetMetadata(metadata string) {
+	n.Metadata = metadata
+}
+
+func (n *NetworkResource) SetDescription(description string) {
+	n.Description = description
+}
+
+func (n *NetworkResource) SetCurrencies(currencies []string) {
+	n.Currencies = currencies
+}
+
+func (n *NetworkResource) SetSigningRequestProvision(request SigningRequest) {
+	n.SigningRequestProvision = request
+}
+
+func (n *NetworkResource) SetSigningRequestDelete(request SigningRequest) {
+	n.SigningRequestDelete = request
+}
+
+func (n *NetworkResource) SetExpirationProvisioning(date schema.Date) {
+	n.ExpirationProvisioning = date
+}

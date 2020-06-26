@@ -127,6 +127,46 @@ func (g *GatewayProxy) GetExpirationProvisioning() schema.Date {
 	return g.ExpirationProvisioning
 }
 
+func (g *GatewayProxy) SetJson(json string) {
+	g.Json = json
+}
+
+func (g *GatewayProxy) SetCustomerTid(tid int64) {
+	g.CustomerTid = tid
+}
+
+func (g *GatewayProxy) SetCustomerSignature(signature string) {
+	g.CustomerSignature = signature
+}
+
+func (g *GatewayProxy) SetEpoch(date schema.Date) {
+	g.Epoch = date
+}
+
+func (g *GatewayProxy) SetMetadata(metadata string) {
+	g.Metadata = metadata
+}
+
+func (g *GatewayProxy) SetDescription(description string) {
+	g.Description = description
+}
+
+func (g *GatewayProxy) SetCurrencies(currencies []string) {
+	g.Currencies = currencies
+}
+
+func (g *GatewayProxy) SetSigningRequestProvision(request SigningRequest) {
+	g.SigningRequestProvision = request
+}
+
+func (g *GatewayProxy) SetSigningRequestDelete(request SigningRequest) {
+	g.SigningRequestDelete = request
+}
+
+func (g *GatewayProxy) SetExpirationProvisioning(date schema.Date) {
+	g.ExpirationProvisioning = date
+}
+
 type GatewayReverseProxy struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -248,6 +288,46 @@ func (g *GatewayReverseProxy) GetSigningRequestDelete() SigningRequest {
 
 func (g *GatewayReverseProxy) GetExpirationProvisioning() schema.Date {
 	return g.ExpirationProvisioning
+}
+
+func (g *GatewayReverseProxy) SetJson(json string) {
+	g.Json = json
+}
+
+func (g *GatewayReverseProxy) SetCustomerTid(tid int64) {
+	g.CustomerTid = tid
+}
+
+func (g *GatewayReverseProxy) SetCustomerSignature(signature string) {
+	g.CustomerSignature = signature
+}
+
+func (g *GatewayReverseProxy) SetEpoch(date schema.Date) {
+	g.Epoch = date
+}
+
+func (g *GatewayReverseProxy) SetMetadata(metadata string) {
+	g.Metadata = metadata
+}
+
+func (g *GatewayReverseProxy) SetDescription(description string) {
+	g.Description = description
+}
+
+func (g *GatewayReverseProxy) SetCurrencies(currencies []string) {
+	g.Currencies = currencies
+}
+
+func (g *GatewayReverseProxy) SetSigningRequestProvision(request SigningRequest) {
+	g.SigningRequestProvision = request
+}
+
+func (g *GatewayReverseProxy) SetSigningRequestDelete(request SigningRequest) {
+	g.SigningRequestDelete = request
+}
+
+func (g *GatewayReverseProxy) SetExpirationProvisioning(date schema.Date) {
+	g.ExpirationProvisioning = date
 }
 
 type GatewaySubdomain struct {
@@ -373,6 +453,46 @@ func (g *GatewaySubdomain) GetExpirationProvisioning() schema.Date {
 	return g.ExpirationProvisioning
 }
 
+func (g *GatewaySubdomain) SetJson(json string) {
+	g.Json = json
+}
+
+func (g *GatewaySubdomain) SetCustomerTid(tid int64) {
+	g.CustomerTid = tid
+}
+
+func (g *GatewaySubdomain) SetCustomerSignature(signature string) {
+	g.CustomerSignature = signature
+}
+
+func (g *GatewaySubdomain) SetEpoch(date schema.Date) {
+	g.Epoch = date
+}
+
+func (g *GatewaySubdomain) SetMetadata(metadata string) {
+	g.Metadata = metadata
+}
+
+func (g *GatewaySubdomain) SetDescription(description string) {
+	g.Description = description
+}
+
+func (g *GatewaySubdomain) SetCurrencies(currencies []string) {
+	g.Currencies = currencies
+}
+
+func (g *GatewaySubdomain) SetSigningRequestProvision(request SigningRequest) {
+	g.SigningRequestProvision = request
+}
+
+func (g *GatewaySubdomain) SetSigningRequestDelete(request SigningRequest) {
+	g.SigningRequestDelete = request
+}
+
+func (g *GatewaySubdomain) SetExpirationProvisioning(date schema.Date) {
+	g.ExpirationProvisioning = date
+}
+
 type GatewayDelegate struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -495,6 +615,46 @@ func (g *GatewayDelegate) GetExpirationProvisioning() schema.Date {
 	return g.ExpirationProvisioning
 }
 
+func (g *GatewayDelegate) SetJson(json string) {
+	g.Json = json
+}
+
+func (g *GatewayDelegate) SetCustomerTid(tid int64) {
+	g.CustomerTid = tid
+}
+
+func (g *GatewayDelegate) SetCustomerSignature(signature string) {
+	g.CustomerSignature = signature
+}
+
+func (g *GatewayDelegate) SetEpoch(date schema.Date) {
+	g.Epoch = date
+}
+
+func (g *GatewayDelegate) SetMetadata(metadata string) {
+	g.Metadata = metadata
+}
+
+func (g *GatewayDelegate) SetDescription(description string) {
+	g.Description = description
+}
+
+func (g *GatewayDelegate) SetCurrencies(currencies []string) {
+	g.Currencies = currencies
+}
+
+func (g *GatewayDelegate) SetSigningRequestProvision(request SigningRequest) {
+	g.SigningRequestProvision = request
+}
+
+func (g *GatewayDelegate) SetSigningRequestDelete(request SigningRequest) {
+	g.SigningRequestDelete = request
+}
+
+func (g *GatewayDelegate) SetExpirationProvisioning(date schema.Date) {
+	g.ExpirationProvisioning = date
+}
+
 type Gateway4To6 struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -615,4 +775,44 @@ func (g *Gateway4To6) GetSigningRequestDelete() SigningRequest {
 
 func (g *Gateway4To6) GetExpirationProvisioning() schema.Date {
 	return g.ExpirationProvisioning
+}
+
+func (g *Gateway4To6) SetJson(json string) {
+	g.Json = json
+}
+
+func (g *Gateway4To6) SetCustomerTid(tid int64) {
+	g.CustomerTid = tid
+}
+
+func (g *Gateway4To6) SetCustomerSignature(signature string) {
+	g.CustomerSignature = signature
+}
+
+func (g *Gateway4To6) SetEpoch(date schema.Date) {
+	g.Epoch = date
+}
+
+func (g *Gateway4To6) SetMetadata(metadata string) {
+	g.Metadata = metadata
+}
+
+func (g *Gateway4To6) SetDescription(description string) {
+	g.Description = description
+}
+
+func (g *Gateway4To6) SetCurrencies(currencies []string) {
+	g.Currencies = currencies
+}
+
+func (g *Gateway4To6) SetSigningRequestProvision(request SigningRequest) {
+	g.SigningRequestProvision = request
+}
+
+func (g *Gateway4To6) SetSigningRequestDelete(request SigningRequest) {
+	g.SigningRequestDelete = request
+}
+
+func (g *Gateway4To6) SetExpirationProvisioning(date schema.Date) {
+	g.ExpirationProvisioning = date
 }

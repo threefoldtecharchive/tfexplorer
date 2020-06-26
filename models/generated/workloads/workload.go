@@ -14,8 +14,11 @@ type (
 		GetID() schema.ID
 		SetID(id schema.ID)
 		GetJson() string
+		SetJson(json string)
 		GetCustomerTid() int64
+		SetCustomerTid(tid int64)
 		GetCustomerSignature() string
+		SetCustomerSignature(signature string)
 		GetNextAction() NextActionEnum
 		SetNextAction(next NextActionEnum)
 		GetSignaturesProvision() []SigningSignature
@@ -25,14 +28,21 @@ type (
 		GetSignaturesDelete() []SigningSignature
 		PushSignatureDelete(signature SigningSignature)
 		GetEpoch() schema.Date
+		SetEpoch(date schema.Date)
 		GetMetadata() string
+		SetMetadata(metadata string)
 		GetResult() Result
 		SetResult(result Result)
 		GetDescription() string
+		SetDescription(description string)
 		GetCurrencies() []string
+		SetCurrencies(currencies []string)
 		GetSigningRequestProvision() SigningRequest
+		SetSigningRequestProvision(request SigningRequest)
 		GetSigningRequestDelete() SigningRequest
+		SetSigningRequestDelete(request SigningRequest)
 		GetExpirationProvisioning() schema.Date
+		SetExpirationProvisioning(date schema.Date)
 	}
 )
 

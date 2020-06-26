@@ -127,6 +127,46 @@ func (v *Volume) GetExpirationProvisioning() schema.Date {
 	return v.ExpirationProvisioning
 }
 
+func (v *Volume) SetJson(json string) {
+	v.Json = json
+}
+
+func (v *Volume) SetCustomerTid(tid int64) {
+	v.CustomerTid = tid
+}
+
+func (v *Volume) SetCustomerSignature(signature string) {
+	v.CustomerSignature = signature
+}
+
+func (v *Volume) SetEpoch(date schema.Date) {
+	v.Epoch = date
+}
+
+func (v *Volume) SetMetadata(metadata string) {
+	v.Metadata = metadata
+}
+
+func (v *Volume) SetDescription(description string) {
+	v.Description = description
+}
+
+func (v *Volume) SetCurrencies(currencies []string) {
+	v.Currencies = currencies
+}
+
+func (v *Volume) SetSigningRequestProvision(request SigningRequest) {
+	v.SigningRequestProvision = request
+}
+
+func (v *Volume) SetSigningRequestDelete(request SigningRequest) {
+	v.SigningRequestDelete = request
+}
+
+func (v *Volume) SetExpirationProvisioning(date schema.Date) {
+	v.ExpirationProvisioning = date
+}
+
 type VolumeTypeEnum uint8
 
 const (

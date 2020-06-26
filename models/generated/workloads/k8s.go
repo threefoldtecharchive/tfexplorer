@@ -134,3 +134,43 @@ func (k *K8S) GetSigningRequestDelete() SigningRequest {
 func (k *K8S) GetExpirationProvisioning() schema.Date {
 	return k.ExpirationProvisioning
 }
+
+func (k *K8S) SetJson(json string) {
+	k.Json = json
+}
+
+func (k *K8S) SetCustomerTid(tid int64) {
+	k.CustomerTid = tid
+}
+
+func (k *K8S) SetCustomerSignature(signature string) {
+	k.CustomerSignature = signature
+}
+
+func (k *K8S) SetEpoch(date schema.Date) {
+	k.Epoch = date
+}
+
+func (k *K8S) SetMetadata(metadata string) {
+	k.Metadata = metadata
+}
+
+func (k *K8S) SetDescription(description string) {
+	k.Description = description
+}
+
+func (k *K8S) SetCurrencies(currencies []string) {
+	k.Currencies = currencies
+}
+
+func (k *K8S) SetSigningRequestProvision(request SigningRequest) {
+	k.SigningRequestProvision = request
+}
+
+func (k *K8S) SetSigningRequestDelete(request SigningRequest) {
+	k.SigningRequestDelete = request
+}
+
+func (k *K8S) SetExpirationProvisioning(date schema.Date) {
+	k.ExpirationProvisioning = date
+}
