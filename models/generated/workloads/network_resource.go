@@ -123,7 +123,7 @@ func (n *NetworkResource) GetSigningRequestProvision() SigningRequest {
 }
 
 func (n *NetworkResource) GetSigningRequestDelete() SigningRequest {
-	return n.GetSigningRequestDelete()
+	return n.SigningRequestDelete
 }
 
 func (n *NetworkResource) GetExpirationProvisioning() schema.Date {

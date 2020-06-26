@@ -120,7 +120,7 @@ func (g *GatewayProxy) GetSigningRequestProvision() SigningRequest {
 }
 
 func (g *GatewayProxy) GetSigningRequestDelete() SigningRequest {
-	return g.GetSigningRequestDelete()
+	return g.SigningRequestDelete
 }
 
 func (g *GatewayProxy) GetExpirationProvisioning() schema.Date {
@@ -283,7 +283,7 @@ func (g *GatewayReverseProxy) GetSigningRequestProvision() SigningRequest {
 }
 
 func (g *GatewayReverseProxy) GetSigningRequestDelete() SigningRequest {
-	return g.GetSigningRequestDelete()
+	return g.SigningRequestDelete
 }
 
 func (g *GatewayReverseProxy) GetExpirationProvisioning() schema.Date {
@@ -446,7 +446,7 @@ func (g *GatewaySubdomain) GetSigningRequestProvision() SigningRequest {
 }
 
 func (g *GatewaySubdomain) GetSigningRequestDelete() SigningRequest {
-	return g.GetSigningRequestDelete()
+	return g.SigningRequestDelete
 }
 
 func (g *GatewaySubdomain) GetExpirationProvisioning() schema.Date {
@@ -608,7 +608,7 @@ func (g *GatewayDelegate) GetSigningRequestProvision() SigningRequest {
 }
 
 func (g *GatewayDelegate) GetSigningRequestDelete() SigningRequest {
-	return g.GetSigningRequestDelete()
+	return g.SigningRequestDelete
 }
 
 func (g *GatewayDelegate) GetExpirationProvisioning() schema.Date {
@@ -770,7 +770,7 @@ func (g *Gateway4To6) GetSigningRequestProvision() SigningRequest {
 }
 
 func (g *Gateway4To6) GetSigningRequestDelete() SigningRequest {
-	return g.GetSigningRequestDelete()
+	return g.SigningRequestDelete
 }
 
 func (g *Gateway4To6) GetExpirationProvisioning() schema.Date {

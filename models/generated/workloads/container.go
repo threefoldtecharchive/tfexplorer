@@ -132,7 +132,7 @@ func (c *Container) GetSigningRequestProvision() SigningRequest {
 }
 
 func (c *Container) GetSigningRequestDelete() SigningRequest {
-	return c.GetSigningRequestDelete()
+	return c.SigningRequestDelete
 }
 
 func (c *Container) GetExpirationProvisioning() schema.Date {
