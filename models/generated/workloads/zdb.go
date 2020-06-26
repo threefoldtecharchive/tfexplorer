@@ -14,6 +14,12 @@ type ZDB struct {
 	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
 	PoolId          int64             `bson:"pool_id" json:"pool_id"`
 
+	Description             string         `bson:"description" json:"description"`
+	Currencies              []string       `bson:"currencies" json:"currencies"`
+	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
+	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
+	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
+
 	ID                  schema.ID          `bson:"_id" json:"id"`
 	Json                string             `bson:"json" json:"json"`
 	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
