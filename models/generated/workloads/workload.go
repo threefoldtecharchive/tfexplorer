@@ -15,8 +15,8 @@ type (
 		SetNextAction(next NextActionEnum)
 		GetSignaturesProvision() []SigningSignature
 		PushSignatureProvision(signature SigningSignature)
-		GetSignaturesFarmer() []SigningSignature
-		PushSignaturesFarmer(signature SigningSignature)
+		GetSignatureFarmer() SigningSignature
+		SetSignatureFarmer(signature SigningSignature)
 		GetSignaturesDelete() []SigningSignature
 		PushSignatureDelete(signature SigningSignature)
 		GetEpoch() schema.Date
