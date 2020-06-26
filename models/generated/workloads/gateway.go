@@ -12,6 +12,12 @@ type GatewayProxy struct {
 	PortTLS    uint32    `bson:"port_tls" json:"port_tls"`
 	PoolId     int64     `bson:"pool_id" json:"pool_id"`
 
+	Description             string         `bson:"description" json:"description"`
+	Currencies              []string       `bson:"currencies" json:"currencies"`
+	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
+	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
+	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
+
 	Json                string             `bson:"json" json:"json"`
 	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
@@ -36,6 +42,12 @@ type GatewayReverseProxy struct {
 	Domain     string    `bson:"domain" json:"domain"`
 	Secret     string    `bson:"secret" json:"secret"`
 	PoolId     int64     `bson:"pool_id" json:"pool_id"`
+
+	Description             string         `bson:"description" json:"description"`
+	Currencies              []string       `bson:"currencies" json:"currencies"`
+	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
+	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
+	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
 
 	Json                string             `bson:"json" json:"json"`
 	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
@@ -62,6 +74,12 @@ type GatewaySubdomain struct {
 	IPs        []string  `bson:"ips" json:"ips"`
 	PoolId     int64     `bson:"pool_id" json:"pool_id"`
 
+	Description             string         `bson:"description" json:"description"`
+	Currencies              []string       `bson:"currencies" json:"currencies"`
+	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
+	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
+	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
+
 	Json                string             `bson:"json" json:"json"`
 	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
@@ -86,6 +104,12 @@ type GatewayDelegate struct {
 	Domain     string    `bson:"domain" json:"domain"`
 	PoolId     int64     `bson:"pool_id" json:"pool_id"`
 
+	Description             string         `bson:"description" json:"description"`
+	Currencies              []string       `bson:"currencies" json:"currencies"`
+	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
+	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
+	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
+
 	Json                string             `bson:"json" json:"json"`
 	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
@@ -109,6 +133,12 @@ type Gateway4To6 struct {
 	NodeId     string    `bson:"node_id" json:"node_id"`
 	PublicKey  string    `bson:"public_key" json:"public_key"`
 	PoolId     int64     `bson:"pool_id" json:"pool_id"`
+
+	Description             string         `bson:"description" json:"description"`
+	Currencies              []string       `bson:"currencies" json:"currencies"`
+	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
+	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
+	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
 
 	Json                string             `bson:"json" json:"json"`
 	CustomerTid         int64              `bson:"customer_tid" json:"customer_tid"`
