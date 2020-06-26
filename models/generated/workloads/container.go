@@ -139,6 +139,46 @@ func (c *Container) GetExpirationProvisioning() schema.Date {
 	return c.ExpirationProvisioning
 }
 
+func (c *Container) SetJson(json string) {
+	c.Json = json
+}
+
+func (c *Container) SetCustomerTid(tid int64) {
+	c.CustomerTid = tid
+}
+
+func (c *Container) SetCustomerSignature(signature string) {
+	c.CustomerSignature = signature
+}
+
+func (c *Container) SetEpoch(date schema.Date) {
+	c.Epoch = date
+}
+
+func (c *Container) SetMetadata(metadata string) {
+	c.Metadata = metadata
+}
+
+func (c *Container) SetDescription(description string) {
+	c.Description = description
+}
+
+func (c *Container) SetCurrencies(currencies []string) {
+	c.Currencies = currencies
+}
+
+func (c *Container) SetSigningRequestProvision(request SigningRequest) {
+	c.SigningRequestProvision = request
+}
+
+func (c *Container) SetSigningRequestDelete(request SigningRequest) {
+	c.SigningRequestDelete = request
+}
+
+func (c *Container) SetExpirationProvisioning(date schema.Date) {
+	c.ExpirationProvisioning = date
+}
+
 type ContainerCapacity struct {
 	Cpu      int64        `bson:"cpu" json:"cpu"`
 	Memory   int64        `bson:"memory" json:"memory"`
