@@ -205,38 +205,35 @@ func (r *Reservation) Validate() error {
 		if w.Capacity.DiskType != generated.DiskTypeSSD {
 			return errors.New("Container disktype is not valid, it should be SSD")
 		}
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Volumes {
 		if w.Type != generated.VolumeTypeSSD {
 			return errors.New("Volume disktype is not valid, it should be SSD")
 		}
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Zdbs {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Kubernetes {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Proxies {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.ReverseProxy {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Subdomains {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.DomainDelegates {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Gateway4To6s {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
-	// for _, w := range r.DataReservation.CapacityPools {
-	// 	workloaders = append(workloaders, w)
-	// }
 
 	for _, w := range workloaders {
 		if _, ok := ids[w.WorkloadID()]; ok {

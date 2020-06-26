@@ -2,10 +2,6 @@ package workloads
 
 import schema "github.com/threefoldtech/tfexplorer/schema"
 
-func (n NetworkResource) WorkloadID() int64 {
-	return n.WorkloadId
-}
-
 type NetworkResource struct {
 	Name                         string            `bson:"name" json:"name"`
 	WorkloadId                   int64             `bson:"workload_id" json:"workload_id"`
@@ -36,4 +32,100 @@ type NetworkResource struct {
 	Metadata            string             `bson:"metadata" json:"metadata"`
 	Result              Result             `bson:"result" json:"result"`
 	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
+}
+
+func (n *NetworkResource) WorkloadID() int64 {
+	return n.WorkloadId
+}
+
+func (n *NetworkResource) GetWorkloadType() WorkloadTypeEnum {
+	return n.WorkloadType
+}
+
+func (n *NetworkResource) GetID() schema.ID {
+	return n.ID
+}
+
+func (n *NetworkResource) SetID(id schema.ID) {
+	n.ID = id
+}
+
+func (n *NetworkResource) GetJson() string {
+	return n.Json
+}
+
+func (n *NetworkResource) GetCustomerTid() int64 {
+	return n.CustomerTid
+}
+
+func (n *NetworkResource) GetCustomerSignature() string {
+	return n.CustomerSignature
+}
+
+func (n *NetworkResource) GetNextAction() NextActionEnum {
+	return n.NextAction
+}
+
+func (n *NetworkResource) SetNextAction(next NextActionEnum) {
+	n.NextAction = next
+}
+
+func (n *NetworkResource) GetSignaturesProvision() []SigningSignature {
+	return n.SignaturesProvision
+}
+
+func (n *NetworkResource) PushSignatureProvision(signature SigningSignature) {
+	n.SignaturesProvision = append(n.SignaturesProvision, signature)
+}
+
+func (n *NetworkResource) GetSignatureFarmer() SigningSignature {
+	return n.SignatureFarmer
+}
+
+func (n *NetworkResource) SetSignatureFarmer(signature SigningSignature) {
+	n.SignatureFarmer = signature
+}
+
+func (n *NetworkResource) GetSignaturesDelete() []SigningSignature {
+	return n.SignaturesDelete
+}
+
+func (n *NetworkResource) PushSignatureDelete(signature SigningSignature) {
+	n.SignaturesDelete = append(n.SignaturesDelete, signature)
+}
+
+func (n *NetworkResource) GetEpoch() schema.Date {
+	return n.Epoch
+}
+
+func (n *NetworkResource) GetMetadata() string {
+	return n.Metadata
+}
+
+func (n *NetworkResource) GetResult() Result {
+	return n.Result
+}
+
+func (n *NetworkResource) SetResult(result Result) {
+	n.Result = result
+}
+
+func (n *NetworkResource) GetDescription() string {
+	return n.Description
+}
+
+func (n *NetworkResource) GetCurrencies() []string {
+	return n.Currencies
+}
+
+func (n *NetworkResource) GetSigningRequestProvision() SigningRequest {
+	return n.SigningRequestProvision
+}
+
+func (n *NetworkResource) GetSigningRequestDelete() SigningRequest {
+	return n.GetSigningRequestDelete()
+}
+
+func (n *NetworkResource) GetExpirationProvisioning() schema.Date {
+	return n.ExpirationProvisioning
 }

@@ -31,7 +31,7 @@ type K8S struct {
 	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
 	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
 	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignatureFarmer    SigningSignature `bson:"signature_farmer" json:"signature_farmer"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Epoch               schema.Date        `bson:"epoch" json:"epoch"`
 	Metadata            string             `bson:"metadata" json:"metadata"`
@@ -39,6 +39,98 @@ type K8S struct {
 	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
 }
 
-func (k K8S) WorkloadID() int64 {
+func (k *K8S) WorkloadID() int64 {
 	return k.WorkloadId
+}
 
+func (k *K8S) GetWorkloadType() WorkloadTypeEnum {
+	return k.WorkloadType
+}
+
+func (k *K8S) GetID() schema.ID {
+	return k.ID
+}
+
+func (k *K8S) SetID(id schema.ID) {
+	k.ID = id
+}
+
+func (k *K8S) GetJson() string {
+	return k.Json
+}
+
+func (k *K8S) GetCustomerTid() int64 {
+	return k.CustomerTid
+}
+
+func (k *K8S) GetCustomerSignature() string {
+	return k.CustomerSignature
+}
+
+func (k *K8S) GetNextAction() NextActionEnum {
+	return k.NextAction
+}
+
+func (k *K8S) SetNextAction(next NextActionEnum) {
+	k.NextAction = next
+}
+
+func (k *K8S) GetSignaturesProvision() []SigningSignature {
+	return k.SignaturesProvision
+}
+
+func (k *K8S) PushSignatureProvision(signature SigningSignature) {
+	k.SignaturesProvision = append(k.SignaturesProvision, signature)
+}
+
+func (k *K8S) GetSignatureFarmer() SigningSignature {
+	return k.SignatureFarmer
+}
+
+func (k *K8S) SetSignatureFarmer(signature SigningSignature) {
+	k.SignatureFarmer = signature
+}
+
+func (k *K8S) GetSignaturesDelete() []SigningSignature {
+	return k.SignaturesDelete
+}
+
+func (k *K8S) PushSignatureDelete(signature SigningSignature) {
+	k.SignaturesDelete = append(k.SignaturesDelete, signature)
+}
+
+func (k *K8S) GetEpoch() schema.Date {
+	return k.Epoch
+}
+
+func (k *K8S) GetMetadata() string {
+	return k.Metadata
+}
+
+func (k *K8S) GetResult() Result {
+	return k.Result
+}
+
+func (k *K8S) SetResult(result Result) {
+	k.Result = result
+}
+
+func (k *K8S) GetDescription() string {
+	return k.Description
+}
+
+func (k *K8S) GetCurrencies() []string {
+	return k.Currencies
+}
+
+func (k *K8S) GetSigningRequestProvision() SigningRequest {
+	return k.SigningRequestProvision
+}
+
+func (k *K8S) GetSigningRequestDelete() SigningRequest {
+	return k.GetSigningRequestDelete()
+}
+
+func (k *K8S) GetExpirationProvisioning() schema.Date {
+	return k.ExpirationProvisioning
+}
