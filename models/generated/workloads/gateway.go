@@ -212,6 +212,14 @@ func (g *GatewayProxy) GetRSU() RSU {
 	return RSU{}
 }
 
+func (g *GatewayProxy) GetPoolID() int64 {
+	return g.PoolId
+}
+
+func (g *GatewayProxy) GetNodeID() string {
+	return g.NodeId
+}
+
 type GatewayReverseProxy struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -412,6 +420,14 @@ func (g *GatewayReverseProxy) VerifyJSON() error {
 
 func (g *GatewayReverseProxy) GetRSU() RSU {
 	return RSU{}
+}
+
+func (g *GatewayReverseProxy) GetPoolID() int64 {
+	return g.PoolId
+}
+
+func (g *GatewayReverseProxy) GetNodeID() string {
+	return g.NodeId
 }
 
 type GatewaySubdomain struct {
@@ -616,6 +632,14 @@ func (g *GatewaySubdomain) GetRSU() RSU {
 	return RSU{}
 }
 
+func (g *GatewaySubdomain) GetPoolID() int64 {
+	return g.PoolId
+}
+
+func (g *GatewaySubdomain) GetNodeID() string {
+	return g.NodeId
+}
+
 type GatewayDelegate struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -817,6 +841,14 @@ func (g *GatewayDelegate) GetRSU() RSU {
 	return RSU{}
 }
 
+func (g *GatewayDelegate) GetPoolID() int64 {
+	return g.PoolId
+}
+
+func (g *GatewayDelegate) GetNodeID() string {
+	return g.NodeId
+}
+
 type Gateway4To6 struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -1016,4 +1048,12 @@ func (g *Gateway4To6) VerifyJSON() error {
 
 func (g *Gateway4To6) GetRSU() RSU {
 	return RSU{}
+}
+
+func (g *Gateway4To6) GetPoolID() int64 {
+	return g.PoolId
+}
+
+func (g *Gateway4To6) GetNodeID() string {
+	return g.NodeId
 }

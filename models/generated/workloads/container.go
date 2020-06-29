@@ -236,6 +236,14 @@ func (c *Container) GetRSU() RSU {
 	return rsu
 }
 
+func (c *Container) GetPoolID() int64 {
+	return c.PoolId
+}
+
+func (c *Container) GetNodeID() string {
+	return c.NodeId
+}
+
 type ContainerCapacity struct {
 	Cpu      int64        `bson:"cpu" json:"cpu"`
 	Memory   int64        `bson:"memory" json:"memory"`

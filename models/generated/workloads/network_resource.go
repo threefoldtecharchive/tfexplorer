@@ -214,3 +214,11 @@ func (n *NetworkResource) VerifyJSON() error {
 func (n *NetworkResource) GetRSU() RSU {
 	return RSU{}
 }
+
+func (n *NetworkResource) GetPoolID() int64 {
+	return n.PoolId
+}
+
+func (n *NetworkResource) GetNodeID() string {
+	return n.NodeId
+}

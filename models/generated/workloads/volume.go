@@ -222,6 +222,14 @@ func (v *Volume) GetRSU() RSU {
 	return RSU{}
 }
 
+func (v *Volume) GetPoolID() int64 {
+	return v.PoolId
+}
+
+func (v *Volume) GetNodeID() string {
+	return v.NodeId
+}
+
 type VolumeTypeEnum uint8
 
 const (

@@ -48,6 +48,8 @@ type (
 		SetSignaturesDelete(signatuers []SigningSignature)
 		VerifyJSON() error
 		GetRSU() RSU
+		GetPoolID() int64
+		GetNodeID() string
 	}
 
 	RSU struct {
