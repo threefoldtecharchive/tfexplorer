@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -755,4 +756,29 @@ func ResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result Re
 	})
 
 	return err
+}
+
+// WorkloadValidate that the reservation is valid
+func WorkloadValidate(w workloads.Workloader) error {
+	if w.GetCustomerTid() == 0 {
+		return fmt.Errorf("customer_tid is required")
+	}
+
+	if len(w.GetCustomerSignature()) == 0 {
+		return fmt.Errorf("customer_signature is required")
+	}
+
+	if err := w.VerifyJSON(); err != nil {
+		return errors.Wrap(err, "embedded json verification failed")
+	}
+
+	if len(w.GetMetadata()) > 1024 {
+		return fmt.Errorf("metadata can not be bigger than 1024 bytes")
+	}
+
+	if w.GetPoolID() == 0 {
+		return errors.New("pool is required")
+	}
+
+	return nil
 }

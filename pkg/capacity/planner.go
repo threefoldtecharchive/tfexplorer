@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
@@ -23,7 +24,10 @@ type (
 		Reserve(reservation types.Reservation, currencies []string) (escrowtypes.CustomerCapacityEscrowInformation, error)
 		// IsAllowed checks if the pool with the given id is owned by the given
 		// customer, and can deploy on the given node.
-		IsAllowed(id int64, customer int64, nodeID string) (bool, error)
+		IsAllowed(w workloads.Workloader) (bool, error)
+		// HasCapacity checks if the workload could be provisioned with its attached
+		// pool as it is right now.
+		HasCapacity(w workloads.Workloader, seconds uint) (bool, error)
 		// PoolByID returns the pool with the given ID
 		PoolByID(id int64) (types.Pool, error)
 		// PoolsForOwner returns all pools for a given owner
@@ -35,9 +39,10 @@ type (
 	NaivePlanner struct {
 		escrow escrow.Escrow
 
-		reserveChan chan reserveJob
-		allowedChan chan allowedJob
-		listChan    chan listPoolJob
+		reserveChan     chan reserveJob
+		allowedChan     chan allowedJob
+		hasCapacityChan chan hasCapacityJob
+		listChan        chan listPoolJob
 
 		db  *mongo.Database
 		ctx context.Context
@@ -55,13 +60,22 @@ type (
 	}
 
 	allowedJob struct {
-		poolID       int64
-		customerTid  int64
-		nodeID       string
+		w            workloads.Workloader
 		responseChan chan<- allowedResponse
 	}
 
 	allowedResponse struct {
+		status bool
+		err    error
+	}
+
+	hasCapacityJob struct {
+		w            workloads.Workloader
+		seconds      uint
+		responseChan chan<- hasCapacityResponse
+	}
+
+	hasCapacityResponse struct {
 		status bool
 		err    error
 	}
@@ -82,11 +96,12 @@ type (
 // database connection
 func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
 	return &NaivePlanner{
-		escrow:      escrow,
-		reserveChan: make(chan reserveJob),
-		allowedChan: make(chan allowedJob),
-		listChan:    make(chan listPoolJob),
-		db:          db,
+		escrow:          escrow,
+		reserveChan:     make(chan reserveJob),
+		allowedChan:     make(chan allowedJob),
+		listChan:        make(chan listPoolJob),
+		hasCapacityChan: make(chan hasCapacityJob),
+		db:              db,
 	}
 }
 
@@ -102,8 +117,11 @@ func (p *NaivePlanner) Run(ctx context.Context) {
 			info, err := p.reserve(job.reservation, job.currencies)
 			job.responseChan <- reserveResponse{info: info, err: err}
 		case job := <-p.allowedChan:
-			status, err := p.isAllowed(job.poolID, job.customerTid, job.nodeID)
+			status, err := p.isAllowed(job.w)
 			job.responseChan <- allowedResponse{status: status, err: err}
+		case job := <-p.hasCapacityChan:
+			status, err := p.hasCapacity(job.w, job.seconds)
+			job.responseChan <- hasCapacityResponse{status: status, err: err}
 		case job := <-p.listChan:
 			var pools []types.Pool
 			var err error
@@ -140,14 +158,28 @@ func (p *NaivePlanner) Reserve(reservation types.Reservation, currencies []strin
 }
 
 // IsAllowed implements Planner
-func (p *NaivePlanner) IsAllowed(id int64, customer int64, nodeID string) (bool, error) {
+func (p *NaivePlanner) IsAllowed(w workloads.Workloader) (bool, error) {
 	ch := make(chan allowedResponse)
 	defer close(ch)
 
 	p.allowedChan <- allowedJob{
-		poolID:       id,
-		customerTid:  customer,
-		nodeID:       nodeID,
+		w:            w,
+		responseChan: ch,
+	}
+
+	res := <-ch
+
+	return res.status, res.err
+}
+
+// HasCapacity implements Planner
+func (p *NaivePlanner) HasCapacity(w workloads.Workloader, seconds uint) (bool, error) {
+	ch := make(chan hasCapacityResponse)
+	defer close(ch)
+
+	p.hasCapacityChan <- hasCapacityJob{
+		w:            w,
+		seconds:      seconds,
 		responseChan: ch,
 	}
 
@@ -224,13 +256,27 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 
 // isAllowed checks if the pool with the given id is owned by the user with
 // the given id, and is allowed to deploy on the given nodeID
-func (p *NaivePlanner) isAllowed(id int64, customer int64, nodeID string) (bool, error) {
-	pool, err := types.GetPool(p.ctx, p.db, schema.ID(id))
+func (p *NaivePlanner) isAllowed(w workloads.Workloader) (bool, error) {
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetID()))
 	if err != nil {
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	return pool.CustomerTid == customer && pool.AllowedInPool(nodeID), nil
+	return pool.CustomerTid == w.GetCustomerTid() && pool.AllowedInPool(w.GetNodeID()), nil
+}
+
+// hasCapacity checks if the pool set on the workload has enough capacity to support
+// the workload for the given amount of time
+func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, error) {
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetID()))
+	if err != nil {
+		return false, errors.Wrap(err, "could not load pool")
+	}
+
+	poolcu, poolsu := pool.GetCapacity()
+
+	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
+	return poolcu >= cu*float64(seconds) && poolsu >= su*float64(seconds), nil
 }
 
 // poolByID returns the pool with the given ID

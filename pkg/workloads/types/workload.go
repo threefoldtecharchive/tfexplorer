@@ -261,7 +261,7 @@ func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID
 // it's a short cut to SetNextAction then PushWorkloads
 func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType) error {
 	// update workload
-	if err := ReservationSetNextAction(ctx, db, w.GetID(), Deploy); err != nil {
+	if err := WorkloadSetNextAction(ctx, db, w.GetID(), Deploy); err != nil {
 		return errors.Wrap(err, "failed to set workload to DEPLOY state")
 	}
 
