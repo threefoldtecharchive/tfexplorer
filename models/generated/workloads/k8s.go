@@ -1,8 +1,11 @@
 package workloads
 
 import (
+	"encoding/json"
 	"net"
+	"reflect"
 
+	"github.com/pkg/errors"
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -173,4 +176,39 @@ func (k *K8S) SetSigningRequestDelete(request SigningRequest) {
 
 func (k *K8S) SetExpirationProvisioning(date schema.Date) {
 	k.ExpirationProvisioning = date
+}
+
+func (k *K8S) SetSignaturesProvision(signatures []SigningSignature) {
+	k.SignaturesProvision = signatures
+}
+
+func (k *K8S) SetSignaturesDelete(signatures []SigningSignature) {
+	k.SignaturesDelete = signatures
+}
+
+func (k *K8S) VerifyJSON() error {
+	dup := K8S{}
+
+	if err := json.Unmarshal([]byte(k.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = k.ID
+	dup.Json = k.Json
+	dup.CustomerTid = k.CustomerTid
+	dup.NextAction = k.NextAction
+	dup.SignaturesProvision = k.SignaturesProvision
+	dup.SignatureFarmer = k.SignatureFarmer
+	dup.SignaturesDelete = k.SignaturesDelete
+	dup.Epoch = k.Epoch
+	dup.Metadata = k.Metadata
+	dup.Result = k.Result
+	dup.WorkloadType = k.WorkloadType
+
+	if match := reflect.DeepEqual(k, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }

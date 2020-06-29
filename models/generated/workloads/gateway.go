@@ -1,6 +1,12 @@
 package workloads
 
-import schema "github.com/threefoldtech/tfexplorer/schema"
+import (
+	"encoding/json"
+	"reflect"
+
+	"github.com/pkg/errors"
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type GatewayProxy struct {
 	ID         schema.ID `bson:"_id" json:"id"`
@@ -167,6 +173,41 @@ func (g *GatewayProxy) SetExpirationProvisioning(date schema.Date) {
 	g.ExpirationProvisioning = date
 }
 
+func (g *GatewayProxy) SetSignaturesProvision(signatures []SigningSignature) {
+	g.SignaturesProvision = signatures
+}
+
+func (g *GatewayProxy) SetSignaturesDelete(signatures []SigningSignature) {
+	g.SignaturesDelete = signatures
+}
+
+func (g *GatewayProxy) VerifyJSON() error {
+	dup := GatewayProxy{}
+
+	if err := json.Unmarshal([]byte(g.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = g.ID
+	dup.Json = g.Json
+	dup.CustomerTid = g.CustomerTid
+	dup.NextAction = g.NextAction
+	dup.SignaturesProvision = g.SignaturesProvision
+	dup.SignatureFarmer = g.SignatureFarmer
+	dup.SignaturesDelete = g.SignaturesDelete
+	dup.Epoch = g.Epoch
+	dup.Metadata = g.Metadata
+	dup.Result = g.Result
+	dup.WorkloadType = g.WorkloadType
+
+	if match := reflect.DeepEqual(g, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
+}
+
 type GatewayReverseProxy struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -328,6 +369,41 @@ func (g *GatewayReverseProxy) SetSigningRequestDelete(request SigningRequest) {
 
 func (g *GatewayReverseProxy) SetExpirationProvisioning(date schema.Date) {
 	g.ExpirationProvisioning = date
+}
+
+func (g *GatewayReverseProxy) SetSignaturesProvision(signatures []SigningSignature) {
+	g.SignaturesProvision = signatures
+}
+
+func (g *GatewayReverseProxy) SetSignaturesDelete(signatures []SigningSignature) {
+	g.SignaturesDelete = signatures
+}
+
+func (g *GatewayReverseProxy) VerifyJSON() error {
+	dup := GatewayReverseProxy{}
+
+	if err := json.Unmarshal([]byte(g.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = g.ID
+	dup.Json = g.Json
+	dup.CustomerTid = g.CustomerTid
+	dup.NextAction = g.NextAction
+	dup.SignaturesProvision = g.SignaturesProvision
+	dup.SignatureFarmer = g.SignatureFarmer
+	dup.SignaturesDelete = g.SignaturesDelete
+	dup.Epoch = g.Epoch
+	dup.Metadata = g.Metadata
+	dup.Result = g.Result
+	dup.WorkloadType = g.WorkloadType
+
+	if match := reflect.DeepEqual(g, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }
 
 type GatewaySubdomain struct {
@@ -493,6 +569,41 @@ func (g *GatewaySubdomain) SetExpirationProvisioning(date schema.Date) {
 	g.ExpirationProvisioning = date
 }
 
+func (g *GatewaySubdomain) SetSignaturesProvision(signatures []SigningSignature) {
+	g.SignaturesProvision = signatures
+}
+
+func (g *GatewaySubdomain) SetSignaturesDelete(signatures []SigningSignature) {
+	g.SignaturesDelete = signatures
+}
+
+func (g *GatewaySubdomain) VerifyJSON() error {
+	dup := GatewaySubdomain{}
+
+	if err := json.Unmarshal([]byte(g.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = g.ID
+	dup.Json = g.Json
+	dup.CustomerTid = g.CustomerTid
+	dup.NextAction = g.NextAction
+	dup.SignaturesProvision = g.SignaturesProvision
+	dup.SignatureFarmer = g.SignatureFarmer
+	dup.SignaturesDelete = g.SignaturesDelete
+	dup.Epoch = g.Epoch
+	dup.Metadata = g.Metadata
+	dup.Result = g.Result
+	dup.WorkloadType = g.WorkloadType
+
+	if match := reflect.DeepEqual(g, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
+}
+
 type GatewayDelegate struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -655,6 +766,41 @@ func (g *GatewayDelegate) SetExpirationProvisioning(date schema.Date) {
 	g.ExpirationProvisioning = date
 }
 
+func (g *GatewayDelegate) SetSignaturesProvision(signatures []SigningSignature) {
+	g.SignaturesProvision = signatures
+}
+
+func (g *GatewayDelegate) SetSignaturesDelete(signatures []SigningSignature) {
+	g.SignaturesDelete = signatures
+}
+
+func (g *GatewayDelegate) VerifyJSON() error {
+	dup := GatewayDelegate{}
+
+	if err := json.Unmarshal([]byte(g.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = g.ID
+	dup.Json = g.Json
+	dup.CustomerTid = g.CustomerTid
+	dup.NextAction = g.NextAction
+	dup.SignaturesProvision = g.SignaturesProvision
+	dup.SignatureFarmer = g.SignatureFarmer
+	dup.SignaturesDelete = g.SignaturesDelete
+	dup.Epoch = g.Epoch
+	dup.Metadata = g.Metadata
+	dup.Result = g.Result
+	dup.WorkloadType = g.WorkloadType
+
+	if match := reflect.DeepEqual(g, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
+}
+
 type Gateway4To6 struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -815,4 +961,39 @@ func (g *Gateway4To6) SetSigningRequestDelete(request SigningRequest) {
 
 func (g *Gateway4To6) SetExpirationProvisioning(date schema.Date) {
 	g.ExpirationProvisioning = date
+}
+
+func (g *Gateway4To6) SetSignaturesProvision(signatures []SigningSignature) {
+	g.SignaturesProvision = signatures
+}
+
+func (g *Gateway4To6) SetSignaturesDelete(signatures []SigningSignature) {
+	g.SignaturesDelete = signatures
+}
+
+func (g *Gateway4To6) VerifyJSON() error {
+	dup := Gateway4To6{}
+
+	if err := json.Unmarshal([]byte(g.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = g.ID
+	dup.Json = g.Json
+	dup.CustomerTid = g.CustomerTid
+	dup.NextAction = g.NextAction
+	dup.SignaturesProvision = g.SignaturesProvision
+	dup.SignatureFarmer = g.SignatureFarmer
+	dup.SignaturesDelete = g.SignaturesDelete
+	dup.Epoch = g.Epoch
+	dup.Metadata = g.Metadata
+	dup.Result = g.Result
+	dup.WorkloadType = g.WorkloadType
+
+	if match := reflect.DeepEqual(g, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }
