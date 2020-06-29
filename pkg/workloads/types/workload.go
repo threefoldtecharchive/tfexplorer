@@ -71,25 +71,13 @@ func (f WorkloadFilter) WithCustomerID(customerID int) WorkloadFilter {
 	return append(f, bson.E{
 		Key: "customer_tid", Value: customerID,
 	})
-
 }
 
 // WithNodeID searsch workloads with NodeID
 func (f WorkloadFilter) WithNodeID(id string) WorkloadFilter {
-	//data_reservation.{containers, volumes, zdbs, networks, kubernetes}.node_id
-	// we need to search ALL types for any workload that has the node ID
-	or := []bson.M{}
-
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6", "capacity_pool"} {
-		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
-		or = append(or, bson.M{key: id})
-	}
-
-	// network workload is special because node id is set on the network_resources.
-	or = append(or, bson.M{"data_reservation.networks.network_resources.node_id": id})
-
-	// we find any workload that has this node ID set.
-	return append(f, bson.E{Key: "$or", Value: or})
+	return append(f, bson.E{
+		Key: "node_id", Value: id,
+	})
 }
 
 // Or returns filter that reads as (f or o)
@@ -108,7 +96,7 @@ func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (workload W
 		f = WorkloadFilter{}
 	}
 
-	result := db.Collection(ReservationCollection).FindOne(ctx, f)
+	result := db.Collection(WorkloadCollection).FindOne(ctx, f)
 	if err = result.Err(); err != nil {
 		return
 	}
@@ -122,17 +110,24 @@ func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*o
 	if f == nil {
 		f = WorkloadFilter{}
 	}
-	return db.Collection(ReservationCollection).Find(ctx, f, opts...)
+	return db.Collection(WorkloadCollection).Find(ctx, f, opts...)
 }
 
 // Count number of documents matching
 func (f WorkloadFilter) Count(ctx context.Context, db *mongo.Database) (int64, error) {
-	col := db.Collection(ReservationCollection)
+	col := db.Collection(WorkloadCollection)
 	if f == nil {
 		f = WorkloadFilter{}
 	}
 
 	return col.CountDocuments(ctx, f)
+}
+
+// WithPoolID searches for workloads with pool id
+func (f WorkloadFilter) WithPoolID(poolID int64) WorkloadFilter {
+	return append(f, bson.E{
+		Key: "pool_id", Value: poolID,
+	})
 }
 
 // WorkloaderType is a wrapper struct around the Workloader interface
@@ -171,11 +166,6 @@ func (w *WorkloaderType) SignatureVerify(pk string, sig []byte) error {
 
 	return crypto.Verify(key, buf.Bytes(), sig)
 }
-
-// Expired checks if this reservation has expired
-// func (w *WorkloaderType) Expired() bool {
-// 	return time.Until(r.DataReservation.ExpirationReservation.Time) <= 0
-// }
 
 // IsAny checks if the workload status is any of the given status
 func (w *WorkloaderType) IsAny(status ...generated.NextActionEnum) bool {
@@ -222,7 +212,7 @@ func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
 func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
-	id := models.MustID(ctx, db, ReservationCollection)
+	id := models.MustID(ctx, db, WorkloadCollection)
 	w.SetID(id)
 
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
