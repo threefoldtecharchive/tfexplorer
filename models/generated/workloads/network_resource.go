@@ -210,3 +210,7 @@ func (n *NetworkResource) VerifyJSON() error {
 
 	return nil
 }
+
+func (n *NetworkResource) GetRSU() RSU {
+	return RSU{}
+}

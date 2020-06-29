@@ -212,3 +212,21 @@ func (k *K8S) VerifyJSON() error {
 
 	return nil
 }
+
+func (k *K8S) GetRSU() RSU {
+	switch k.Size {
+	case 1:
+		return RSU{
+			CRU: 1,
+			MRU: 2,
+			SRU: 50,
+		}
+	case 2:
+		return RSU{
+			CRU: 2,
+			MRU: 4,
+			SRU: 100,
+		}
+	}
+	return RSU{}
+}

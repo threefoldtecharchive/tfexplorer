@@ -47,6 +47,14 @@ type (
 		SetSignaturesProvision(signatures []SigningSignature)
 		SetSignaturesDelete(signatuers []SigningSignature)
 		VerifyJSON() error
+		GetRSU() RSU
+	}
+
+	RSU struct {
+		CRU int64
+		SRU int64
+		HRU int64
+		MRU float64
 	}
 )
 

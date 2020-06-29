@@ -211,6 +211,20 @@ func (z *ZDB) VerifyJSON() error {
 	return nil
 }
 
+func (z *ZDB) GetRSU() RSU {
+	switch z.DiskType {
+	case DiskTypeHDD:
+		return RSU{
+			HRU: z.Size,
+		}
+	case DiskTypeSSD:
+		return RSU{
+			SRU: z.Size,
+		}
+	}
+	return RSU{}
+}
+
 type DiskTypeEnum uint8
 
 const (

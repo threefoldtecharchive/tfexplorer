@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"encoding/json"
+	"math"
 	"net"
 	"reflect"
 
@@ -215,6 +216,24 @@ func (c *Container) VerifyJSON() error {
 	}
 
 	return nil
+}
+
+func (c *Container) GetRSU() RSU {
+	rsu := RSU{
+		CRU: c.Capacity.Cpu,
+		// round mru to 4 digits precision
+		MRU: math.Round(float64(c.Capacity.Memory)/1024*10000) / 10000,
+	}
+	switch c.Capacity.DiskType {
+	case DiskTypeHDD:
+		hru := math.Round(float64(c.Capacity.DiskSize)/1024*10000) / 10000
+		rsu.HRU = int64(hru)
+	case DiskTypeSSD:
+		sru := math.Round(float64(c.Capacity.DiskSize)/1024*10000) / 10000
+		rsu.SRU = int64(sru)
+	}
+
+	return rsu
 }
 
 type ContainerCapacity struct {

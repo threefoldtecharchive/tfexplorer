@@ -208,6 +208,10 @@ func (g *GatewayProxy) VerifyJSON() error {
 	return nil
 }
 
+func (g *GatewayProxy) GetRSU() RSU {
+	return RSU{}
+}
+
 type GatewayReverseProxy struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -404,6 +408,10 @@ func (g *GatewayReverseProxy) VerifyJSON() error {
 	}
 
 	return nil
+}
+
+func (g *GatewayReverseProxy) GetRSU() RSU {
+	return RSU{}
 }
 
 type GatewaySubdomain struct {
@@ -604,6 +612,10 @@ func (g *GatewaySubdomain) VerifyJSON() error {
 	return nil
 }
 
+func (g *GatewaySubdomain) GetRSU() RSU {
+	return RSU{}
+}
+
 type GatewayDelegate struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -801,6 +813,10 @@ func (g *GatewayDelegate) VerifyJSON() error {
 	return nil
 }
 
+func (g *GatewayDelegate) GetRSU() RSU {
+	return RSU{}
+}
+
 type Gateway4To6 struct {
 	ID         schema.ID `bson:"_id" json:"id"`
 	WorkloadId int64     `bson:"workload_id" json:"workload_id"`
@@ -996,4 +1012,8 @@ func (g *Gateway4To6) VerifyJSON() error {
 	}
 
 	return nil
+}
+
+func (g *Gateway4To6) GetRSU() RSU {
+	return RSU{}
 }
