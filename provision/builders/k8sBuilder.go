@@ -19,6 +19,7 @@ type K8sBuilder struct {
 func NewK8sBuilder(nodeID, networkID, secret string, size int64, IP net.IP) *K8sBuilder {
 	return &K8sBuilder{
 		K8S: workloads.K8S{
+			WorkloadId:    1,
 			NodeId:        nodeID,
 			NetworkId:     networkID,
 			Ipaddress:     IP,

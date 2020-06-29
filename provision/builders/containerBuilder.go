@@ -20,6 +20,7 @@ type ContainerBuilder struct {
 func NewContainerBuilder(nodeID, flist string, network []workloads.NetworkConnection) *ContainerBuilder {
 	return &ContainerBuilder{
 		Container: workloads.Container{
+			WorkloadId:        1,
 			NodeId:            nodeID,
 			Flist:             flist,
 			HubUrl:            "zdb://hub.grid.tf:9900",

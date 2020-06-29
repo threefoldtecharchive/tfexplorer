@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -28,6 +29,7 @@ func cmdsProvision(c *cli.Context) error {
 		dryRun      = c.Bool("dry-run")
 		err         error
 	)
+	fmt.Println(dryRun)
 
 	var duration time.Duration
 	if d == "" {
@@ -51,10 +53,12 @@ func cmdsProvision(c *cli.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to read workload")
 		}
+
 		workloader, err := workloads.UnmarshalJSON(buffer)
 		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal json")
+			return errors.Wrap(err, "failed to unmarshal json to workload")
 		}
+
 		if dryRun {
 			res, err := reservationClient.DryRun(workloader, assets, timein)
 			if err != nil {
@@ -62,7 +66,8 @@ func cmdsProvision(c *cli.Context) error {
 			}
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
-			return enc.Encode(res)
+			err = enc.Encode(res)
+			continue
 		}
 
 		_, err = reservationClient.Deploy(workloader, assets, timein)
