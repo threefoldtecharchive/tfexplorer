@@ -208,6 +208,20 @@ func (v *Volume) VerifyJSON() error {
 	return nil
 }
 
+func (v *Volume) GetRSU() RSU {
+	switch v.Type {
+	case VolumeTypeHDD:
+		return RSU{
+			HRU: v.Size,
+		}
+	case VolumeTypeSSD:
+		return RSU{
+			SRU: v.Size,
+		}
+	}
+	return RSU{}
+}
+
 type VolumeTypeEnum uint8
 
 const (
