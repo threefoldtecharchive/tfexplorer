@@ -21,6 +21,7 @@ type ZDBBuilder struct {
 func NewZdbBuilder(nodeID string, size int64, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZDBBuilder {
 	return &ZDBBuilder{
 		ZDB: workloads.ZDB{
+			WorkloadId:   1,
 			NodeId:       nodeID,
 			Size:         size,
 			Mode:         mode,

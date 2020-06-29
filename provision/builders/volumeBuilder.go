@@ -18,6 +18,7 @@ type VolumeBuilder struct {
 func NewVolumeBuilder(nodeID string, size int64, volumeType workloads.VolumeTypeEnum) *VolumeBuilder {
 	return &VolumeBuilder{
 		Volume: workloads.Volume{
+			WorkloadId:   1,
 			NodeId:       nodeID,
 			Size:         size,
 			Type:         volumeType,
