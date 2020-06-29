@@ -221,7 +221,7 @@ func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
 func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
-	id := models.MustID(ctx, db, WorkloadCollection)
+	id := models.MustID(ctx, db, ReservationCollection)
 	w.SetID(id)
 
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
