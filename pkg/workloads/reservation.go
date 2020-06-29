@@ -1,6 +1,7 @@
 package workloads
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -15,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/tfexplorer/config"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity"
@@ -53,6 +55,10 @@ type (
 
 // freeTFT currency code
 const freeTFT = "FreeTFT"
+
+// minimum amount of seconds a workload needs to be able to live with a given
+// pool before we even want to attempt to deploy it
+const minCapacitySeconds = 120 // 2 min
 
 func (a *API) validAddresses(ctx context.Context, db *mongo.Database, res *types.Reservation) error {
 	if config.Config.Network == "" {
@@ -93,162 +99,104 @@ func (a *API) validAddresses(ctx context.Context, db *mongo.Database, res *types
 
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
-	var reservation types.Reservation
-	if err := json.NewDecoder(r.Body).Decode(&reservation); err != nil {
+
+	bodyBuf := bytes.NewBuffer(nil)
+	bodyBuf.ReadFrom(r.Body)
+	w, err := workloads.UnmarshalJSON(bodyBuf.Bytes())
+	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	if reservation.Expired() {
-		return nil, mw.BadRequest(fmt.Errorf("creating for a reservation that expires in the past"))
-	}
-
-	duration := time.Until(reservation.DataReservation.ExpirationReservation.Time)
-	if duration < time.Hour {
-		return nil, mw.BadRequest(fmt.Errorf("the minimum duration for a reservation is 1 hour, you tried to reserve for %s", duration.String()))
-	}
+	workload := types.WorkloaderType{Workloader: w}
 
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
 	// in later stages
-	reservation.SignaturesProvision = make([]generated.SigningSignature, 0)
-	reservation.SignaturesDelete = make([]generated.SigningSignature, 0)
-	reservation.SignaturesFarmer = make([]generated.SigningSignature, 0)
-	reservation.Results = make([]generated.Result, 0)
+	workload.SetSignaturesProvision(make([]generated.SigningSignature, 0))
+	workload.SetSignaturesDelete(make([]generated.SigningSignature, 0))
+	workload.SetSignatureFarmer(generated.SigningSignature{})
+	workload.SetResult(generated.Result{})
 
-	if err := reservation.Validate(); err != nil {
+	if err := types.WorkloadValidate(workload); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	reservation, err := a.pipeline(reservation, nil)
+	workload, err = a.workloadpipeline(workload, nil)
 	if err != nil {
 		// if failed to create pipeline, then
 		// this reservation has failed initial validation
 		return nil, mw.BadRequest(err)
 	}
 
-	if reservation.IsAny(types.Invalid, types.Delete) {
-		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", reservation.NextAction.String()))
+	if workload.IsAny(types.Invalid, types.Delete) {
+		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.GetNextAction().String()))
 	}
 
 	db := mw.Database(r)
 
-	if err := a.validAddresses(r.Context(), db, &reservation); err != nil {
-		return nil, mw.Error(err, http.StatusFailedDependency) //FIXME: what is this strange status ?
-	}
-
-	// check if freeTFT is allowed to be used
-	// if all nodes are marked as free to use then FreeTFT is allowed
-	// otherwise it is not
-
-	var freeNodes int
-
-	usedNodes := reservation.NodeIDs()
-	count, err := (directory.NodeFilter{}).
-		WithNodeIDs(usedNodes).
-		WithFreeToUse(true).
-		Count(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err, http.StatusInternalServerError)
-	}
-	freeNodes += int(count)
-
-	usedGateways := reservation.GatewayIDs()
-	count, err = (directory.GatewayFilter{}).
-		WithGWIDs(usedGateways).
-		WithFreeToUse(true).
-		Count(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err, http.StatusInternalServerError)
-	}
-	freeNodes += int(count)
-
-	paidNodes := len(usedNodes) + len(usedGateways)
-
-	log.Info().
-		Int64("reservation_id", int64(reservation.ID)).
-		Int("paid_nodes", paidNodes).
-		Int("free_nodes", freeNodes).
-		Msg("distribution of free nodes")
-
-	currencies := make([]string, len(reservation.DataReservation.Currencies))
-	copy(currencies, reservation.DataReservation.Currencies)
-
-	// filter out FreeTFT if not all the nodes can be paid with freeTFT
-	if freeNodes < paidNodes {
-		for i, c := range currencies {
-			if c == freeTFT {
-				currencies = append(currencies[:i], currencies[i+1:]...)
-			}
-		}
-	}
-
 	var filter phonebook.UserFilter
-	filter = filter.WithID(schema.ID(reservation.CustomerTid))
+	filter = filter.WithID(schema.ID(workload.GetCustomerTid()))
 	user, err := filter.Get(r.Context(), db)
 	if err != nil {
-		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", reservation.CustomerTid))
+		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", workload.GetCustomerTid()))
 	}
 
-	signature, err := hex.DecodeString(reservation.CustomerSignature)
+	signature, err := hex.DecodeString(workload.GetCustomerSignature())
 	if err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature format, expecting hex encoded string"))
 	}
 
-	if err := reservation.Verify(user.Pubkey, signature); err != nil {
+	if err := workload.Verify(user.Pubkey, signature); err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
 	}
 
-	reservation.Epoch = schema.Date{Time: time.Now()}
+	workload.SetEpoch(schema.Date{Time: time.Now()})
 
-	pooledWorkloads := 0
-	workloads := reservation.Workloads("")
-	for _, workload := range workloads {
-		if workload.PoolID != 0 {
-			pooledWorkloads++
-			allowed, err := a.capacityPlanner.IsAllowed(workload.PoolID, reservation.CustomerTid, workload.NodeID)
-			if err != nil {
-				return nil, mw.Error(err)
-			}
-			if !allowed {
-				return nil, mw.UnAuthorized(fmt.Errorf("workload %s is not authorized to run in pool %d", workload.WorkloadId, workload.PoolID))
-			}
+	allowed, err := a.capacityPlanner.IsAllowed(workload)
+	if err != nil {
+		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
+			return nil, mw.NotFound(errors.New("pool does not exist"))
 		}
-	}
-	// only accept a reservation where all workloads are pooled, or no workloads
-	// are pooled
-	if pooledWorkloads != 0 && pooledWorkloads != len(workloads) {
-		return nil, mw.Forbidden(errors.New("a reservation cannot contain a mix of workloads with capacity pool, and without capacity pool"))
+		log.Error().Err(err).Msg("failed to load workload capacity pool")
+		return nil, mw.Error(errors.New("could not load the required capacity pool"))
 	}
 
-	id, err := types.ReservationCreate(r.Context(), db, reservation)
+	if !allowed {
+		return nil, mw.Forbidden(errors.New("not allowed to deploy workload on this pool"))
+	}
+
+	id, err := types.WorkloadCreate(r.Context(), db, workload)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
 
-	reservation, err = types.ReservationFilter{}.WithID(id).Get(r.Context(), db)
+	workload, err = types.WorkloadFilter{}.WithID(id).Get(r.Context(), db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
 
-	var escrowDetails escrowtypes.CustomerEscrowInformation
-	if pooledWorkloads == 0 {
-		escrowDetails, err = a.escrow.RegisterReservation(generated.Reservation(reservation), currencies)
-		if err != nil {
-			return nil, mw.Error(err)
+	allowed, err = a.capacityPlanner.HasCapacity(workload, minCapacitySeconds)
+	if err != nil {
+		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
+			log.Error().Err(err).Int64("poolID", workload.GetPoolID()).Msg("pool disappeared")
+			return nil, mw.Error(errors.New("pool does not exist"))
 		}
-	} else {
-		// immediately deploy the reservation as it is attached to a pool
-		if err := types.ReservationToDeploy(r.Context(), db, &reservation); err != nil {
-			log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
-			return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
-		}
+		log.Error().Err(err).Msg("failed to load workload capacity pool")
+		return nil, mw.Error(errors.New("could not load the required capacity pool"))
 	}
 
-	return ReservationCreateResponse{
-		ID:                reservation.ID,
-		EscrowInformation: escrowDetails,
-	}, mw.Created()
+	if !allowed {
+		log.Debug().Msg("don't deploy workload as its pool is almost empty")
+		return nil, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
+	}
 
+	// immediately deploy the workload
+	if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
+		log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
+		return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
+	}
+
+	return nil, mw.Created()
 }
 
 func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
@@ -388,6 +336,19 @@ func (a *API) pipeline(r types.Reservation, err error) (types.Reservation, error
 
 	r, _ = pl.Next()
 	return r, nil
+}
+
+func (a *API) workloadpipeline(w types.WorkloaderType, err error) (types.WorkloaderType, error) {
+	if err != nil {
+		return w, err
+	}
+	pl, err := types.NewWorkloaderPipeline(w)
+	if err != nil {
+		return w, errors.Wrap(err, "failed to process reservation state pipeline")
+	}
+
+	w, _ = pl.Next()
+	return w, nil
 }
 
 func (a *API) get(r *http.Request) (interface{}, mw.Response) {

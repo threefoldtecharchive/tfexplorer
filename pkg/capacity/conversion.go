@@ -1,11 +1,15 @@
 package capacity
 
-import "math"
+import (
+	"math"
+
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+)
 
 // CloudUnitsFromResourceUnits converts an amount of RSU to the Cloud unit representation
-func CloudUnitsFromResourceUnits(cru int64, mru float64, hru float64, sru float64) (float64, float64) {
-	cu := math.Min(float64(cru)*4, (mru-1)/4)
-	su := hru/1000/1.2 + sru/100/1.2
+func CloudUnitsFromResourceUnits(rsu workloads.RSU) (float64, float64) {
+	cu := math.Min(float64(rsu.CRU)*4, (rsu.MRU-1)/4)
+	su := float64(rsu.HRU)/1000/1.2 + float64(rsu.SRU)/100/1.2
 
 	return cu, su
 }
