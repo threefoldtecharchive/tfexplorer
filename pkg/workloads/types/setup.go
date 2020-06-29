@@ -50,5 +50,19 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		return err
 	}
 
+	col = db.Collection(WorkloadCollection)
+	indexes = []mongo.IndexModel{
+		{
+			Keys: bson.M{"node_id": 1},
+		},
+		{
+			Keys: bson.M{"workload_id": 1},
+		},
+	}
+
+	if _, err := col.Indexes().CreateMany(ctx, indexes); err != nil {
+		return err
+	}
+
 	return nil
 }
