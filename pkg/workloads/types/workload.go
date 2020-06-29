@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -265,7 +266,7 @@ func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType)
 	}
 
 	//queue for processing
-	if err := WorkloadTypePush(ctx, db, w); err != nil {
+	if err := WorkloadTypePush(ctx, db, w.Workload()); err != nil {
 		return errors.Wrap(err, "failed to schedule workload for deploying")
 	}
 
@@ -303,7 +304,7 @@ func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID
 }
 
 // WorkloadTypePush pushes a workload to the queue
-func WorkloadTypePush(ctx context.Context, db *mongo.Database, w WorkloaderType) error {
+func WorkloadTypePush(ctx context.Context, db *mongo.Database, w Workload) error {
 	col := db.Collection(queueCollection)
 	_, err := col.InsertOne(ctx, w)
 
@@ -346,4 +347,20 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 	})
 
 	return err
+}
+
+// Workload returns workload
+func (w *WorkloaderType) Workload() Workload {
+	return Workload{
+		ReservationWorkload: generated.ReservationWorkload{
+			WorkloadId: fmt.Sprintf("%d-%d", w.GetID(), w.WorkloadID()),
+			PoolID:     w.GetPoolID(),
+			User:       fmt.Sprint(w.GetCustomerTid()),
+			Type:       w.GetWorkloadType(),
+			Duration:   math.MaxInt64,
+			Created:    w.GetEpoch(),
+			ToDelete:   w.GetNextAction() == Delete || w.GetNextAction() == Deleted,
+		},
+		NodeID: w.GetNodeID(),
+	}
 }

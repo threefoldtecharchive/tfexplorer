@@ -230,3 +230,11 @@ func (k *K8S) GetRSU() RSU {
 	}
 	return RSU{}
 }
+
+func (k *K8S) GetPoolID() int64 {
+	return k.PoolId
+}
+
+func (k *K8S) GetNodeID() string {
+	return k.NodeId
+}

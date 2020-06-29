@@ -225,6 +225,14 @@ func (z *ZDB) GetRSU() RSU {
 	return RSU{}
 }
 
+func (z *ZDB) GetPoolID() int64 {
+	return z.PoolId
+}
+
+func (z *ZDB) GetNodeID() string {
+	return z.NodeId
+}
+
 type DiskTypeEnum uint8
 
 const (
