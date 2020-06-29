@@ -44,6 +44,9 @@ type (
 		SetSigningRequestDelete(request SigningRequest)
 		GetExpirationProvisioning() schema.Date
 		SetExpirationProvisioning(date schema.Date)
+		SetSignaturesProvision(signatures []SigningSignature)
+		SetSignaturesDelete(signatuers []SigningSignature)
+		VerifyJSON() error
 	}
 )
 

@@ -1,6 +1,12 @@
 package workloads
 
-import schema "github.com/threefoldtech/tfexplorer/schema"
+import (
+	"encoding/json"
+	"reflect"
+
+	"github.com/pkg/errors"
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type NetworkResource struct {
 	Name                         string            `bson:"name" json:"name"`
@@ -168,4 +174,39 @@ func (n *NetworkResource) SetSigningRequestDelete(request SigningRequest) {
 
 func (n *NetworkResource) SetExpirationProvisioning(date schema.Date) {
 	n.ExpirationProvisioning = date
+}
+
+func (n *NetworkResource) SetSignaturesProvision(signatures []SigningSignature) {
+	n.SignaturesProvision = signatures
+}
+
+func (n *NetworkResource) SetSignaturesDelete(signatures []SigningSignature) {
+	n.SignaturesDelete = signatures
+}
+
+func (n *NetworkResource) VerifyJSON() error {
+	dup := NetworkResource{}
+
+	if err := json.Unmarshal([]byte(n.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = n.ID
+	dup.Json = n.Json
+	dup.CustomerTid = n.CustomerTid
+	dup.NextAction = n.NextAction
+	dup.SignaturesProvision = n.SignaturesProvision
+	dup.SignatureFarmer = n.SignatureFarmer
+	dup.SignaturesDelete = n.SignaturesDelete
+	dup.Epoch = n.Epoch
+	dup.Metadata = n.Metadata
+	dup.Result = n.Result
+	dup.WorkloadType = n.WorkloadType
+
+	if match := reflect.DeepEqual(n, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }

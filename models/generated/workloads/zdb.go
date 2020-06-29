@@ -1,6 +1,12 @@
 package workloads
 
-import schema "github.com/threefoldtech/tfexplorer/schema"
+import (
+	"encoding/json"
+	"reflect"
+
+	"github.com/pkg/errors"
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type ZDB struct {
 	WorkloadId      int64             `bson:"workload_id" json:"workload_id"`
@@ -168,6 +174,41 @@ func (z *ZDB) SetSigningRequestDelete(request SigningRequest) {
 
 func (z *ZDB) SetExpirationProvisioning(date schema.Date) {
 	z.ExpirationProvisioning = date
+}
+
+func (z *ZDB) SetSignaturesProvision(signatures []SigningSignature) {
+	z.SignaturesProvision = signatures
+}
+
+func (z *ZDB) SetSignaturesDelete(signatures []SigningSignature) {
+	z.SignaturesDelete = signatures
+}
+
+func (z *ZDB) VerifyJSON() error {
+	dup := ZDB{}
+
+	if err := json.Unmarshal([]byte(z.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = z.ID
+	dup.Json = z.Json
+	dup.CustomerTid = z.CustomerTid
+	dup.NextAction = z.NextAction
+	dup.SignaturesProvision = z.SignaturesProvision
+	dup.SignatureFarmer = z.SignatureFarmer
+	dup.SignaturesDelete = z.SignaturesDelete
+	dup.Epoch = z.Epoch
+	dup.Metadata = z.Metadata
+	dup.Result = z.Result
+	dup.WorkloadType = z.WorkloadType
+
+	if match := reflect.DeepEqual(z, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }
 
 type DiskTypeEnum uint8

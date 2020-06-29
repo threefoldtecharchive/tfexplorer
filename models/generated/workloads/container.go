@@ -1,8 +1,11 @@
 package workloads
 
 import (
+	"encoding/json"
 	"net"
+	"reflect"
 
+	"github.com/pkg/errors"
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -177,6 +180,41 @@ func (c *Container) SetSigningRequestDelete(request SigningRequest) {
 
 func (c *Container) SetExpirationProvisioning(date schema.Date) {
 	c.ExpirationProvisioning = date
+}
+
+func (c *Container) SetSignaturesProvision(signatures []SigningSignature) {
+	c.SignaturesProvision = signatures
+}
+
+func (c *Container) SetSignaturesDelete(signatures []SigningSignature) {
+	c.SignaturesDelete = signatures
+}
+
+func (c *Container) VerifyJSON() error {
+	dup := Container{}
+
+	if err := json.Unmarshal([]byte(c.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = c.ID
+	dup.Json = c.Json
+	dup.CustomerTid = c.CustomerTid
+	dup.NextAction = c.NextAction
+	dup.SignaturesProvision = c.SignaturesProvision
+	dup.SignatureFarmer = c.SignatureFarmer
+	dup.SignaturesDelete = c.SignaturesDelete
+	dup.Epoch = c.Epoch
+	dup.Metadata = c.Metadata
+	dup.Result = c.Result
+	dup.WorkloadType = c.WorkloadType
+
+	if match := reflect.DeepEqual(c, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }
 
 type ContainerCapacity struct {
