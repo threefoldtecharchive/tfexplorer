@@ -349,6 +349,31 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 	return err
 }
 
+// Validate that the reservation is valid
+func (w *WorkloaderType) Validate() error {
+	if w.GetCustomerTid() == 0 {
+		return fmt.Errorf("customer_tid is required")
+	}
+
+	if len(w.GetCustomerSignature()) == 0 {
+		return fmt.Errorf("customer_signature is required")
+	}
+
+	if err := w.VerifyJSON(); err != nil {
+		return errors.Wrap(err, "embedded json verification failed")
+	}
+
+	if len(w.GetMetadata()) > 1024 {
+		return fmt.Errorf("metadata can not be bigger than 1024 bytes")
+	}
+
+	if w.GetPoolID() == 0 {
+		return errors.New("pool is required")
+	}
+
+	return nil
+}
+
 // Workload returns workload
 func (w *WorkloaderType) Workload() Workload {
 	return Workload{
