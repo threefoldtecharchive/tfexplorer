@@ -117,7 +117,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	workload.SetSignatureFarmer(generated.SigningSignature{})
 	workload.SetResult(generated.Result{})
 
-	if err := types.WorkloadValidate(workload); err != nil {
+	if err := workload.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
