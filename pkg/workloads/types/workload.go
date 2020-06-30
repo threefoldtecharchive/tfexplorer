@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -91,18 +92,27 @@ func (f WorkloadFilter) Or(o WorkloadFilter) WorkloadFilter {
 }
 
 // Get gets single workload that matches the filter
-func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (workload WorkloaderType, err error) {
+func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (WorkloaderType, error) {
 	if f == nil {
 		f = WorkloadFilter{}
 	}
 
 	result := db.Collection(WorkloadCollection).FindOne(ctx, f)
-	if err = result.Err(); err != nil {
-		return
+	if err := result.Err(); err != nil {
+		return WorkloaderType{}, err
 	}
 
-	err = result.Decode(&workload)
-	return
+	doc, err := result.DecodeBytes()
+	if err != nil {
+		return WorkloaderType{}, err
+	}
+
+	w, err := workloads.UnmarshalBSON(doc)
+	if err != nil {
+		return WorkloaderType{}, err
+	}
+
+	return WorkloaderType{Workloader: w}, nil
 }
 
 // Find all users that matches filter
