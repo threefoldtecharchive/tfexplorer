@@ -125,10 +125,6 @@ func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
 				p.w.SetNextAction(generated.NextActionPay)
 			}
 		case generated.NextActionPay:
-			// TODO
-			// Pay needs to block, until the escrow moves us past this point, but
-			// only in case we are dealing with a deprecated style reservation.
-			// Reservations who's workloads are attached to pools can deploy immediatly.
 			// NOTE: validation of the pools is static, and must happen when the
 			// explorer receives the reservation.
 			slog.Debug().Msg("reservation workloads attached to capacity pools - block until pool is confirmed to be ready")
