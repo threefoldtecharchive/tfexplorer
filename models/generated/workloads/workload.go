@@ -2,9 +2,9 @@ package workloads
 
 import (
 	"encoding/json"
-	"reflect"
 
 	"github.com/pkg/errors"
+
 	schema "github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -346,33 +346,32 @@ func (i *ReservationInfo) SetSignaturesDelete(signatures []SigningSignature) {
 	i.SignaturesDelete = signatures
 }
 
-func (i *ReservationInfo) VerifyJSON() error {
-	dup := Volume{}
+// func (i *ReservationInfo) VerifyJSON() error {
+// 	dup := Volume{}
 
-	if err := json.Unmarshal([]byte(i.Json), &dup); err != nil {
-		return errors.Wrap(err, "invalid json data")
-	}
+// 	if err := json.Unmarshal([]byte(i.Json), &dup); err != nil {
+// 		return errors.Wrap(err, "invalid json data")
+// 	}
 
-	// override the fields which are not part of the signature
-	dup.ID = i.ID
-	dup.Json = i.Json
-	dup.CustomerTid = i.CustomerTid
-	dup.NextAction = i.NextAction
-	dup.SignaturesProvision = i.SignaturesProvision
-	dup.SignatureFarmer = i.SignatureFarmer
-	dup.SignaturesDelete = i.SignaturesDelete
-	dup.Epoch = i.Epoch
-	dup.Metadata = i.Metadata
-	dup.Result = i.Result
-	dup.WorkloadType = i.WorkloadType
+// 	// override the fields which are not part of the signature
+// 	dup.ID = i.ID
+// 	dup.Json = i.Json
+// 	dup.CustomerTid = i.CustomerTid
+// 	dup.NextAction = i.NextAction
+// 	dup.SignaturesProvision = i.SignaturesProvision
+// 	dup.SignatureFarmer = i.SignatureFarmer
+// 	dup.SignaturesDelete = i.SignaturesDelete
+// 	dup.Epoch = i.Epoch
+// 	dup.Metadata = i.Metadata
+// 	dup.Result = i.Result
+// 	dup.WorkloadType = i.WorkloadType
 
-	if match := reflect.DeepEqual(i, dup); !match {
-		return errors.New("json data does not match actual data")
-	}
+// 	if match := reflect.DeepEqual(i, dup); !match {
+// 		return errors.New("json data does not match actual data")
+// 	}
 
-	return nil
-}
-
+// 	return nil
+// }
 func (i *ReservationInfo) GetPoolID() int64 {
 	return i.PoolId
 }

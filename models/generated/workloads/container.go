@@ -1,8 +1,12 @@
 package workloads
 
 import (
+	"encoding/json"
 	"math"
 	"net"
+	"reflect"
+
+	"github.com/pkg/errors"
 )
 
 var _ Workloader = (*Container)(nil)
@@ -40,6 +44,33 @@ func (c *Container) GetRSU() RSU {
 	}
 
 	return rsu
+}
+
+func (v *Container) VerifyJSON() error {
+	dup := Container{}
+
+	if err := json.Unmarshal([]byte(v.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = v.ID
+	dup.Json = v.Json
+	dup.CustomerTid = v.CustomerTid
+	dup.NextAction = v.NextAction
+	dup.SignaturesProvision = v.SignaturesProvision
+	dup.SignatureFarmer = v.SignatureFarmer
+	dup.SignaturesDelete = v.SignaturesDelete
+	dup.Epoch = v.Epoch
+	dup.Metadata = v.Metadata
+	dup.Result = v.Result
+	dup.WorkloadType = v.WorkloadType
+
+	if match := reflect.DeepEqual(v, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }
 
 type ContainerCapacity struct {
