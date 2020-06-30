@@ -154,11 +154,11 @@ func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err 
 	return
 }
 
-func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error) {
+func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error) {
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
-	var list []intermediateWL
+	var list []workloads.Workloader
 
 	response, err := w.get(
 		w.url("reservations", "workloads", nodeID),
@@ -179,34 +179,18 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Reser
 		}
 	}
 
-	results := make([]workloads.ReservationWorkload, 0, len(list))
-	for _, i := range list {
-		wl, err := i.Workload()
-		if err != nil {
-			// skipping unknown workloads
-			if err == errUnknownWorkload {
-				continue
-			}
-
-			// something else went wrong
-			return nil, lastID, err
-		}
-
-		// forward this workload to caller
-		results = append(results, wl)
-	}
-
-	return results, lastID, err
+	return list, lastID, err
 }
 
-func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error) {
-	var output intermediateWL
+func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.Workloader, err error) {
+	// var output intermediateWL
+	var output workloads.Workloader
 	_, err = w.get(w.url("reservations", "workloads", gwid), nil, &output, http.StatusOK)
 	if err != nil {
 		return
 	}
 
-	return output.Workload()
+	return output, nil
 }
 
 func (w *httpWorkloads) WorkloadPutResult(nodeID, gwid string, result workloads.Result) error {

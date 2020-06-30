@@ -93,8 +93,8 @@ type (
 		SignProvision(id schema.ID, user schema.ID, signature string) error
 		SignDelete(id schema.ID, user schema.ID, signature string) error
 
-		Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error)
-		WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error)
+		Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error)
+		WorkloadGet(gwid string) (result workloads.Workloader, err error)
 		WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
 		WorkloadPutDeleted(nodeID, gwid string) error
 
