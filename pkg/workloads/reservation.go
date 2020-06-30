@@ -167,11 +167,13 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	id, err := types.WorkloadCreate(r.Context(), db, workload)
 	if err != nil {
+		log.Error().Err(err).Msg("could not create workload")
 		return nil, mw.Error(err)
 	}
 
 	workload, err = types.WorkloadFilter{}.WithID(id).Get(r.Context(), db)
 	if err != nil {
+		log.Error().Err(err).Msg("could not fetch workload we just saved")
 		return nil, mw.Error(err)
 	}
 

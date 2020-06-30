@@ -238,7 +238,7 @@ func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
 func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
-	id := models.MustID(ctx, db, WorkloadCollection)
+	id := models.MustID(ctx, db, ReservationCollection)
 	w.SetID(id)
 
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
@@ -251,7 +251,7 @@ func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (
 
 // WorkloadsLastID get the current last ID number in the workloads collection
 func WorkloadsLastID(ctx context.Context, db *mongo.Database) (schema.ID, error) {
-	return models.LastID(ctx, db, WorkloadCollection)
+	return models.LastID(ctx, db, ReservationCollection)
 }
 
 // WorkloadSetNextAction update the workload next action in db

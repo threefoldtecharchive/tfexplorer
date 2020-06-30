@@ -302,7 +302,7 @@ func (p *NaivePlanner) isAllowed(w workloads.Workloader) (bool, error) {
 // hasCapacity checks if the pool set on the workload has enough capacity to support
 // the workload for the given amount of time
 func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, error) {
-	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetID()))
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetPoolID()))
 	if err != nil {
 		return false, errors.Wrap(err, "could not load pool")
 	}
