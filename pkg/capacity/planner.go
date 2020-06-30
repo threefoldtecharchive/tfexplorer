@@ -291,7 +291,7 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 // isAllowed checks if the pool with the given id is owned by the user with
 // the given id, and is allowed to deploy on the given nodeID
 func (p *NaivePlanner) isAllowed(w workloads.Workloader) (bool, error) {
-	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetID()))
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetPoolID()))
 	if err != nil {
 		return false, errors.Wrap(err, "could not load pool")
 	}
