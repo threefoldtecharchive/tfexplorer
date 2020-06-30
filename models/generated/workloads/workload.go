@@ -37,8 +37,6 @@ type (
 		SetResult(result Result)
 		GetDescription() string
 		SetDescription(description string)
-		GetCurrencies() []string
-		SetCurrencies(currencies []string)
 		GetSigningRequestProvision() SigningRequest
 		SetSigningRequestProvision(request SigningRequest)
 		GetSigningRequestDelete() SigningRequest
@@ -194,7 +192,6 @@ type ReservationInfo struct {
 	PoolId     int64  `bson:"pool_id" json:"pool_id"`
 
 	Description             string         `bson:"description" json:"description"`
-	Currencies              []string       `bson:"currencies" json:"currencies"`
 	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
 	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
 	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
@@ -293,10 +290,6 @@ func (i *ReservationInfo) GetDescription() string {
 	return i.Description
 }
 
-func (i *ReservationInfo) GetCurrencies() []string {
-	return i.Currencies
-}
-
 func (i *ReservationInfo) GetSigningRequestProvision() SigningRequest {
 	return i.SigningRequestProvision
 }
@@ -331,10 +324,6 @@ func (i *ReservationInfo) SetMetadata(metadata string) {
 
 func (i *ReservationInfo) SetDescription(description string) {
 	i.Description = description
-}
-
-func (i *ReservationInfo) SetCurrencies(currencies []string) {
-	i.Currencies = currencies
 }
 
 func (i *ReservationInfo) SetSigningRequestProvision(request SigningRequest) {
