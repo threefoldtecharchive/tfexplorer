@@ -19,13 +19,15 @@ type K8sBuilder struct {
 func NewK8sBuilder(nodeID, networkID, secret string, size int64, IP net.IP) *K8sBuilder {
 	return &K8sBuilder{
 		K8S: workloads.K8S{
-			WorkloadId:    1,
-			NodeId:        nodeID,
+			ReservationInfo: workloads.ReservationInfo{
+				WorkloadId:   1,
+				NodeId:       nodeID,
+				WorkloadType: workloads.WorkloadTypeKubernetes,
+			},
 			NetworkId:     networkID,
 			Ipaddress:     IP,
 			ClusterSecret: secret,
 			Size:          size,
-			WorkloadType:  workloads.WorkloadTypeKubernetes,
 		},
 	}
 }

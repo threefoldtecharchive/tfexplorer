@@ -25,20 +25,18 @@ import (
 
 // NetworkBuilder is a struct that can build networks
 type NetworkBuilder struct {
-	workloads.Network
-
-	NodeID   string
 	explorer *client.Client
 
-	AccessPoints []AccessPoint `json:"access_points,omitempty"`
-
+	Name         string         `json:"name,omitempty"`
+	IPRange      schema.IPRange `json:"iprange,omitempty"`
+	AccessPoints []AccessPoint  `json:"access_points,omitempty"`
 	// NetResources field override
-	NetResources []NetResource `json:"net_resources"`
+	NetResources []NetResource `json:"net_resources,omitempty"`
 }
 
 // NetResource is the description of a part of a network local to a specific node
 type NetResource struct {
-	workloads.NetworkNetResource
+	workloads.NetworkResource
 
 	// Public endpoints
 	PubEndpoints []net.IP `json:"pub_endpoints"`
@@ -58,41 +56,35 @@ type AccessPoint struct {
 // NewNetworkBuilder creates a new network builder
 func NewNetworkBuilder(name string, iprange schema.IPRange, explorer *client.Client) *NetworkBuilder {
 	return &NetworkBuilder{
-		Network: workloads.Network{
-			Name:             name,
-			Iprange:          iprange,
-			NetworkResources: []workloads.NetworkNetResource{},
-		},
+		Name:     name,
+		IPRange:  iprange,
 		explorer: explorer,
 	}
 }
 
 // LoadNetworkBuilder loads a network builder based on a file path
 func LoadNetworkBuilder(reader io.Reader, explorer *client.Client) (*NetworkBuilder, error) {
-	network := workloads.Network{}
+	nb := NetworkBuilder{
+		explorer: explorer,
+	}
 
-	err := json.NewDecoder(reader).Decode(&network)
+	err := json.NewDecoder(reader).Decode(&nb)
 	if err != nil {
 		return &NetworkBuilder{}, err
 	}
 
-	networkBuilder := &NetworkBuilder{
-		Network:  network,
-		explorer: explorer,
-	}
-
-	if err = networkBuilder.setPubEndpoints(); err != nil {
+	if err = nb.setPubEndpoints(); err != nil {
 		return nil, err
 	}
 
-	networkBuilder.extractAccessPoints()
+	nb.extractAccessPoints()
 
-	return networkBuilder, nil
+	return &nb, nil
 }
 
 // Save saves the network builder to an IO.Writer
 func (n *NetworkBuilder) Save(writer io.Writer) error {
-	err := json.NewEncoder(writer).Encode(n.Network)
+	err := json.NewEncoder(writer).Encode(n)
 	if err != nil {
 		return err
 	}
@@ -100,39 +92,44 @@ func (n *NetworkBuilder) Save(writer io.Writer) error {
 }
 
 // Build returns the network
-func (n *NetworkBuilder) Build() workloads.Network {
-	return n.Network
+func (n *NetworkBuilder) Build() []workloads.NetworkResource {
+	nrs := make([]workloads.NetworkResource, len(n.NetResources))
+	for i, nr := range n.NetResources {
+		nrs[i] = nr.NetworkResource
+	}
+
+	return nrs
 }
 
 // WithName sets the name to the network
 func (n *NetworkBuilder) WithName(name string) *NetworkBuilder {
-	n.Network.Name = name
+	n.Name = name
 	return n
 }
 
 // WithIPRange sets the ip range to the network
 func (n *NetworkBuilder) WithIPRange(ipRange schema.IPRange) *NetworkBuilder {
-	n.Network.Iprange = ipRange
+	n.IPRange = ipRange
 	return n
 }
 
-// WithStatsAggregator sets the stats aggregators to the network
-func (n *NetworkBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *NetworkBuilder {
-	n.Network.StatsAggregator = aggregators
-	return n
-}
-
-// WithNetworkResources sets the network resources to the network
-func (n *NetworkBuilder) WithNetworkResources(netResources []workloads.NetworkNetResource) *NetworkBuilder {
-	n.Network.NetworkResources = netResources
-	return n
-}
+// // WithStatsAggregator sets the stats aggregators to the network
+// func (n *NetworkBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *NetworkBuilder {
+// 	n.StatsAggregator = aggregators
+// 	return n
+// }
 
 // AddNode adds a node to the network
 // the subnet will be added as network resource to the node
 // forceHidden will set no public endpoints to the node
 func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceHidden bool) (*NetworkBuilder, error) {
-	n.NodeID = nodeID
+	for _, nr := range n.NetResources {
+		if nr.NodeId == nodeID {
+			return nil, fmt.Errorf("node %s is already part of this network", nodeID)
+		}
+	}
+
+	// n.NodeID = nodeID
 
 	if subnet == "" {
 		return n, fmt.Errorf("subnet cannot be empty")
@@ -142,8 +139,12 @@ func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceH
 		return n, errors.Wrap(err, "invalid subnet")
 	}
 
+	if !n.IPRange.Contains(ipnet.IP) {
+		return nil, fmt.Errorf("%s is not part of the global network ip range %s", ipnet.String(), n.IPRange.String())
+	}
+
 	if port == 0 {
-		port, err = n.pickPort()
+		port, err = n.pickPort(nodeID)
 		if err != nil {
 			return n, errors.Wrap(err, "failed to pick wireguard port")
 		}
@@ -177,9 +178,11 @@ func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceH
 	}
 
 	nr := NetResource{
-		NetworkNetResource: workloads.NetworkNetResource{
-			NodeId:                       nodeID,
-			Iprange:                      schema.IPRange{ipnet.IPNet},
+		NetworkResource: workloads.NetworkResource{
+			ReservationInfo: workloads.ReservationInfo{
+				NodeId: nodeID,
+			},
+			Iprange:                      schema.IPRange{IPNet: ipnet.IPNet},
 			WireguardListenPort:          int64(port),
 			WireguardPublicKey:           privateKey.PublicKey().String(),
 			WireguardPrivateKeyEncrypted: hex.EncodeToString(encrypted),
@@ -268,7 +271,7 @@ func (n *NetworkBuilder) AddAccess(nodeID string, subnet schema.IPRange, wgPubKe
 		return n, "", errors.Wrap(err, "failed to generate peers")
 	}
 
-	wgConf, err := genWGQuick(privateKey.String(), subnet, node.WireguardPublicKey, n.Network.Iprange, endpoint)
+	wgConf, err := genWGQuick(privateKey.String(), subnet, node.WireguardPublicKey, n.IPRange, endpoint)
 	if err != nil {
 		return n, "", err
 	}
@@ -285,7 +288,7 @@ func (n *NetworkBuilder) RemoveNode(schema string, nodeID string) error {
 		}
 	}
 
-	f, err := os.Open(schema)
+	f, err := os.OpenFile(schema, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	if err != nil {
 		return errors.Wrap(err, "failed to open network schema")
 	}
@@ -329,8 +332,8 @@ func (n *NetworkBuilder) setPubEndpoints() error {
 	return nil
 }
 
-func (n *NetworkBuilder) pickPort() (uint, error) {
-	node, err := n.explorer.Directory.NodeGet(n.NodeID, false)
+func (n *NetworkBuilder) pickPort(nodeID string) (uint, error) {
+	node, err := n.explorer.Directory.NodeGet(nodeID, false)
 	if err != nil {
 		return 0, err
 	}
@@ -383,7 +386,7 @@ func (n *NetworkBuilder) generatePeers() error {
 	if hasHiddenNodes {
 		for _, nr := range n.NetResources {
 			if hasIPv4(nr) {
-				pubNr = n.NodeID
+				pubNr = nr.NodeId
 				break
 			}
 		}
@@ -402,7 +405,7 @@ func (n *NetworkBuilder) generatePeers() error {
 	// Map the network subnets to their respective node ids first for easy access later
 	internalSubnets := make(map[string]schema.IPRange)
 	for _, nr := range n.NetResources {
-		internalSubnets[n.NodeID] = nr.Iprange
+		internalSubnets[nr.NodeId] = nr.Iprange
 	}
 
 	externalSubnets := make(map[string][]schema.IPRange) // go does not like `types.IPNet` as key
@@ -425,11 +428,11 @@ func (n *NetworkBuilder) generatePeers() error {
 	ipv6OnlySubnets := make(map[string]schema.IPRange)
 	for _, nr := range n.NetResources {
 		if len(nr.PubEndpoints) == 0 {
-			hiddenSubnets[n.NodeID] = nr.Iprange
+			hiddenSubnets[nr.NodeId] = nr.Iprange
 			continue
 		}
 		if !hasIPv4(nr) {
-			ipv6OnlySubnets[n.NodeID] = nr.Iprange
+			ipv6OnlySubnets[nr.NodeId] = nr.Iprange
 		}
 	}
 
@@ -440,7 +443,7 @@ func (n *NetworkBuilder) generatePeers() error {
 		nr := &n.NetResources[i]
 		nr.Peers = []workloads.WireguardPeer{}
 		for _, onr := range n.NetResources {
-			if n.NodeID == onr.NodeId {
+			if nr.NodeId == onr.NodeId {
 				continue
 			}
 
@@ -466,12 +469,12 @@ func (n *NetworkBuilder) generatePeers() error {
 						}
 
 						allowedIPs = append(allowedIPs, subnet)
-						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{subnet.IPNet}))
+						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{IPNet: subnet.IPNet}))
 					}
 
 					for _, subnet := range ipv6OnlySubnets {
 						allowedIPs = append(allowedIPs, subnet)
-						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{subnet.IPNet}))
+						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{IPNet: subnet.IPNet}))
 					}
 				}
 
@@ -501,7 +504,7 @@ func (n *NetworkBuilder) generatePeers() error {
 				if onr.NodeId == pubNr {
 					for _, subnet := range hiddenSubnets {
 						allowedIPs = append(allowedIPs, subnet)
-						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{subnet.IPNet}))
+						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{IPNet: subnet.IPNet}))
 					}
 				}
 
@@ -528,8 +531,8 @@ func (n *NetworkBuilder) generatePeers() error {
 			// Add subnets for external access
 			for i := 0; i < len(allowedIPs); i++ {
 				for _, subnet := range externalSubnets[allowedIPs[i].String()] {
-					allowedIPs = append(allowedIPs, schema.IPRange{subnet.IPNet})
-					allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{subnet.IPNet}))
+					allowedIPs = append(allowedIPs, schema.IPRange{IPNet: subnet.IPNet})
+					allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{IPNet: subnet.IPNet}))
 				}
 			}
 
@@ -544,12 +547,12 @@ func (n *NetworkBuilder) generatePeers() error {
 		// Add configured external access peers
 		for _, ea := range accessPoints[nr.NodeId] {
 			allowedIPs := make([]schema.IPRange, 2)
-			allowedIPs[0] = schema.IPRange{ea.Subnet.IPNet}
-			allowedIPs[1] = *wgIP(&schema.IPRange{ea.Subnet.IPNet})
+			allowedIPs[0] = schema.IPRange{IPNet: ea.Subnet.IPNet}
+			allowedIPs[1] = *wgIP(&schema.IPRange{IPNet: ea.Subnet.IPNet})
 
 			nr.Peers = append(nr.Peers, workloads.WireguardPeer{
 				PublicKey:      ea.WGPublicKey,
-				Iprange:        schema.IPRange{ea.Subnet.IPNet},
+				Iprange:        schema.IPRange{IPNet: ea.Subnet.IPNet},
 				AllowedIprange: allowedIPs,
 				Endpoint:       "",
 			})
@@ -588,7 +591,7 @@ func genWGQuick(wgPrivateKey string, localSubnet schema.IPRange, peerWgPubKey st
 
 	if err := tmpl.Execute(buf, data{
 		PrivateKey:    wgPrivateKey,
-		Address:       wgIP(&schema.IPRange{localSubnet.IPNet}).String(),
+		Address:       wgIP(&schema.IPRange{IPNet: localSubnet.IPNet}).String(),
 		PeerWgPubKey:  peerWgPubKey,
 		AllowedSubnet: strings.Join([]string{allowedSubnet.String(), types.NewIPNet(wgSubnet(&allowedSubnet.IPNet)).String()}, ","),
 		PeerEndpoint:  peerEndpoint,
@@ -637,7 +640,7 @@ func (n *NetworkBuilder) NetworkGraph(w io.Writer) error {
 		node.Attr("color", "green")
 		graph.AddToSameRank("external access", node)
 		// add link to access point
-		edge := graph.Edge(node, nodesByID[ea.NodeID], n.Iprange.String())
+		edge := graph.Edge(node, nodesByID[ea.NodeID], n.IPRange.String())
 		if ea.IP4 {
 			edge.Attr("color", "blue")
 		}
@@ -675,7 +678,7 @@ func wgIP(subnet *schema.IPRange) *schema.IPRange {
 	a := subnet.IP[len(subnet.IP)-3]
 	b := subnet.IP[len(subnet.IP)-2]
 
-	return &schema.IPRange{net.IPNet{
+	return &schema.IPRange{IPNet: net.IPNet{
 		IP:   net.IPv4(0x64, 0x40, a, b),
 		Mask: net.CIDRMask(32, 32),
 	}}
@@ -705,6 +708,7 @@ func isPrivateIP(ip net.IP) bool {
 		"::1/128",        // IPv6 loopback
 		"fe80::/10",      // IPv6 link-local
 		"fc00::/7",       // IPv6 unique local addr
+		"200::/7",        // yggdrasil network
 	} {
 		_, block, err := net.ParseCIDR(cidr)
 		if err != nil {

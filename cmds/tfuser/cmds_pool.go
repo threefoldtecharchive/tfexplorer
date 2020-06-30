@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/provision"
 	"github.com/threefoldtech/tfexplorer/provision/builders"
 	"github.com/urfave/cli"
@@ -16,17 +19,24 @@ func cmdsGetPool(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%+v \n", pool)
+
+	fmt.Println(formatPool(pool))
 	return nil
 }
 
 func cmdsGetPoolsByOwner(c *cli.Context) error {
-	pools, err := bcdb.Workloads.PoolsGetByOwner(c.String("ownerID"))
+	userID := c.String("ownerID")
+	if userID == "" && mainui != nil {
+		userID = fmt.Sprintf("%d", mainui.ThreebotID)
+	}
+
+	pools, err := bcdb.Workloads.PoolsGetByOwner(userID)
 	if err != nil {
 		return err
 	}
-	for _, pool := range pools {
-		fmt.Printf("%+v \n", pool)
+	for _, p := range pools {
+		fmt.Println(formatPool(p))
+		fmt.Println()
 	}
 	return nil
 }
@@ -41,6 +51,14 @@ func cmdsCreatePool(c *cli.Context) error {
 		poolID  = c.Int64("poolID")
 		err     error
 	)
+
+	if len(nodeIDs) == 0 {
+		return fmt.Errorf("missing --nodeIDs flag: a pool required at least one node")
+	}
+
+	if len(assets) == 0 {
+		assets = append(assets, "TFT")
+	}
 
 	capacityBuilder := builders.NewCapacityReservationBuilder()
 
@@ -80,4 +98,17 @@ func cmdsCreatePool(c *cli.Context) error {
 	fmt.Printf("Reservation amount: %s %s\n", formatCurrency(response.EscrowInformation.Amount), response.EscrowInformation.Asset.Code())
 
 	return nil
+}
+
+func formatPool(pool types.Pool) string {
+	b := &strings.Builder{}
+	fmt.Fprintf(b, "Pool ID: %d\n", pool.ID)
+	fmt.Fprintf(b, "Capacity left:\n")
+	fmt.Fprintf(b, "  Compute unit: %.2f\n", pool.Cus)
+	fmt.Fprintf(b, "  Storage unit: %.2f\n", pool.Sus)
+	fmt.Fprintf(b, "Capacity in usage:\n")
+	fmt.Fprintf(b, "  Compute unit: %.2f\n", pool.ActiveCU)
+	fmt.Fprintf(b, "  Storage unit: %.2f\n", pool.ActiveSU)
+	fmt.Fprintf(b, "Will expired at: %s\n", time.Unix(pool.EmptyAt, 0).Format(time.RFC822))
+	return b.String()
 }
