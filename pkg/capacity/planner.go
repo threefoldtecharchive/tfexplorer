@@ -28,6 +28,8 @@ type (
 		// HasCapacity checks if the workload could be provisioned with its attached
 		// pool as it is right now.
 		HasCapacity(w workloads.Workloader, seconds uint) (bool, error)
+		// UpdateUsedCapacity for a pool
+		UpdateUsedCapacity(w workloads.Workloader, increase bool) error
 		// PoolByID returns the pool with the given ID
 		PoolByID(id int64) (types.Pool, error)
 		// PoolsForOwner returns all pools for a given owner
@@ -39,10 +41,11 @@ type (
 	NaivePlanner struct {
 		escrow escrow.Escrow
 
-		reserveChan     chan reserveJob
-		allowedChan     chan allowedJob
-		hasCapacityChan chan hasCapacityJob
-		listChan        chan listPoolJob
+		reserveChan            chan reserveJob
+		allowedChan            chan allowedJob
+		hasCapacityChan        chan hasCapacityJob
+		listChan               chan listPoolJob
+		updateUsedCapacityChan chan updateUsedCapacityJob
 
 		db  *mongo.Database
 		ctx context.Context
@@ -90,18 +93,29 @@ type (
 		pools []types.Pool
 		err   error
 	}
+
+	updateUsedCapacityJob struct {
+		w            workloads.Workloader
+		used         bool
+		responseChan chan<- updateUsedCapacityResponse
+	}
+
+	updateUsedCapacityResponse struct {
+		err error
+	}
 )
 
 // NewNaivePlanner creates a new NaivePlanner, using the provided escrow and
 // database connection
 func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
 	return &NaivePlanner{
-		escrow:          escrow,
-		reserveChan:     make(chan reserveJob),
-		allowedChan:     make(chan allowedJob),
-		listChan:        make(chan listPoolJob),
-		hasCapacityChan: make(chan hasCapacityJob),
-		db:              db,
+		escrow:                 escrow,
+		reserveChan:            make(chan reserveJob),
+		allowedChan:            make(chan allowedJob),
+		listChan:               make(chan listPoolJob),
+		hasCapacityChan:        make(chan hasCapacityJob),
+		updateUsedCapacityChan: make(chan updateUsedCapacityJob),
+		db:                     db,
 	}
 }
 
@@ -133,6 +147,9 @@ func (p *NaivePlanner) Run(ctx context.Context) {
 				pools, err = p.poolsForOwner(job.owner)
 			}
 			job.responseChan <- listPoolResponse{pools: pools, err: err}
+		case job := <-p.updateUsedCapacityChan:
+			err := p.updateUsedCapacity(job.w, job.used)
+			job.responseChan <- updateUsedCapacityResponse{err: err}
 		case id := <-p.escrow.PaidCapacity():
 			if err := p.addCapacity(id); err != nil {
 				log.Error().Err(err).Msg("could not add capacity to pool")
@@ -219,6 +236,22 @@ func (p *NaivePlanner) PoolsForOwner(owner int64) ([]types.Pool, error) {
 	res := <-ch
 
 	return res.pools, res.err
+}
+
+// UpdateUsedCapacity implements Planner
+func (p *NaivePlanner) UpdateUsedCapacity(w workloads.Workloader, used bool) error {
+	ch := make(chan updateUsedCapacityResponse)
+	defer close(ch)
+
+	p.updateUsedCapacityChan <- updateUsedCapacityJob{
+		w:            w,
+		used:         used,
+		responseChan: ch,
+	}
+
+	res := <-ch
+
+	return res.err
 }
 
 // reserve some capacity
@@ -321,6 +354,25 @@ func (p *NaivePlanner) addCapacity(id schema.ID) error {
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
 		return errors.Wrap(err, "could not save pool")
+	}
+
+	return nil
+}
+
+func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) error {
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetPoolID()))
+	if err != nil {
+		return errors.Wrap(err, "could not load pool")
+	}
+
+	if used {
+		pool.AddWorkload(CloudUnitsFromResourceUnits(w.GetRSU()))
+	} else {
+		pool.RemoveWorkload(CloudUnitsFromResourceUnits(w.GetRSU()))
+	}
+
+	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
+		errors.Wrap(err, "could not save updated pool")
 	}
 
 	return nil

@@ -326,25 +326,11 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 	var filter WorkloadFilter
 	filter = filter.WithID(id)
 
-	// we don't care if we couldn't delete old result.
-	// in case it never existed, or the array is nil.
-	col.UpdateOne(ctx, filter, bson.M{
-		"$pull": bson.M{
-			"results": bson.M{
-				"workload_id": result.WorkloadId,
-				"node_id":     result.NodeId,
-			},
+	_, err := col.UpdateOne(ctx, filter,
+		bson.M{
+			"result": result,
 		},
-	})
-
-	_, err := col.UpdateOne(ctx, filter, bson.D{
-		{
-			Key: "$push",
-			Value: bson.M{
-				"results": result,
-			},
-		},
-	})
+	)
 
 	return err
 }

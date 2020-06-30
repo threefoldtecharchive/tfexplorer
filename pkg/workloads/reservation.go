@@ -686,13 +686,21 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	result.NodeId = nodeID
+	result.WorkloadId = gwid
+	result.Epoch = schema.Date{Time: time.Now()}
+
+	if err := result.Verify(nodeID); err != nil {
+		return nil, mw.UnAuthorized(errors.Wrap(err, "invalid result signature"))
+	}
+
 	var filter types.ReservationFilter
 	filter = filter.WithID(rid)
 
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newworkloadPutResult(r.Context(), db, gwid, rid, result)
 	}
 	// we use an empty node-id in listing to return all workloads in this reservation
 	workloads := reservation.Workloads(nodeID)
@@ -706,14 +714,6 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 
 	if workload == nil {
 		return nil, mw.NotFound(errors.New("workload not found"))
-	}
-
-	result.NodeId = nodeID
-	result.WorkloadId = gwid
-	result.Epoch = schema.Date{Time: time.Now()}
-
-	if err := result.Verify(nodeID); err != nil {
-		return nil, mw.UnAuthorized(errors.Wrap(err, "invalid result signature"))
 	}
 
 	if err := types.ResultPush(r.Context(), db, rid, result); err != nil {
@@ -741,6 +741,53 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
+	return nil, mw.Created()
+}
+
+func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid string, globalID schema.ID, result types.Result) (interface{}, mw.Response) {
+	var filter types.WorkloadFilter
+	filter = filter.WithID(globalID)
+
+	workload, err := a.workloadpipeline(filter.Get(ctx, db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.Workload().ReservationWorkload.WorkloadId != gwid {
+		return nil, mw.NotFound(errors.New("workload id does not exist"))
+	}
+
+	oldResult := workload.GetResult()
+
+	if err := types.WorkloadResultPush(ctx, db, globalID, result); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadPop(ctx, db, gwid, result.NodeId); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if result.State == generated.ResultStateError {
+		if oldResult.State == generated.ResultStateOK {
+			// remove capacity from pool
+			if err := a.capacityPlanner.UpdateUsedCapacity(workload, false); err != nil {
+				log.Error().Err(err).Msg("failed to decrease used capacity in pool")
+				return nil, mw.Error(err)
+			}
+		}
+		if err := types.WorkloadSetNextAction(ctx, db, globalID, generated.NextActionDelete); err != nil {
+			return nil, mw.Error(err)
+		}
+	} else if result.State == generated.ResultStateOK {
+		// check if the result was not set prior
+		if oldResult.NodeId == "" || (oldResult.NodeId != "" && oldResult.State == generated.ResultStateError) {
+			// add capacity to pool
+			if err := a.capacityPlanner.UpdateUsedCapacity(workload, true); err != nil {
+				log.Error().Err(err).Msg("failed to increase used capacity in pool")
+				return nil, mw.Error(err)
+			}
+		}
+	}
 	return nil, mw.Created()
 }
 
@@ -817,6 +864,55 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if err := types.ReservationSetNextAction(r.Context(), db, reservation.ID, generated.NextActionDeleted); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return nil, nil
+}
+
+func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid schema.ID, gwid string, nodeID string) (interface{}, mw.Response) {
+	var filter types.WorkloadFilter
+	filter = filter.WithID(wid)
+
+	workload, err := a.workloadpipeline(filter.Get(ctx, db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.Workload().WorkloadId != gwid {
+		return nil, mw.NotFound(errors.New("workload not found"))
+	}
+
+	result := workload.ResultOf(gwid)
+	if result == nil {
+		// no result for this work load
+		// QUESTION: should we still mark the result as deleted?
+		result = &types.Result{
+			WorkloadId: gwid,
+			Epoch:      schema.Date{Time: time.Now()},
+		}
+	}
+
+	oldState := result.State
+	result.State = generated.ResultStateDeleted
+
+	if oldState == generated.ResultStateOK {
+		// remove capacity from pool
+		if err := a.capacityPlanner.UpdateUsedCapacity(workload, false); err != nil {
+			log.Error().Err(err).Msg("failed to decrease used capacity in pool")
+			return nil, mw.Error(err)
+		}
+	}
+
+	if err := types.WorkloadResultPush(ctx, db, wid, *result); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadPop(ctx, db, gwid, nodeID); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadSetNextAction(ctx, db, workload.GetID(), generated.NextActionDeleted); err != nil {
 		return nil, mw.Error(err)
 	}
 
