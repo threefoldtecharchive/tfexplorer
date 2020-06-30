@@ -1,6 +1,10 @@
 package workloads
 
 import (
+	"encoding/json"
+	"reflect"
+
+	"github.com/pkg/errors"
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -21,4 +25,31 @@ type NetworkResource struct {
 
 func (n *NetworkResource) GetRSU() RSU {
 	return RSU{}
+}
+
+func (v *NetworkResource) VerifyJSON() error {
+	dup := NetworkResource{}
+
+	if err := json.Unmarshal([]byte(v.Json), &dup); err != nil {
+		return errors.Wrap(err, "invalid json data")
+	}
+
+	// override the fields which are not part of the signature
+	dup.ID = v.ID
+	dup.Json = v.Json
+	dup.CustomerTid = v.CustomerTid
+	dup.NextAction = v.NextAction
+	dup.SignaturesProvision = v.SignaturesProvision
+	dup.SignatureFarmer = v.SignatureFarmer
+	dup.SignaturesDelete = v.SignaturesDelete
+	dup.Epoch = v.Epoch
+	dup.Metadata = v.Metadata
+	dup.Result = v.Result
+	dup.WorkloadType = v.WorkloadType
+
+	if match := reflect.DeepEqual(v, dup); !match {
+		return errors.New("json data does not match actual data")
+	}
+
+	return nil
 }
