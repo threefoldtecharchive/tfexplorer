@@ -70,9 +70,10 @@ func main() {
 			if err != nil {
 				return err
 			}
+			bcdb, err = client.NewClient(bcdbAddr, mainui)
+		} else {
+			bcdb, err = client.NewClient(bcdbAddr, nil)
 		}
-
-		bcdb, err = client.NewClient(bcdbAddr, mainui)
 		if err != nil {
 			return err
 		}
@@ -469,10 +470,10 @@ func main() {
 			Usage:  "Provision a workload",
 			Before: requireSeed,
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "duration",
-					Usage: "duration of the reservation. By default is number of days. But also support notation with duration suffix like m for minute or h for hours",
-				},
+				// cli.StringFlag{
+				// 	Name:  "duration",
+				// 	Usage: "duration of the reservation. By default is number of days. But also support notation with duration suffix like m for minute or h for hours",
+				// },
 				cli.StringSliceFlag{
 					Name:  "asset",
 					Usage: "add an asset which is acceptable to pay the reservation",

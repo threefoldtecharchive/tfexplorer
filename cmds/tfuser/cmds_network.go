@@ -63,7 +63,7 @@ func cmdCreateNetwork(c *cli.Context) error {
 
 	networkBuilder := builders.NewNetworkBuilder(name, schema.IPRange{IPNet: ipnet.IPNet}, bcdb)
 
-	return writeWorkload(c.GlobalString("schema"), networkBuilder.Build())
+	return writeWorkload(c.GlobalString("schema"), networkBuilder)
 }
 
 func cmdsAddNode(c *cli.Context) error {
@@ -80,7 +80,7 @@ func cmdsAddNode(c *cli.Context) error {
 	if networkSchema == "" {
 		return fmt.Errorf("schema name cannot be empty")
 	}
-	f, err := os.Open(networkSchema)
+	f, err := os.OpenFile(c.GlobalString("schema"), os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
@@ -91,17 +91,15 @@ func cmdsAddNode(c *cli.Context) error {
 		return err
 	}
 
-	network, err = network.AddNode(nodeID, subnet, port, forceHidden)
+	_, err = network.AddNode(nodeID, subnet, port, forceHidden)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add a node to the network %s", network.Name)
 	}
 
-	nf, err := os.Create(networkSchema)
-	if err != nil {
-		return errors.Wrap(err, "failed to open networks schema")
+	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+		return err
 	}
-
-	return network.Save(nf)
+	return network.Save(f)
 }
 
 func cmdsAddAccess(c *cli.Context) error {
@@ -118,7 +116,8 @@ func cmdsAddAccess(c *cli.Context) error {
 	if networkSchema == "" {
 		return fmt.Errorf("schema name cannot be empty")
 	}
-	f, err := os.Open(networkSchema)
+
+	f, err := os.OpenFile(c.GlobalString("schema"), os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
@@ -141,18 +140,16 @@ func cmdsAddAccess(c *cli.Context) error {
 		return errors.Wrap(err, "invalid subnet")
 	}
 
-	network, wgSchema, err := network.AddAccess(nodeID, schema.IPRange{ipnet.IPNet}, wgPubKey, ip4)
+	_, wgSchema, err := network.AddAccess(nodeID, schema.IPRange{IPNet: ipnet.IPNet}, wgPubKey, ip4)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println(wgSchema)
 
-	f, err = os.Open(networkSchema)
-	if err != nil {
-		return errors.Wrap(err, "failed to open networks schema")
+	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+		return err
 	}
-
 	return network.Save(f)
 }
 
@@ -165,7 +162,7 @@ func cmdsRemoveNode(c *cli.Context) error {
 	if networkSchema == "" {
 		return fmt.Errorf("schema name cannot be empty")
 	}
-	f, err := os.Open(networkSchema)
+	f, err := os.OpenFile(c.GlobalString("schema"), os.O_RDWR, 0660)
 	if err != nil {
 		return err
 	}
@@ -176,5 +173,12 @@ func cmdsRemoveNode(c *cli.Context) error {
 		return err
 	}
 
-	return network.RemoveNode(networkSchema, nodeID)
+	if err := network.RemoveNode(networkSchema, nodeID); err != nil {
+		return errors.Wrapf(err, "failed to remove node %s", nodeID)
+	}
+
+	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+		return err
+	}
+	return network.Save(f)
 }
