@@ -9,6 +9,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
+	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -336,6 +337,8 @@ func (p *NaivePlanner) poolsForOwner(owner int64) ([]types.Pool, error) {
 	return pools, nil
 }
 
+// addCapacity to a pool, and deploy all workloads linked to the pool waiting for
+// pool capacity
 func (p *NaivePlanner) addCapacity(id schema.ID) error {
 	reservation, err := types.CapacityReservationGet(p.ctx, p.db, id)
 	if err != nil {
@@ -354,6 +357,20 @@ func (p *NaivePlanner) addCapacity(id schema.ID) error {
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
 		return errors.Wrap(err, "could not save pool")
+	}
+
+	// load all workloads tied to this pool in pay state
+	filter := workloadtypes.WorkloadFilter{}
+	filter = filter.WithPoolID(int64(poolID)).WithNextAction(workloads.NextActionPay)
+	workloads, err := filter.Find(p.ctx, p.db)
+	if err != nil {
+		return errors.Wrap(err, "could not load workloads")
+	}
+
+	for i := range workloads {
+		if err = workloadtypes.WorkloadToDeploy(p.ctx, p.db, workloads[i]); err != nil {
+			return errors.Wrap(err, "failed to try and deploy workload")
+		}
 	}
 
 	return nil

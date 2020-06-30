@@ -115,12 +115,28 @@ func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (Workloader
 	return WorkloaderType{Workloader: w}, nil
 }
 
-// Find all users that matches filter
-func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) (*mongo.Cursor, error) {
+// Find all users workloads matches filter
+func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) ([]WorkloaderType, error) {
 	if f == nil {
 		f = WorkloadFilter{}
 	}
-	return db.Collection(WorkloadCollection).Find(ctx, f, opts...)
+
+	cursor, err := db.Collection(WorkloadCollection).Find(ctx, f, opts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get workload cursor")
+	}
+
+	ws := []WorkloaderType{}
+
+	for cursor.Next(ctx) {
+		w, err := workloads.UnmarshalBSON(cursor.Current)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not decode workload document")
+		}
+		ws = append(ws, WorkloaderType{Workloader: w})
+	}
+
+	return ws, nil
 }
 
 // Count number of documents matching
