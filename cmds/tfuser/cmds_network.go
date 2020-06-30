@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"time"
@@ -96,7 +97,7 @@ func cmdsAddNode(c *cli.Context) error {
 		return errors.Wrapf(err, "failed to add a node to the network %s", network.Name)
 	}
 
-	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+	if _, err = f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 	return network.Save(f)
@@ -147,7 +148,7 @@ func cmdsAddAccess(c *cli.Context) error {
 
 	fmt.Println(wgSchema)
 
-	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+	if _, err = f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 	return network.Save(f)
@@ -177,7 +178,7 @@ func cmdsRemoveNode(c *cli.Context) error {
 		return errors.Wrapf(err, "failed to remove node %s", nodeID)
 	}
 
-	if _, err = f.Seek(0, os.SEEK_SET); err != nil {
+	if _, err = f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 	return network.Save(f)

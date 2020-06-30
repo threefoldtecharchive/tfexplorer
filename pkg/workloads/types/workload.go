@@ -216,12 +216,7 @@ func (w *WorkloaderType) ResultOf(id string) *Result {
 
 // AllDeleted checks of all workloads has been marked
 func (w *WorkloaderType) AllDeleted() bool {
-	result := w.GetResult()
-	if result.State != generated.ResultStateDeleted {
-		return false
-	}
-
-	return true
+	return w.GetResult().State == generated.ResultStateDeleted
 }
 
 // IsSuccessfullyDeployed check if all the workloads defined in the reservation

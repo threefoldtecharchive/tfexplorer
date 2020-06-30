@@ -27,7 +27,7 @@ func TestIntermediateWLWorkloadsUnknownType(t *testing.T) {
 					b, err := json.Marshal(i)
 					require.NoError(t, err)
 					return b
-				}(workloads.Container{WorkloadId: 1}),
+				}(workloads.Container{ReservationInfo: workloads.ReservationInfo{WorkloadId: 1}}),
 			},
 			err: nil,
 		},

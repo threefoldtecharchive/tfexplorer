@@ -60,13 +60,15 @@ func cmdsProvision(c *cli.Context) error {
 		}
 
 		if dryRun {
-			res, err := reservationClient.DryRun(workloader, assets, timein)
+			res, err := reservationClient.DryRun(workloader, timein)
 			if err != nil {
 				return errors.Wrap(err, "failed to parse reservation as JSON")
 			}
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
-			err = enc.Encode(res)
+			if err = enc.Encode(res); err != nil {
+				return errors.Wrap(err, "failed to encode reservation")
+			}
 			continue
 		}
 

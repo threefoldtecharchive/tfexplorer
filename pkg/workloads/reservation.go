@@ -14,7 +14,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/threefoldtech/tfexplorer/config"
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
@@ -25,7 +24,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
-	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
@@ -59,43 +57,6 @@ const freeTFT = "FreeTFT"
 // minimum amount of seconds a workload needs to be able to live with a given
 // pool before we even want to attempt to deploy it
 const minCapacitySeconds = 120 // 2 min
-
-func (a *API) validAddresses(ctx context.Context, db *mongo.Database, res *types.Reservation) error {
-	if config.Config.Network == "" {
-		log.Info().Msg("escrow disabled, no validation of farmer wallet address needed")
-		return nil
-	}
-
-	workloads := res.Workloads("")
-	var nodes []string
-
-	for _, wl := range workloads {
-		nodes = append(nodes, wl.NodeID)
-	}
-
-	farms, err := directory.FarmsForNodes(ctx, db, nodes...)
-	if err != nil {
-		return err
-	}
-
-	for _, farm := range farms {
-		for _, a := range farm.WalletAddresses {
-			validator, err := stellar.NewAddressValidator(config.Config.Network, a.Asset)
-			if err != nil {
-				if errors.Is(err, stellar.ErrAssetCodeNotSupported) {
-					continue
-				}
-				return errors.Wrap(err, "could not initialize address validator")
-			}
-			if err := validator.Valid(a.Address); err != nil {
-				return fmt.Errorf("farm %s has an invalid address for currency %s: %w", farm.Name, a.Asset, err)
-			}
-		}
-
-	}
-
-	return nil
-}
 
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
@@ -818,7 +779,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newworkloadPutDeleted(r.Context(), db, rid, gwid, nodeID)
 	}
 
 	// we use an empty node-id in listing to return all workloads in this reservation

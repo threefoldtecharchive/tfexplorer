@@ -38,8 +38,6 @@ func cmdsLive(c *cli.Context) error {
 
 type m map[string]interface{}
 
-const timeLayout = "02-Jan-2006 15:04:05"
-
 func printResult(r workloads.Workloader) {
 	output := m{}
 	fmt.Printf("ID: %d", r.GetID())
@@ -64,7 +62,6 @@ type job struct {
 	id      int
 	user    int64
 	expired bool
-	deleted bool
 }
 
 func (s *scraper) Scrap(user int64) chan workloads.Workloader {
