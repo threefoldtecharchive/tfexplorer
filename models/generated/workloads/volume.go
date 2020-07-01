@@ -13,7 +13,7 @@ var _ Workloader = (*Volume)(nil)
 var _ Capaciter = (*Volume)(nil)
 
 type Volume struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Size int64          `bson:"size" json:"size"`
 	Type VolumeTypeEnum `bson:"type" json:"type"`

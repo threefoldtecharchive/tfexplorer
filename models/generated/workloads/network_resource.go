@@ -12,7 +12,7 @@ var _ Workloader = (*K8S)(nil)
 var _ Capaciter = (*K8S)(nil)
 
 type NetworkResource struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Name                         string            `bson:"name" json:"name"`
 	StatsAggregator              []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`

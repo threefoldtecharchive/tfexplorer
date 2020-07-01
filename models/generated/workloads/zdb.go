@@ -11,7 +11,7 @@ var _ Workloader = (*ZDB)(nil)
 var _ Capaciter = (*ZDB)(nil)
 
 type ZDB struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Size            int64             `bson:"size" json:"size"`
 	Mode            ZDBModeEnum       `bson:"mode" json:"mode"`

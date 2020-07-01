@@ -11,7 +11,7 @@ var _ Workloader = (*GatewayProxy)(nil)
 var _ Capaciter = (*GatewayProxy)(nil)
 
 type GatewayProxy struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Domain  string `bson:"domain" json:"domain"`
 	Addr    string `bson:"addr" json:"addr"`
@@ -55,7 +55,7 @@ var _ Workloader = (*GatewayReverseProxy)(nil)
 var _ Capaciter = (*GatewayReverseProxy)(nil)
 
 type GatewayReverseProxy struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Domain string `bson:"domain" json:"domain"`
 	Secret string `bson:"secret" json:"secret"`
@@ -97,7 +97,7 @@ var _ Workloader = (*GatewaySubdomain)(nil)
 var _ Capaciter = (*GatewaySubdomain)(nil)
 
 type GatewaySubdomain struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Domain string   `bson:"domain" json:"domain"`
 	IPs    []string `bson:"ips" json:"ips"`
@@ -139,7 +139,7 @@ var _ Workloader = (*GatewayDelegate)(nil)
 var _ Capaciter = (*GatewayDelegate)(nil)
 
 type GatewayDelegate struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Domain string `bson:"domain" json:"domain"`
 	PoolId int64  `bson:"pool_id" json:"pool_id"`
@@ -180,7 +180,7 @@ var _ Workloader = (*Gateway4To6)(nil)
 var _ Capaciter = (*Gateway4To6)(nil)
 
 type Gateway4To6 struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	PublicKey string `bson:"public_key" json:"public_key"`
 	PoolId    int64  `bson:"pool_id" json:"pool_id"`

@@ -13,7 +13,7 @@ var _ Workloader = (*Container)(nil)
 var _ Capaciter = (*Container)(nil)
 
 type Container struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Flist             string              `bson:"flist" json:"flist"`
 	HubUrl            string              `bson:"hub_url" json:"hub_url"`

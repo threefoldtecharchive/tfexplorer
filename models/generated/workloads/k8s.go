@@ -12,7 +12,7 @@ var _ Workloader = (*K8S)(nil)
 var _ Capaciter = (*K8S)(nil)
 
 type K8S struct {
-	ReservationInfo
+	ReservationInfo `bson:",inline"`
 
 	Size            int64             `bson:"size" json:"size"`
 	NetworkId       string            `bson:"network_id" json:"network_id"`
