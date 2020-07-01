@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ Workloader = (*GatewayProxy)(nil)
@@ -50,6 +52,10 @@ func (p *GatewayProxy) SignatureChallenge() ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
+func (g *GatewayProxy) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(g)
+}
+
 var _ Workloader = (*GatewayReverseProxy)(nil)
 var _ Capaciter = (*GatewayReverseProxy)(nil)
 
@@ -84,6 +90,10 @@ func (p *GatewayReverseProxy) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
+}
+
+func (g *GatewayReverseProxy) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(g)
 }
 
 var _ Workloader = (*GatewaySubdomain)(nil)
@@ -124,6 +134,10 @@ func (s *GatewaySubdomain) SignatureChallenge() ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
+func (g *GatewaySubdomain) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(g)
+}
+
 var _ Workloader = (*GatewayDelegate)(nil)
 var _ Capaciter = (*GatewayDelegate)(nil)
 
@@ -156,6 +170,10 @@ func (d *GatewayDelegate) SignatureChallenge() ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
+func (g *GatewayDelegate) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(g)
+}
+
 var _ Workloader = (*Gateway4To6)(nil)
 var _ Capaciter = (*Gateway4To6)(nil)
 
@@ -186,4 +204,8 @@ func (g *Gateway4To6) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
+}
+
+func (g *Gateway4To6) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(g)
 }

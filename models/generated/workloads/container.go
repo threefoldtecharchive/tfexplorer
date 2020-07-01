@@ -7,6 +7,8 @@ import (
 	"io"
 	"math"
 	"net"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ Workloader = (*Container)(nil)
@@ -110,6 +112,10 @@ func (c *Container) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
+}
+
+func (c *Container) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(c)
 }
 
 type ContainerCapacity struct {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	schema "github.com/threefoldtech/tfexplorer/schema"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ Workloader = (*K8S)(nil)
@@ -66,4 +67,8 @@ func (n *NetworkResource) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
+}
+
+func (n *NetworkResource) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(n)
 }

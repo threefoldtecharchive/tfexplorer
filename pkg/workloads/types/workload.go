@@ -161,6 +161,10 @@ type WorkloaderType struct {
 	generated.Workloader `bson:",inline"`
 }
 
+func (w WorkloaderType) MarshalBSON() ([]byte, error) {
+	return w.Workloader.BSONMarshal()
+}
+
 // Verify signature against Workload.JSON
 // pk is the public key used as verification key in hex encoded format
 // the signature is the signature to verify (in raw binary format)

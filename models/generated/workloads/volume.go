@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ Workloader = (*Volume)(nil)
@@ -45,6 +47,10 @@ func (v *Volume) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
+}
+
+func (v *Volume) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(v)
 }
 
 type VolumeTypeEnum uint8

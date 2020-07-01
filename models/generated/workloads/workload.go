@@ -52,10 +52,15 @@ type (
 		GetNodeID() string
 
 		Capaciter
+		Marshaler
 	}
 
 	Capaciter interface {
 		GetRSU() RSU
+	}
+
+	Marshaler interface {
+		BSONMarshal() ([]byte, error) // MarshalBSON causes a major problem
 	}
 
 	RSU struct {

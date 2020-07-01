@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ Workloader = (*K8S)(nil)
@@ -81,4 +83,8 @@ func (k *K8S) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
+}
+
+func (k *K8S) BSONMarshal() ([]byte, error) {
+	return bson.Marshal(k)
 }
