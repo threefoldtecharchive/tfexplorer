@@ -26,7 +26,6 @@ import (
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -395,21 +394,9 @@ func (a *API) list(r *http.Request) (interface{}, mw.Response) {
 	return reservations, mw.Ok().WithHeader("Pages", pages)
 }
 
-func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, limit int64) ([]types.Workload, error) {
+func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, limit int64) ([]types.WorkloaderType, error) {
 
-	type intermediate struct {
-		WorkloadID string                     `bson:"workload_id" json:"workload_id"`
-		User       string                     `bson:"user" json:"user"`
-		Type       generated.WorkloadTypeEnum `bson:"type" json:"type"`
-		Content    bson.Raw                   `bson:"content" json:"content"`
-		Created    schema.Date                `bson:"created" json:"created"`
-		Duration   int64                      `bson:"duration" json:"duration"`
-		Signature  string                     `bson:"signature" json:"signature"`
-		ToDelete   bool                       `bson:"to_delete" json:"to_delete"`
-		NodeID     string                     `json:"node_id" bson:"node_id"`
-	}
-
-	workloads := make([]types.Workload, 0)
+	workloads := make([]types.WorkloaderType, 0)
 
 	var queue types.QueueFilter
 	queue = queue.WithNodeID(nodeID)
@@ -419,111 +406,13 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 		return nil, err
 	}
 	defer cur.Close(ctx)
+
 	for cur.Next(ctx) {
-		// why we have intermediate struct you say? I will tell you
-		// Content in the workload structure is definition as of type interface{}
-		// bson if found a nil interface, it initialize it with bson.D (list of elements)
-		// so data in Content will be something like [{key: k1, value: v1}, {key: k2, value: v2}]
-		// which is not the same structure expected in the node
-		// hence we use bson.M to force it to load data in a map like {k1: v1, k2: v2}
-		var wl intermediate
-
+		var wl types.WorkloaderType
 		if err := cur.Decode(&wl); err != nil {
-			return workloads, err
+			return nil, err
 		}
-
-		obj := generated.ReservationWorkload{
-			WorkloadId: wl.WorkloadID,
-			User:       wl.User,
-			Type:       wl.Type,
-			Created:    wl.Created,
-			Duration:   wl.Duration,
-			Signature:  wl.Signature,
-			ToDelete:   wl.ToDelete,
-		}
-
-		switch wl.Type {
-		case generated.WorkloadTypeContainer:
-			var data generated.Container
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeVolume:
-			var data generated.Volume
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeZDB:
-			var data generated.ZDB
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeNetwork:
-			var data generated.Network
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeNetworkResource:
-			var data generated.NetworkResource
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeKubernetes:
-			var data generated.K8S
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeDomainDelegate:
-			var data generated.GatewayDelegate
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeSubDomain:
-			var data generated.GatewaySubdomain
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeProxy:
-			var data generated.GatewayProxy
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeReverseProxy:
-			var data generated.GatewayReverseProxy
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-		case generated.WorkloadTypeGateway4To6:
-			var data generated.Gateway4To6
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-		}
-
-		workloads = append(workloads, types.Workload{
-			NodeID:              wl.NodeID,
-			ReservationWorkload: obj,
-		})
+		workloads = append(workloads, wl)
 	}
 
 	return workloads, nil
@@ -549,56 +438,57 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return workloads, nil
 	}
 
-	from, err := a.parseID(r.FormValue("from"))
-	if err != nil {
-		return nil, mw.BadRequest(err)
-	}
+	//TODO
+	// from, err := a.parseID(r.FormValue("from"))
+	// if err != nil {
+	// 	return nil, mw.BadRequest(err)
+	// }
 
-	// store last reservation ID
+	// // store last reservation ID
 	lastID, err := types.ReservationLastID(r.Context(), db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
 
-	filter := types.ReservationFilter{}.WithIDGE(from)
-	filter = filter.WithNodeID(nodeID)
+	// filter := types.ReservationFilter{}.WithIDGE(from)
+	// filter = filter.WithNodeID(nodeID)
 
-	cur, err := filter.Find(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
+	// cur, err := filter.Find(r.Context(), db)
+	// if err != nil {
+	// 	return nil, mw.Error(err)
+	// }
 
-	defer cur.Close(r.Context())
+	// defer cur.Close(r.Context())
 
-	for cur.Next(r.Context()) {
-		var reservation types.Reservation
-		if err := cur.Decode(&reservation); err != nil {
-			return nil, mw.Error(err)
-		}
+	// for cur.Next(r.Context()) {
+	// 	var reservation types.Reservation
+	// 	if err := cur.Decode(&reservation); err != nil {
+	// 		return nil, mw.Error(err)
+	// 	}
 
-		reservation, err = a.pipeline(reservation, nil)
-		if err != nil {
-			log.Error().Err(err).Int64("id", int64(reservation.ID)).Msg("failed to process reservation")
-			continue
-		}
+	// 	reservation, err = a.pipeline(reservation, nil)
+	// 	if err != nil {
+	// 		log.Error().Err(err).Int64("id", int64(reservation.ID)).Msg("failed to process reservation")
+	// 		continue
+	// 	}
 
-		if reservation.NextAction == types.Delete {
-			if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
-				return nil, mw.Error(err)
-			}
-		}
+	// 	if reservation.NextAction == types.Delete {
+	// 		if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
+	// 			return nil, mw.Error(err)
+	// 		}
+	// 	}
 
-		// only reservations that is in right status
-		if !reservation.IsAny(types.Deploy, types.Delete) {
-			continue
-		}
+	// 	// only reservations that is in right status
+	// 	if !reservation.IsAny(types.Deploy, types.Delete) {
+	// 		continue
+	// 	}
 
-		workloads = append(workloads, reservation.Workloads(nodeID)...)
+	// 	workloads = append(workloads, reservation.Workloads(nodeID)...)
 
-		if len(workloads) >= maxPageSize {
-			break
-		}
-	}
+	// 	if len(workloads) >= maxPageSize {
+	// 		break
+	// 	}
+	// }
 
 	return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 }

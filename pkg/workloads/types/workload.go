@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -175,7 +176,27 @@ func (w *WorkloaderType) UnmarshalBSON(buf []byte) error {
 	*w = WorkloaderType{Workloader: workload}
 
 	return nil
+}
 
+// MarshalJSON implements JSON.Marshaller
+func (w WorkloaderType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(w.Workloader)
+}
+
+// UnmarshalJSON implements JSON.Unmarshaller
+func (w *WorkloaderType) UnmarshalJSON(buf []byte) error {
+	workload, err := workloads.UnmarshalJSON(buf)
+	if err != nil {
+		return err
+	}
+
+	if w == nil {
+		w = &WorkloaderType{}
+	}
+
+	*w = WorkloaderType{Workloader: workload}
+
+	return nil
 }
 
 // Verify signature against Workload.JSON
@@ -299,7 +320,7 @@ func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType)
 	}
 
 	//queue for processing
-	if err := WorkloadTypePush(ctx, db, w.Workload()); err != nil {
+	if err := WorkloadTypePush(ctx, db, w); err != nil {
 		return errors.Wrap(err, "failed to schedule workload for deploying")
 	}
 
@@ -337,7 +358,7 @@ func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID
 }
 
 // WorkloadTypePush pushes a workload to the queue
-func WorkloadTypePush(ctx context.Context, db *mongo.Database, w Workload) error {
+func WorkloadTypePush(ctx context.Context, db *mongo.Database, w WorkloaderType) error {
 	col := db.Collection(queueCollection)
 	_, err := col.InsertOne(ctx, w)
 

@@ -1,7 +1,6 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
+	wrkldstypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -73,101 +73,19 @@ func (w *httpWorkloads) SignDelete(id schema.ID, user schema.ID, signature strin
 	return err
 }
 
-type intermediateWL struct {
-	workloads.ReservationWorkload
-	Content json.RawMessage `json:"content"`
-}
-
-func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err error) {
-	result = wl.ReservationWorkload
-	switch wl.Type {
-	case workloads.WorkloadTypeContainer:
-		var o workloads.Container
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeKubernetes:
-		var o workloads.K8S
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeNetwork:
-		var o workloads.Network
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeNetworkResource:
-		var o workloads.NetworkResource
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeVolume:
-		var o workloads.Volume
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeZDB:
-		var o workloads.ZDB
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeProxy:
-		var o workloads.GatewayProxy
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeReverseProxy:
-		var o workloads.GatewayReverseProxy
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeSubDomain:
-		var o workloads.GatewaySubdomain
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeDomainDelegate:
-		var o workloads.GatewayDelegate
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeGateway4To6:
-		var o workloads.Gateway4To6
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	default:
-		return result, errUnknownWorkload
-	}
-
-	return
-}
-
 func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error) {
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
-	var list []workloads.Workloader
+	var list []wrkldstypes.WorkloaderType
 
-	response, err := w.get(
-		w.url("reservations", "workloads", nodeID),
-		query,
-		&list,
-		http.StatusOK,
-	)
+	u := w.url("reservations", "workloads", nodeID)
+	if len(query) > 0 {
+		u = fmt.Sprintf("%s?%s", u, query.Encode())
+	}
 
-	if err != nil {
+	response, err := http.Get(u)
+	if err := w.process(response, &list, http.StatusOK); err != nil {
 		return nil, 0, err
 	}
 
@@ -179,7 +97,12 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workl
 		}
 	}
 
-	return list, lastID, err
+	output := make([]workloads.Workloader, len(list))
+	for i, w := range list {
+		output[i] = w.Workloader
+	}
+
+	return output, lastID, err
 }
 
 func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.Workloader, err error) {
