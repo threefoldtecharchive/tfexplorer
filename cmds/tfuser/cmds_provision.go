@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
+
 	"github.com/threefoldtech/tfexplorer/provision"
 	"github.com/urfave/cli"
 )
@@ -29,7 +31,6 @@ func cmdsProvision(c *cli.Context) error {
 		dryRun      = c.Bool("dry-run")
 		err         error
 	)
-	fmt.Println(dryRun)
 
 	var duration time.Duration
 	if d == "" {
@@ -48,6 +49,7 @@ func cmdsProvision(c *cli.Context) error {
 
 	reservationClient := provision.NewReservationClient(bcdb, mainui)
 
+	results := make([]wrklds.ReservationCreateResponse, 0, len(workloaders))
 	for _, workload := range workloaders {
 		buffer, err := ioutil.ReadFile(workload)
 		if err != nil {
@@ -72,12 +74,16 @@ func cmdsProvision(c *cli.Context) error {
 			continue
 		}
 
-		_, err = reservationClient.Deploy(workloader, assets, timein)
+		result, err := reservationClient.Deploy(workloader, assets, timein)
 		if err != nil {
 			return errors.Wrap(err, "failed to deploy reservation")
 		}
+		results = append(results, result)
 	}
 
+	for _, r := range results {
+		fmt.Printf("workloads send: ID %d\n", r.ID)
+	}
 	return nil
 }
 

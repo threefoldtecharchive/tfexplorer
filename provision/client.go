@@ -35,8 +35,6 @@ func (r *ReservationClient) Deploy(workload workloads.Workloader, currencies []s
 		return wrklds.ReservationCreateResponse{}, nil
 	}
 
-	fmt.Printf("%+v", reservationToCreate)
-
 	response, err := r.explorer.Workloads.Create(reservationToCreate)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, errors.Wrap(err, "failed to send workload")
