@@ -631,7 +631,7 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if workload == nil {
-		return nil, mw.NotFound(fmt.Errorf("workload not found"))
+		return a.newWorkloadGet(r)
 	}
 
 	var result struct {
@@ -646,6 +646,39 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 			break
 		}
 	}
+
+	return result, nil
+}
+
+func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
+	gwid := mux.Vars(r)["gwid"]
+
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(rid)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+	// we use an empty node-id in listing to return all workloads in this reservation
+	work := workload.Workload()
+
+	if work.WorkloadId != gwid {
+		return nil, mw.NotFound(fmt.Errorf("workload not found"))
+	}
+
+	var result struct {
+		types.Workload
+		Result []types.Result `json:"result"`
+	}
+	result.Workload = work
+	result.Result = append(result.Result, types.Result(workload.GetResult()))
 
 	return result, nil
 }
