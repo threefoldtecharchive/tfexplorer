@@ -96,23 +96,18 @@ func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (Workloader
 	if f == nil {
 		f = WorkloadFilter{}
 	}
+	var w WorkloaderType
 
 	result := db.Collection(WorkloadCollection).FindOne(ctx, f)
 	if err := result.Err(); err != nil {
-		return WorkloaderType{}, err
+		return w, err
 	}
 
-	doc, err := result.DecodeBytes()
-	if err != nil {
-		return WorkloaderType{}, err
+	if err := result.Decode(&w); err != nil {
+		return w, errors.Wrap(err, "could not decode workload type")
 	}
 
-	w, err := workloads.UnmarshalBSON(doc)
-	if err != nil {
-		return WorkloaderType{}, err
-	}
-
-	return WorkloaderType{Workloader: w}, nil
+	return w, nil
 }
 
 // Find all users workloads matches filter
@@ -129,11 +124,11 @@ func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*o
 	ws := []WorkloaderType{}
 
 	for cursor.Next(ctx) {
-		w, err := workloads.UnmarshalBSON(cursor.Current)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not decode workload document")
+		var w WorkloaderType
+		if err = cursor.Decode(&w); err != nil {
+			return nil, errors.Wrap(err, "could not decode workload type")
 		}
-		ws = append(ws, WorkloaderType{Workloader: w})
+		ws = append(ws, w)
 	}
 
 	return ws, nil
@@ -164,6 +159,23 @@ type WorkloaderType struct {
 // MarshalBSON implements bson.Marshaller
 func (w WorkloaderType) MarshalBSON() ([]byte, error) {
 	return bson.Marshal(w.Workloader)
+}
+
+// UnmarshalBSON implements bson.Unmarshaller
+func (w *WorkloaderType) UnmarshalBSON(buf []byte) error {
+	workload, err := workloads.UnmarshalBSON(buf)
+	if err != nil {
+		return err
+	}
+
+	if w == nil {
+		w = &WorkloaderType{}
+	}
+
+	*w = WorkloaderType{Workloader: workload}
+
+	return nil
+
 }
 
 // Verify signature against Workload.JSON
@@ -388,6 +400,7 @@ func (w *WorkloaderType) Workload() Workload {
 			Duration:   math.MaxInt64,
 			Created:    w.GetEpoch(),
 			ToDelete:   w.GetNextAction() == Delete || w.GetNextAction() == Deleted,
+			Content:    w,
 		},
 		NodeID: w.GetNodeID(),
 	}
