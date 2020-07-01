@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ Workloader = (*ZDB)(nil)
@@ -70,10 +68,6 @@ func (z *ZDB) SignatureChallenge() ([]byte, error) {
 	}
 
 	return h.Sum(nil), nil
-}
-
-func (z *ZDB) BSONMarshal() ([]byte, error) {
-	return bson.Marshal(z)
 }
 
 type DiskTypeEnum uint8

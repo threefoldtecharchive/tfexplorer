@@ -158,11 +158,12 @@ func (f WorkloadFilter) WithPoolID(poolID int64) WorkloadFilter {
 
 // WorkloaderType is a wrapper struct around the Workloader interface
 type WorkloaderType struct {
-	generated.Workloader `bson:",inline"`
+	generated.Workloader
 }
 
+// MarshalBSON implements bson.Marshaller
 func (w WorkloaderType) MarshalBSON() ([]byte, error) {
-	return w.Workloader.BSONMarshal()
+	return bson.Marshal(w.Workloader)
 }
 
 // Verify signature against Workload.JSON
