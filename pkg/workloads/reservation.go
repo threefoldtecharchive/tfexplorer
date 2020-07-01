@@ -40,8 +40,7 @@ type (
 
 	// ReservationCreateResponse wraps reservation create response
 	ReservationCreateResponse struct {
-		ID                schema.ID                             `json:"reservation_id"`
-		EscrowInformation escrowtypes.CustomerEscrowInformation `json:"escrow_information,omitempty"`
+		ID schema.ID `json:"reservation_id"`
 	}
 
 	// CapacityPoolCreateResponse wraps capacity pool reservation create response
@@ -150,7 +149,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	if !allowed {
 		log.Debug().Msg("don't deploy workload as its pool is almost empty")
-		return nil, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
+		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
 	}
 
 	// immediately deploy the workload
@@ -159,7 +158,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
 	}
 
-	return nil, mw.Created()
+	return ReservationCreateResponse{ID: id}, mw.Created()
 }
 
 func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
