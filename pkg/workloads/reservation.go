@@ -325,10 +325,28 @@ func (a *API) get(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.getWorkload(r)
 	}
 
 	return reservation, nil
+}
+
+func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
+	id, err := a.parseID(mux.Vars(r)["res_id"])
+	if err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(id)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	return workload, nil
 }
 
 func (a *API) list(r *http.Request) (interface{}, mw.Response) {
