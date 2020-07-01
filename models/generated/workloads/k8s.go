@@ -1,11 +1,10 @@
 package workloads
 
 import (
-	"encoding/json"
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"net"
-	"reflect"
-
-	"github.com/pkg/errors"
 )
 
 var _ Workloader = (*K8S)(nil)
@@ -15,9 +14,9 @@ type K8S struct {
 	ReservationInfo `bson:",inline"`
 
 	Size            int64             `bson:"size" json:"size"`
+	ClusterSecret   string            `bson:"cluster_secret" json:"cluster_secret"`
 	NetworkId       string            `bson:"network_id" json:"network_id"`
 	Ipaddress       net.IP            `bson:"ipaddress" json:"ipaddress"`
-	ClusterSecret   string            `bson:"cluster_secret" json:"cluster_secret"`
 	MasterIps       []net.IP          `bson:"master_ips" json:"master_ips"`
 	SshKeys         []string          `bson:"ssh_keys" json:"ssh_keys"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
@@ -41,29 +40,45 @@ func (k *K8S) GetRSU() RSU {
 	return RSU{}
 }
 
-func (v *K8S) VerifyJSON() error {
-	dup := K8S{}
-
-	if err := json.Unmarshal([]byte(v.Json), &dup); err != nil {
-		return errors.Wrap(err, "invalid json data")
+func (k *K8S) SignatureChallenge() ([]byte, error) {
+	ric, err := k.ReservationInfo.SignatureChallenge()
+	if err != nil {
+		return nil, err
 	}
 
-	// override the fields which are not part of the signature
-	dup.ID = v.ID
-	dup.Json = v.Json
-	dup.CustomerTid = v.CustomerTid
-	dup.NextAction = v.NextAction
-	dup.SignaturesProvision = v.SignaturesProvision
-	dup.SignatureFarmer = v.SignatureFarmer
-	dup.SignaturesDelete = v.SignaturesDelete
-	dup.Epoch = v.Epoch
-	dup.Metadata = v.Metadata
-	dup.Result = v.Result
-	dup.WorkloadType = v.WorkloadType
-
-	if match := reflect.DeepEqual(v, dup); !match {
-		return errors.New("json data does not match actual data")
+	b := bytes.NewBuffer(ric)
+	if _, err := fmt.Fprintf(b, "%d", k.Size); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", k.ClusterSecret); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", k.NetworkId); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", k.Ipaddress.String()); err != nil {
+		return nil, err
+	}
+	for _, ip := range k.MasterIps {
+		if _, err := fmt.Fprintf(b, "%s", ip.String()); err != nil {
+			return nil, err
+		}
+	}
+	for _, key := range k.SshKeys {
+		if _, err := fmt.Fprintf(b, "%s", key); err != nil {
+			return nil, err
+		}
+	}
+	for _, s := range k.StatsAggregator {
+		if err := s.SigingEncode(b); err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	h := sha256.New()
+	if _, err := h.Write(b.Bytes()); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
 }

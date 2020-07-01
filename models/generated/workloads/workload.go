@@ -1,7 +1,9 @@
 package workloads
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -45,7 +47,7 @@ type (
 		SetExpirationProvisioning(date schema.Date)
 		SetSignaturesProvision(signatures []SigningSignature)
 		SetSignaturesDelete(signatuers []SigningSignature)
-		VerifyJSON() error
+		SignatureChallenge() ([]byte, error)
 		GetPoolID() int64
 		GetNodeID() string
 
@@ -346,32 +348,45 @@ func (i *ReservationInfo) SetSignaturesDelete(signatures []SigningSignature) {
 	i.SignaturesDelete = signatures
 }
 
-// func (i *ReservationInfo) VerifyJSON() error {
-// 	dup := Volume{}
+// SignatureChallenge return a slice of byte containing all the date used to generate the
+// signature of the workload
+func (i *ReservationInfo) SignatureChallenge() ([]byte, error) { //TODO: name of this is shit
+	b := &bytes.Buffer{}
 
-// 	if err := json.Unmarshal([]byte(i.Json), &dup); err != nil {
-// 		return errors.Wrap(err, "invalid json data")
-// 	}
+	if _, err := fmt.Fprintf(b, "%d", i.ID); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", i.WorkloadId); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", i.NodeId); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", i.PoolId); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", i.CustomerTid); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", i.WorkloadType); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", i.ExpirationProvisioning.Unix()); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", i.Epoch.Unix()); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", i.Description); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", i.Metadata); err != nil {
+		return nil, err
+	}
 
-// 	// override the fields which are not part of the signature
-// 	dup.ID = i.ID
-// 	dup.Json = i.Json
-// 	dup.CustomerTid = i.CustomerTid
-// 	dup.NextAction = i.NextAction
-// 	dup.SignaturesProvision = i.SignaturesProvision
-// 	dup.SignatureFarmer = i.SignatureFarmer
-// 	dup.SignaturesDelete = i.SignaturesDelete
-// 	dup.Epoch = i.Epoch
-// 	dup.Metadata = i.Metadata
-// 	dup.Result = i.Result
-// 	dup.WorkloadType = i.WorkloadType
+	return b.Bytes(), nil
+}
 
-// 	if match := reflect.DeepEqual(i, dup); !match {
-// 		return errors.New("json data does not match actual data")
-// 	}
-
-// 	return nil
-// }
 func (i *ReservationInfo) GetPoolID() int64 {
 	return i.PoolId
 }

@@ -1,10 +1,9 @@
 package workloads
 
 import (
-	"encoding/json"
-	"reflect"
-
-	"github.com/pkg/errors"
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 )
 
 var _ Workloader = (*ZDB)(nil)
@@ -35,31 +34,40 @@ func (z *ZDB) GetRSU() RSU {
 	return RSU{}
 }
 
-func (v *ZDB) VerifyJSON() error {
-	dup := ZDB{}
-
-	if err := json.Unmarshal([]byte(v.Json), &dup); err != nil {
-		return errors.Wrap(err, "invalid json data")
+func (z *ZDB) SignatureChallenge() ([]byte, error) {
+	ric, err := z.ReservationInfo.SignatureChallenge()
+	if err != nil {
+		return nil, err
 	}
 
-	// override the fields which are not part of the signature
-	dup.ID = v.ID
-	dup.Json = v.Json
-	dup.CustomerTid = v.CustomerTid
-	dup.NextAction = v.NextAction
-	dup.SignaturesProvision = v.SignaturesProvision
-	dup.SignatureFarmer = v.SignatureFarmer
-	dup.SignaturesDelete = v.SignaturesDelete
-	dup.Epoch = v.Epoch
-	dup.Metadata = v.Metadata
-	dup.Result = v.Result
-	dup.WorkloadType = v.WorkloadType
-
-	if match := reflect.DeepEqual(v, dup); !match {
-		return errors.New("json data does not match actual data")
+	b := bytes.NewBuffer(ric)
+	if _, err := fmt.Fprintf(b, "%d", z.Size); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", z.Mode); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", z.Password); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%d", z.DiskType); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%t", z.Public); err != nil {
+		return nil, err
+	}
+	for _, s := range z.StatsAggregator {
+		if err := s.SigingEncode(b); err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	h := sha256.New()
+	if _, err := h.Write(b.Bytes()); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
 }
 
 type DiskTypeEnum uint8

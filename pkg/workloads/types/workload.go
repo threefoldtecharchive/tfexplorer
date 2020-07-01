@@ -170,7 +170,12 @@ func (w *WorkloaderType) Verify(pk string, sig []byte) error {
 		return errors.Wrap(err, "invalid verification key")
 	}
 
-	return crypto.Verify(key, []byte(w.GetJson()), sig)
+	msg, err := w.SignatureChallenge()
+	if err != nil {
+		return err
+	}
+
+	return crypto.Verify(key, msg, sig)
 }
 
 // SignatureVerify is similar to Verify but the verification is done
@@ -354,10 +359,6 @@ func (w *WorkloaderType) Validate() error {
 
 	if len(w.GetCustomerSignature()) == 0 {
 		return fmt.Errorf("customer_signature is required")
-	}
-
-	if err := w.VerifyJSON(); err != nil {
-		return errors.Wrap(err, "embedded json verification failed")
 	}
 
 	if len(w.GetMetadata()) > 1024 {

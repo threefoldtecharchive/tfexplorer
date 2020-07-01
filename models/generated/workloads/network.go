@@ -1,6 +1,11 @@
 package workloads
 
-import schema "github.com/threefoldtech/tfexplorer/schema"
+import (
+	"fmt"
+	"io"
+
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type Network struct {
 	Name             string               `bson:"name" json:"name"`
@@ -27,7 +32,25 @@ type NetworkNetResource struct {
 
 type WireguardPeer struct {
 	PublicKey      string           `bson:"public_key" json:"public_key"`
-	AllowedIprange []schema.IPRange `bson:"allowed_iprange" json:"allowed_iprange"`
 	Endpoint       string           `bson:"endpoint" json:"endpoint"`
 	Iprange        schema.IPRange   `bson:"iprange" json:"iprange"`
+	AllowedIprange []schema.IPRange `bson:"allowed_iprange" json:"allowed_iprange"`
+}
+
+func (p *WireguardPeer) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", p.PublicKey); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", p.Endpoint); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", p.Iprange.String()); err != nil {
+		return err
+	}
+	for _, iprange := range p.AllowedIprange {
+		if _, err := fmt.Fprintf(w, "%s", iprange.String()); err != nil {
+			return err
+		}
+	}
+	return nil
 }

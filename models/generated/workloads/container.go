@@ -1,12 +1,12 @@
 package workloads
 
 import (
-	"encoding/json"
+	"bytes"
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"math"
 	"net"
-	"reflect"
-
-	"github.com/pkg/errors"
 )
 
 var _ Workloader = (*Container)(nil)
@@ -46,31 +46,70 @@ func (c *Container) GetRSU() RSU {
 	return rsu
 }
 
-func (v *Container) VerifyJSON() error {
-	dup := Container{}
-
-	if err := json.Unmarshal([]byte(v.Json), &dup); err != nil {
-		return errors.Wrap(err, "invalid json data")
+func (c *Container) SignatureChallenge() ([]byte, error) {
+	ric, err := c.ReservationInfo.SignatureChallenge()
+	if err != nil {
+		return nil, err
 	}
 
-	// override the fields which are not part of the signature
-	dup.ID = v.ID
-	dup.Json = v.Json
-	dup.CustomerTid = v.CustomerTid
-	dup.NextAction = v.NextAction
-	dup.SignaturesProvision = v.SignaturesProvision
-	dup.SignatureFarmer = v.SignatureFarmer
-	dup.SignaturesDelete = v.SignaturesDelete
-	dup.Epoch = v.Epoch
-	dup.Metadata = v.Metadata
-	dup.Result = v.Result
-	dup.WorkloadType = v.WorkloadType
-
-	if match := reflect.DeepEqual(v, dup); !match {
-		return errors.New("json data does not match actual data")
+	encodeEnv := func(w io.Writer, env map[string]string) error {
+		for k, v := range env {
+			if _, err := fmt.Fprintf(w, "%s=%s", k, v); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
-	return nil
+	b := bytes.NewBuffer(ric)
+	if _, err := fmt.Fprintf(b, "%s", c.Flist); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", c.HubUrl); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", c.Entrypoint); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%t", c.Interactive); err != nil {
+		return nil, err
+	}
+	if err := encodeEnv(b, c.Environment); err != nil {
+		return nil, err
+	}
+	if err := encodeEnv(b, c.SecretEnvironment); err != nil {
+		return nil, err
+	}
+	for _, v := range c.Volumes {
+		if err := v.SigingEncode(b); err != nil {
+			return nil, err
+		}
+	}
+	for _, v := range c.NetworkConnection {
+		if err := v.SigingEncode(b); err != nil {
+			return nil, err
+		}
+	}
+	for _, v := range c.StatsAggregator {
+		if err := v.SigingEncode(b); err != nil {
+			return nil, err
+		}
+	}
+	for _, v := range c.Logs {
+		if err := v.SigingEncode(b); err != nil {
+			return nil, err
+		}
+	}
+	if err := c.Capacity.SigingEncode(b); err != nil {
+		return nil, err
+	}
+
+	h := sha256.New()
+	if _, err := h.Write(b.Bytes()); err != nil {
+		return nil, err
+	}
+
+	return h.Sum(nil), nil
 }
 
 type ContainerCapacity struct {
@@ -80,9 +119,35 @@ type ContainerCapacity struct {
 	DiskType DiskTypeEnum `bson:"disk_type" json:"disk_type"`
 }
 
+func (c ContainerCapacity) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%d", c.Cpu); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%d", c.Memory); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%d", c.DiskSize); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%d", c.DiskType); err != nil {
+		return err
+	}
+	return nil
+}
+
 type Logs struct {
 	Type string    `bson:"type" json:"type"`
 	Data LogsRedis `bson:"data" json:"data"`
+}
+
+func (c Logs) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", c.Type); err != nil {
+		return err
+	}
+	if err := c.Data.SigingEncode(w); err != nil {
+		return err
+	}
+	return nil
 }
 
 type LogsRedis struct {
@@ -90,9 +155,29 @@ type LogsRedis struct {
 	Stderr string `bson:"stderr" json:"stderr"`
 }
 
+func (l LogsRedis) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", l.Stdout); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", l.Stderr); err != nil {
+		return err
+	}
+	return nil
+}
+
 type ContainerMount struct {
 	VolumeId   string `bson:"volume_id" json:"volume_id"`
 	Mountpoint string `bson:"mountpoint" json:"mountpoint"`
+}
+
+func (c ContainerMount) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", c.VolumeId); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", c.Mountpoint); err != nil {
+		return err
+	}
+	return nil
 }
 
 type NetworkConnection struct {
@@ -101,9 +186,32 @@ type NetworkConnection struct {
 	PublicIp6 bool   `bson:"public_ip6" json:"public_ip6"`
 }
 
+func (n NetworkConnection) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", n.NetworkId); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", n.Ipaddress.String()); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%t", n.PublicIp6); err != nil {
+		return err
+	}
+	return nil
+}
+
 type StatsAggregator struct {
 	Type string     `bson:"type" json:"type"`
 	Data StatsRedis `bson:"data" json:"data"`
+}
+
+func (s StatsAggregator) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", s.Type); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", s.Data.Endpoint); err != nil {
+		return err
+	}
+	return nil
 }
 
 type StatsRedis struct {

@@ -1,12 +1,9 @@
 package workloads
 
 import (
-	"encoding/json"
-	"reflect"
-
-	"github.com/rs/zerolog/log"
-
-	"github.com/pkg/errors"
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 )
 
 var _ Workloader = (*Volume)(nil)
@@ -33,33 +30,21 @@ func (v *Volume) GetRSU() RSU {
 	return RSU{}
 }
 
-func (v *Volume) VerifyJSON() error {
-	dup := Volume{}
+func (v *Volume) SignatureChallenge() ([]byte, error) {
+	ric, err := v.ReservationInfo.SignatureChallenge()
+	if err != nil {
+		return nil, err
+	}
+	b := bytes.NewBuffer(ric)
+	fmt.Fprintf(b, "%d", v.Size)
+	fmt.Fprintf(b, "%d", v.Type)
 
-	if err := json.Unmarshal([]byte(v.Json), &dup); err != nil {
-		return errors.Wrap(err, "invalid json data")
+	h := sha256.New()
+	if _, err := h.Write(b.Bytes()); err != nil {
+		return nil, err
 	}
 
-	// override the fields which are not part of the signature
-	dup.ID = v.ID
-	dup.Json = v.Json
-	dup.CustomerTid = v.CustomerTid
-	dup.NextAction = v.NextAction
-	dup.SignaturesProvision = v.SignaturesProvision
-	dup.SignatureFarmer = v.SignatureFarmer
-	dup.SignaturesDelete = v.SignaturesDelete
-	dup.Epoch = v.Epoch
-	dup.Metadata = v.Metadata
-	dup.Result = v.Result
-	dup.WorkloadType = v.WorkloadType
-
-	if match := reflect.DeepEqual(v, dup); !match {
-		log.Debug().Msgf("%v", v)
-		log.Debug().Msgf("%v", dup)
-		return errors.New("json data does not match actual data")
-	}
-
-	return nil
+	return h.Sum(nil), nil
 }
 
 type VolumeTypeEnum uint8

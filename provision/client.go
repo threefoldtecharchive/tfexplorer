@@ -57,15 +57,12 @@ func (r *ReservationClient) DryRun(workload workloads.Workloader, expirationProv
 
 	workload.SetExpirationProvisioning(schema.Date{Time: expirationProvisioning})
 
-	bytes, err := json.Marshal(workload)
+	msg, err := workload.SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}
 
-	json := string(bytes)
-	workload.SetJson(json)
-
-	_, signature, err := signer.SignHex(json)
+	_, signature, err := signer.SignHex(msg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to sign the reservation")
 	}
