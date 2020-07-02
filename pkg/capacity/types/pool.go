@@ -97,8 +97,12 @@ func (p *Pool) AddCapacity(CUs float64, SUs float64) {
 // active CU and SU of the pool
 func (p *Pool) AddWorkload(CU float64, SU float64) {
 	p.SyncCurrentCapacity()
-	p.ActiveCU += CU
-	p.ActiveSU += SU
+	if CU > 0 {
+		p.ActiveCU += CU
+	}
+	if SU > 0 {
+		p.ActiveSU += SU
+	}
 	p.syncPoolExpiration()
 }
 
@@ -106,8 +110,12 @@ func (p *Pool) AddWorkload(CU float64, SU float64) {
 // active CU and SU of the pool
 func (p *Pool) RemoveWorkload(CU float64, SU float64) {
 	p.SyncCurrentCapacity()
-	p.ActiveCU -= CU
-	p.ActiveSU -= SU
+	if CU > 0 {
+		p.ActiveCU -= CU
+	}
+	if SU > 0 {
+		p.ActiveSU -= SU
+	}
 	p.syncPoolExpiration()
 }
 
@@ -127,7 +135,13 @@ func (p *Pool) SyncCurrentCapacity() {
 	now := time.Now().Unix()
 	timePassed := now - p.LastUpdated
 	p.Cus -= p.ActiveCU * float64(timePassed)
+	if p.Cus < 0 {
+		p.Cus = 0
+	}
 	p.Sus -= p.ActiveSU * float64(timePassed)
+	if p.Sus < 0 {
+		p.Sus = 0
+	}
 	p.LastUpdated = now
 }
 
