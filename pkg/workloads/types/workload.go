@@ -382,7 +382,9 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 
 	_, err := col.UpdateOne(ctx, filter,
 		bson.M{
-			"result": result,
+			"$set": bson.M{
+				"result": result,
+			},
 		},
 	)
 
