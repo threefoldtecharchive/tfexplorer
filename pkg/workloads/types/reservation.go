@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -309,7 +310,7 @@ func (r *Reservation) ResultOf(id string) *Result {
 func (r *Reservation) AllDeleted() bool {
 	// check if all workloads have been deleted.
 	for _, wl := range r.Workloads("") {
-		result := r.ResultOf(wl.WorkloadId)
+		result := r.ResultOf(wl.UniqueWorkloadID())
 		if result == nil ||
 			result.State != generated.ResultStateDeleted {
 			return false
@@ -321,156 +322,94 @@ func (r *Reservation) AllDeleted() bool {
 
 // Workloads returns all reservation workloads (filter by nodeID)
 // if nodeID is empty, return all workloads
-func (r *Reservation) Workloads(nodeID string) []Workload {
+func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 
 	data := &r.DataReservation
 
-	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string, poolID int64) Workload {
-		return Workload{
-			ReservationWorkload: generated.ReservationWorkload{
-				WorkloadId: wid,
-				PoolID:     poolID,
-				User:       fmt.Sprint(r.CustomerTid),
-				Type:       t,
-				Created:    r.Epoch,
-				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
-				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
-			},
-			NodeID: nodeID,
+	newWrkl := func(w workloads.Workloader, id schema.ID, user int64, na workloads.NextActionEnum, epoch schema.Date, meta string, result *Result) WorkloaderType {
+		workload := WorkloaderType{Workloader: w}
+		workload.SetCustomerTid(user)
+		workload.SetNextAction(na)
+		workload.SetID(id)
+		workload.SetEpoch(epoch)
+		workload.SetMetadata(meta)
+		if result != nil {
+			workload.SetResult(workloads.Result(*result))
 		}
+		return workload
 	}
 
-	var workloads []Workload
+	var wrklds []WorkloaderType
 	for _, wl := range data.Containers {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeContainer,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 
 	for _, wl := range data.Volumes {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeVolume,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.Zdbs {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeZDB,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.Kubernetes {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeKubernetes,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.Proxies {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeProxy,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.ReverseProxy {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeReverseProxy,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.Subdomains {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeSubDomain,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
 
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.DomainDelegates {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeDomainDelegate,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.Gateway4To6s {
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeGateway4To6,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 	for _, wl := range data.Networks {
-		for _, nr := range wl.NetworkResources {
+		for _, nr := range wl.ToNetworkResources() {
 
 			if len(nodeID) > 0 && nr.NodeId != nodeID {
 				continue
 			}
 
-			wrkl := newWrkl(
-				fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-				generated.WorkloadTypeNetwork,
-				nr.NodeId,
-				nr.PoolId)
-			wrkl.Content = wl
-			workloads = append(workloads, wrkl)
+			wrklds = append(wrklds, newWrkl(&nr, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(nr.UniqueWorkloadID())))
 		}
 	}
 	for _, wl := range data.NetworkResources {
@@ -478,16 +417,10 @@ func (r *Reservation) Workloads(nodeID string) []Workload {
 			continue
 		}
 
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeNetwork,
-			wl.NodeId,
-			wl.PoolId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
 	}
 
-	return workloads
+	return wrklds
 }
 
 // IsSuccessfullyDeployed check if all the workloads defined in the reservation
@@ -690,7 +623,7 @@ func (f QueueFilter) Find(ctx context.Context, db *mongo.Database, opts ...*opti
 }
 
 // WorkloadPush pushes a workload to the queue
-func WorkloadPush(ctx context.Context, db *mongo.Database, w ...Workload) error {
+func WorkloadPush(ctx context.Context, db *mongo.Database, w ...WorkloaderType) error {
 	col := db.Collection(queueCollection)
 	docs := make([]interface{}, 0, len(w))
 	for _, wl := range w {

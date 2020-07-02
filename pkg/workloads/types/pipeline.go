@@ -130,11 +130,6 @@ func (p *Pipeline) Next() (Reservation, bool) {
 			// Reservations who's workloads are attached to pools can deploy immediatly.
 			// NOTE: validation of the pools is static, and must happen when the
 			// explorer receives the reservation.
-			wrklds := p.r.Workloads("")
-			if len(wrklds) > 0 && wrklds[0].PoolID == 0 {
-				slog.Debug().Msg("awaiting reservation payment")
-				break
-			}
 			slog.Debug().Msg("reservation workloads attached to capacity pools - continue to deploy step")
 			p.r.NextAction = generated.NextActionDeploy
 		case generated.NextActionDeploy:

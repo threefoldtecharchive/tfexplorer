@@ -20,6 +20,25 @@ func (n Network) WorkloadID() int64 {
 	return n.WorkloadId
 }
 
+func (n Network) ToNetworkResources() []NetworkResource {
+	netRes := make([]NetworkResource, len(n.NetworkResources))
+
+	for i := range n.NetworkResources {
+		nr := NetworkResource{
+			Name:                         n.Name,
+			WireguardPrivateKeyEncrypted: n.NetworkResources[i].WireguardPrivateKeyEncrypted,
+			WireguardPublicKey:           n.NetworkResources[i].WireguardPublicKey,
+			WireguardListenPort:          n.NetworkResources[i].WireguardListenPort,
+			Iprange:                      n.Iprange,
+			Peers:                        n.NetworkResources[i].Peers,
+		}
+		nr.NodeId = n.NetworkResources[i].NodeId
+		netRes[i] = nr
+	}
+
+	return netRes
+}
+
 type NetworkNetResource struct {
 	NodeId                       string          `bson:"node_id" json:"node_id"`
 	WireguardPrivateKeyEncrypted string          `bson:"wireguard_private_key_encrypted" json:"wireguard_private_key_encrypted"`
@@ -27,7 +46,6 @@ type NetworkNetResource struct {
 	WireguardListenPort          int64           `bson:"wireguard_listen_port" json:"wireguard_listen_port"`
 	Iprange                      schema.IPRange  `bson:"iprange" json:"iprange"`
 	Peers                        []WireguardPeer `bson:"peers" json:"peers"`
-	PoolId                       int64           `bson:"pool_id" json:"pool_id"`
 }
 
 type WireguardPeer struct {

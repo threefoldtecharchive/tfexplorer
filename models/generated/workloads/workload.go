@@ -50,6 +50,7 @@ type (
 		SignatureChallenge() ([]byte, error)
 		GetPoolID() int64
 		GetNodeID() string
+		UniqueWorkloadID() string
 
 		Capaciter
 	}
@@ -393,4 +394,8 @@ func (i *ReservationInfo) GetPoolID() int64 {
 
 func (i *ReservationInfo) GetNodeID() string {
 	return i.NodeId
+}
+
+func (i *ReservationInfo) UniqueWorkloadID() string {
+	return fmt.Sprintf("%d-%d", i.ID, i.WorkloadId)
 }

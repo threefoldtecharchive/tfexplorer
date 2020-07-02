@@ -507,32 +507,34 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newWorkloadGet(r)
 	}
 	// we use an empty node-id in listing to return all workloads in this reservation
 	workloads := reservation.Workloads("")
 
-	var workload *types.Workload
+	var workload types.WorkloaderType
+	var found bool
 	for _, wl := range workloads {
-		if wl.WorkloadId == gwid {
-			workload = &wl
+		if wl.UniqueWorkloadID() == gwid {
+			workload = wl
+			found = true
 			break
 		}
 	}
 
-	if workload == nil {
-		return a.newWorkloadGet(r)
+	if !found {
+		return nil, mw.NotFound(err)
 	}
 
 	var result struct {
-		types.Workload
-		Result []types.Result `json:"result"`
+		types.WorkloaderType
+		Result types.Result `json:"result"`
 	}
-	result.Workload = *workload
+	result.WorkloaderType = workload
 	for _, rs := range reservation.Results {
-		if rs.WorkloadId == workload.WorkloadId {
+		if rs.WorkloadId == workload.UniqueWorkloadID() {
 			t := types.Result(rs)
-			result.Result = append(result.Result, t)
+			result.Result = t
 			break
 		}
 	}
@@ -556,19 +558,17 @@ func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
 	if err != nil {
 		return nil, mw.NotFound(err)
 	}
-	// we use an empty node-id in listing to return all workloads in this reservation
-	work := workload.Workload()
 
-	if work.WorkloadId != gwid {
+	if workload.UniqueWorkloadID() != gwid {
 		return nil, mw.NotFound(fmt.Errorf("workload not found"))
 	}
 
 	var result struct {
-		types.Workload
-		Result []types.Result `json:"result"`
+		types.WorkloaderType
+		Result types.Result `json:"result"`
 	}
-	result.Workload = work
-	result.Result = append(result.Result, types.Result(workload.GetResult()))
+	result.WorkloaderType = workload
+	result.Result = types.Result(workload.GetResult())
 
 	return result, nil
 }
@@ -605,17 +605,18 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 	if err != nil {
 		return a.newworkloadPutResult(r.Context(), db, gwid, rid, result)
 	}
-	// we use an empty node-id in listing to return all workloads in this reservation
+
 	workloads := reservation.Workloads(nodeID)
-	var workload *types.Workload
+
+	var found bool
 	for _, wl := range workloads {
-		if wl.WorkloadId == gwid {
-			workload = &wl
+		if wl.UniqueWorkloadID() == gwid {
+			found = true
 			break
 		}
 	}
 
-	if workload == nil {
+	if !found {
 		return nil, mw.NotFound(errors.New("workload not found"))
 	}
 
@@ -722,17 +723,17 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 		return a.newworkloadPutDeleted(r.Context(), db, rid, gwid, nodeID)
 	}
 
-	// we use an empty node-id in listing to return all workloads in this reservation
 	workloads := reservation.Workloads(nodeID)
-	var workload *types.Workload
+
+	var found bool
 	for _, wl := range workloads {
-		if wl.WorkloadId == gwid {
-			workload = &wl
+		if wl.UniqueWorkloadID() == gwid {
+			found = true
 			break
 		}
 	}
 
-	if workload == nil {
+	if !found {
 		return nil, mw.NotFound(errors.New("workload not found"))
 	}
 
