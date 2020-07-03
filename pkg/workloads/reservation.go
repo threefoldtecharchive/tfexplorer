@@ -324,7 +324,7 @@ func (a *API) get(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return a.getWorkload(r)
+		return nil, mw.NotFound(err)
 	}
 
 	return reservation, nil
@@ -388,6 +388,52 @@ func (a *API) list(r *http.Request) (interface{}, mw.Response) {
 		}
 
 		reservations = append(reservations, reservation)
+	}
+
+	pages := fmt.Sprintf("%d", models.NrPages(total, *pager.Limit))
+	return reservations, mw.Ok().WithHeader("Pages", pages)
+}
+
+func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
+	var filter types.WorkloadFilter
+	filter, err := types.ApplyQueryFilterWorkload(r, filter)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	db := mw.Database(r)
+	pager := models.PageFromRequest(r)
+	cur, err := filter.FindCursor(r.Context(), db, pager)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	defer cur.Close(r.Context())
+
+	total, err := filter.Count(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	reservations := []types.WorkloaderType{}
+
+	for cur.Next(r.Context()) {
+		var workload types.WorkloaderType
+		if err := cur.Decode(&workload); err != nil {
+			// skip reservations we can not load
+			// this is probably an old reservation
+			currentID := cur.Current.Lookup("_id").Int64()
+			log.Error().Err(err).Int64("id", currentID).Msg("failed to decode reservation")
+			continue
+		}
+
+		workload, err := a.workloadpipeline(workload, nil)
+		if err != nil {
+			log.Error().Err(err).Int64("id", int64(workload.GetID())).Msg("failed to process reservation")
+			continue
+		}
+
+		reservations = append(reservations, workload)
 	}
 
 	pages := fmt.Sprintf("%d", models.NrPages(total, *pager.Limit))

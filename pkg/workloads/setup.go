@@ -38,5 +38,10 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	reservations.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(api.getPool)).Methods(http.MethodGet).Name("pool-get")
 	reservations.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(api.listPools)).Methods(http.MethodGet).Name("pool-get-by-owner")
 
+	// new style workloads
+	workload := parent.PathPrefix("/workload").Subrouter()
+	workload.HandleFunc("", mw.AsHandlerFunc(api.listWorkload)).Methods(http.MethodGet).Name("workloadreservation-list")
+	workload.HandleFunc("/{res_id:\\d+}", mw.AsHandlerFunc(api.getWorkload)).Methods(http.MethodGet).Name("workloadreservation-get")
+
 	return nil
 }
