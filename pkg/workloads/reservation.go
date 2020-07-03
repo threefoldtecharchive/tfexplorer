@@ -945,6 +945,77 @@ func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Created()
 }
 
+func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
+	var signature generated.SigningSignature
+
+	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	sig, err := hex.DecodeString(signature.Signature)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature expecting hex encoded string"))
+	}
+
+	id, err := a.parseID(mux.Vars(r)["res_id"])
+	if err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(id)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.GetNextAction() != generated.NextActionSign {
+		return nil, mw.UnAuthorized(fmt.Errorf("workload not expecting signatures"))
+	}
+
+	in := func(i int64, l []int64) bool {
+		for _, x := range l {
+			if x == i {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !in(signature.Tid, workload.GetSigningRequestProvision().Signers) {
+		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	}
+
+	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.NotFound(errors.Wrap(err, "customer id not found"))
+	}
+
+	if err := workload.SignatureVerify(user.Pubkey, sig); err != nil {
+		return nil, mw.UnAuthorized(errors.Wrap(err, "failed to verify signature"))
+	}
+
+	signature.Epoch = schema.Date{Time: time.Now()}
+	if err := types.WorkloadPushSignature(r.Context(), db, id, types.SignatureProvision, signature); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	workload, err = a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if workload.GetNextAction() == generated.NextActionDeploy {
+		if err = types.WorkloadPush(r.Context(), db, workload); err != nil {
+			return nil, mw.Error(err)
+		}
+	}
+
+	return nil, mw.Created()
+}
+
 func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 	var signature generated.SigningSignature
