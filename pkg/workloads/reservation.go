@@ -438,57 +438,109 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return workloads, nil
 	}
 
-	//TODO
-	// from, err := a.parseID(r.FormValue("from"))
-	// if err != nil {
-	// 	return nil, mw.BadRequest(err)
-	// }
+	from, err := a.parseID(r.FormValue("from"))
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
 
-	// // store last reservation ID
-	lastID, err := types.ReservationLastID(r.Context(), db)
+	// store last reservation ID
+	lastReservationID, err := types.ReservationLastID(r.Context(), db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
 
-	// filter := types.ReservationFilter{}.WithIDGE(from)
-	// filter = filter.WithNodeID(nodeID)
+	lastWorkloadID, err := types.WorkloadsLastID(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
 
-	// cur, err := filter.Find(r.Context(), db)
-	// if err != nil {
-	// 	return nil, mw.Error(err)
-	// }
+	lastID := lastReservationID
+	if lastWorkloadID > lastID {
+		lastID = lastWorkloadID
+	}
 
-	// defer cur.Close(r.Context())
+	filter := types.WorkloadFilter{}.WithIDGE(from)
+	filter = filter.WithNodeID(nodeID)
 
-	// for cur.Next(r.Context()) {
-	// 	var reservation types.Reservation
-	// 	if err := cur.Decode(&reservation); err != nil {
-	// 		return nil, mw.Error(err)
-	// 	}
+	cur, err := filter.FindCursor(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+	defer cur.Close(r.Context())
 
-	// 	reservation, err = a.pipeline(reservation, nil)
-	// 	if err != nil {
-	// 		log.Error().Err(err).Int64("id", int64(reservation.ID)).Msg("failed to process reservation")
-	// 		continue
-	// 	}
+	for cur.Next(r.Context()) {
+		var workloader types.WorkloaderType
+		if err := cur.Decode(&workloader); err != nil {
+			return nil, mw.Error(err)
+		}
 
-	// 	if reservation.NextAction == types.Delete {
-	// 		if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
-	// 			return nil, mw.Error(err)
-	// 		}
-	// 	}
+		workloader, err = a.workloadpipeline(workloader, nil)
+		if err != nil {
+			log.Error().Err(err).Int64("id", int64(workloader.GetID())).Msg("failed to process workload")
+			continue
+		}
 
-	// 	// only reservations that is in right status
-	// 	if !reservation.IsAny(types.Deploy, types.Delete) {
-	// 		continue
-	// 	}
+		if workloader.GetNextAction() == types.Delete {
+			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.GetID(), generated.NextActionDelete); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
 
-	// 	workloads = append(workloads, reservation.Workloads(nodeID)...)
+		if !workloader.IsAny(types.Deploy, types.Delete) {
+			continue
+		}
 
-	// 	if len(workloads) >= maxPageSize {
-	// 		break
-	// 	}
-	// }
+		workloads = append(workloads, workloader)
+
+		if len(workloads) >= maxPageSize {
+			break
+		}
+	}
+
+	// if we have sufficient data return
+	if len(workloads) >= maxPageSize {
+		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+	}
+
+	rfilter := types.ReservationFilter{}.WithIDGE(from)
+	rfilter = rfilter.WithNodeID(nodeID)
+
+	cur, err = rfilter.Find(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	defer cur.Close(r.Context())
+
+	for cur.Next(r.Context()) {
+		var reservation types.Reservation
+		if err := cur.Decode(&reservation); err != nil {
+			return nil, mw.Error(err)
+		}
+
+		reservation, err = a.pipeline(reservation, nil)
+		if err != nil {
+			log.Error().Err(err).Int64("id", int64(reservation.ID)).Msg("failed to process reservation")
+			continue
+		}
+
+		if reservation.NextAction == types.Delete {
+			if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
+
+		// only reservations that is in right status
+		if !reservation.IsAny(types.Deploy, types.Delete) {
+			continue
+		}
+
+		workloads = append(workloads, reservation.Workloads(nodeID)...)
+
+		if len(workloads) >= maxPageSize {
+			break
+		}
+	}
 
 	return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 }

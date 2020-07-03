@@ -135,6 +135,17 @@ func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*o
 	return ws, nil
 }
 
+// FindCursor all users workloads matches filter, and return a plain cursor to them
+func (f WorkloadFilter) FindCursor(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) (*mongo.Cursor, error) {
+	if f == nil {
+		f = WorkloadFilter{}
+	}
+
+	cursor, err := db.Collection(WorkloadCollection).Find(ctx, f, opts...)
+
+	return cursor, errors.Wrap(err, "failed to get workload cursor")
+}
+
 // Count number of documents matching
 func (f WorkloadFilter) Count(ctx context.Context, db *mongo.Database) (int64, error) {
 	col := db.Collection(WorkloadCollection)
