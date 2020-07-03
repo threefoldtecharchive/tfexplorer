@@ -322,10 +322,9 @@ func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, 
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	poolcu, poolsu := pool.GetCapacity()
+	pool.AddWorkload(CloudUnitsFromResourceUnits(w.GetRSU()))
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
-	return poolcu >= cu*float64(seconds) && poolsu >= su*float64(seconds), nil
+	return time.Now().Add(time.Second*time.Duration(seconds)).Unix() < pool.EmptyAt, nil
 }
 
 // poolByID returns the pool with the given ID

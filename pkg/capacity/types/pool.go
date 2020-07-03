@@ -181,12 +181,6 @@ func (p *Pool) syncPoolExpiration() {
 	p.EmptyAt = xp
 }
 
-// GetCapacity left in the pool
-func (p *Pool) GetCapacity() (float64, float64) {
-	p.syncPoolExpiration()
-	return p.Cus, p.Sus
-}
-
 // CapacityPoolCreate save new capacity pool to the database
 func CapacityPoolCreate(ctx context.Context, db *mongo.Database, pool Pool) (Pool, error) {
 	_, err := db.Collection(CapacityPoolCollection).InsertOne(ctx, pool)
