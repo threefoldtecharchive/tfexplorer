@@ -259,7 +259,10 @@ func GetNextExpiredPool(ctx context.Context, db *mongo.Database, ts int64) (Pool
 	opts.Sort = bson.M{"empty_at": 1} // ascending sort based on expired at
 	res := db.Collection(CapacityPoolCollection).FindOne(ctx, bson.M{"empty_at": bson.M{"$gt": ts}}, opts)
 	if res.Err() != nil {
-		return pool, errors.Wrap(res.Err(), "could not open pool cursor")
+		if errors.Is(res.Err(), mongo.ErrNoDocuments) {
+			return pool, ErrPoolNotFound
+		}
+		return pool, errors.Wrap(res.Err(), "could not fetch next pool to expire")
 	}
 	if err := res.Decode(&pool); err != nil {
 		return pool, errors.Wrap(err, "could not decode pool")

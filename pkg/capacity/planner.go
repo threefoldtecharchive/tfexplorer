@@ -457,8 +457,25 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 
 	nextPoolToExpire, err := types.GetNextExpiredPool(p.ctx, p.db, ts)
 	if err != nil {
-		return errors.Wrap(err, "could not get next pool to expire")
+		if !errors.Is(err, types.ErrPoolNotFound) {
+			return errors.Wrap(err, "could not get next pool to expire")
+		}
+		// ErrPoolNotFound could happen if there are no pools in the system yet.
+		// Since we only care for the EmptyAt field, set that to a max value of some sort
+		//
+		// now we can't just use math.MaxInt64. Why? because later on we use a duration
+		// from this timestamp. And someone thought hey, lets make duration an alias
+		// for int64. You'd be forgiven for thinking that this is all fine. But recall
+		// that go represents a duration with nanoscend precision, whereas timestamp
+		// is a second. See where this is going yet? According to the official go
+		// doc, the largest representable duration is about 290 years. So rather
+		// than calculating exactly how far in the future we can set this, we simply
+		// add about 280 years to the current time.
+		log.Debug().Msg("next pool to expire not found, setting expiration at maximum")
+		nextPoolToExpire.EmptyAt = time.Now().Add(time.Hour * 24 * 365 * 280).Unix()
 	}
+
+	log.Debug().Time("ExpireAt", time.Unix(nextPoolToExpire.EmptyAt, 0)).Msg("next pool to expire")
 
 	p.timer = time.NewTimer(time.Until(time.Unix(nextPoolToExpire.EmptyAt, 0)))
 
