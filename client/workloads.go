@@ -14,9 +14,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
-// errUnknownWorkload define error when an unknown workload is found from reservation
-var errUnknownWorkload = errors.New("unknown workload type")
-
 type httpWorkloads struct {
 	*httpClient
 }
