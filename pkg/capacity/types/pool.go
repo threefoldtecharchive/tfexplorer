@@ -10,6 +10,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -235,4 +236,34 @@ func GetPoolsByOwner(ctx context.Context, db *mongo.Database, owner int64) ([]Po
 	}
 
 	return pools, nil
+}
+
+// GetExpiredPools returns a list of all expired pools
+func GetExpiredPools(ctx context.Context, db *mongo.Database, ts int64) ([]Pool, error) {
+	pools := []Pool{}
+	cursor, err := db.Collection(CapacityPoolCollection).Find(ctx, bson.M{"empty_at": bson.M{"$lte": ts}})
+	if err != nil {
+		return nil, errors.Wrap(err, "could not load pools for owner")
+	}
+	if err = cursor.All(ctx, &pools); err != nil {
+		return nil, errors.Wrap(err, "could not decode pools")
+	}
+
+	return pools, nil
+}
+
+// GetNextExpiredPool gets the first pool to expire after the given timestamp
+func GetNextExpiredPool(ctx context.Context, db *mongo.Database, ts int64) (Pool, error) {
+	var pool Pool
+	opts := options.FindOne()
+	opts.Sort = bson.M{"empty_at": 1} // ascending sort based on expired at
+	res := db.Collection(CapacityPoolCollection).FindOne(ctx, bson.M{"empty_at": bson.M{"$gt": ts}}, opts)
+	if res.Err() != nil {
+		return pool, errors.Wrap(res.Err(), "could not open pool cursor")
+	}
+	if err := res.Decode(&pool); err != nil {
+		return pool, errors.Wrap(err, "could not decode pool")
+	}
+
+	return pool, nil
 }

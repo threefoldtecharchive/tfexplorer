@@ -2,6 +2,7 @@ package capacity
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -47,6 +48,9 @@ type (
 		hasCapacityChan        chan hasCapacityJob
 		listChan               chan listPoolJob
 		updateUsedCapacityChan chan updateUsedCapacityJob
+
+		// timer when next pool is empty
+		timer *time.Timer
 
 		db  *mongo.Database
 		ctx context.Context
@@ -124,10 +128,21 @@ func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
 func (p *NaivePlanner) Run(ctx context.Context) {
 	p.ctx = ctx
 
+	// first make sure we decomission workloads from expired pools
+	log.Info().Msg("setting up capacity planner expiration timer")
+	if err := p.handlePoolExpiration(true); err != nil {
+		log.Error().Err(err).Msg("failed to expire capacity pools")
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info().Msg("context is done, stopping planner")
+		case <-p.timer.C:
+			log.Info().Msg("capacity planner timer fired, pool should be expired")
+			if err := p.handlePoolExpiration(true); err != nil {
+				log.Error().Err(err).Msg("failure to expire capacity pool")
+			}
 		case job := <-p.reserveChan:
 			info, err := p.reserve(job.reservation, job.currencies)
 			job.responseChan <- reserveResponse{info: info, err: err}
@@ -373,7 +388,7 @@ func (p *NaivePlanner) addCapacity(id schema.ID) error {
 		}
 	}
 
-	return nil
+	return p.handlePoolExpiration(false)
 }
 
 func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) error {
@@ -391,6 +406,61 @@ func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) err
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
 		errors.Wrap(err, "could not save updated pool")
 	}
+
+	return p.handlePoolExpiration(false)
+}
+
+// handlePoolExpiration sets up the planners timer to fire as soon as the next pool
+// expires. If cancelOld is given, this function will check for expired pools and try
+// to cancel their attached workloads.
+//
+// cancelOld should be false if it is known that there can not be an expired pool
+// in the system. Most notably, this will be false when called from the updateUsedCapacity
+// method, since that method can only change the time at which the next pool exipres,
+// not expire a currently active pool.
+func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
+	// first cancel the existing timer
+	if p.timer != nil {
+		// do not drain the timer channel, as that could cause a deadlock if this
+		// method is called because the timer expired. If this was the case, the
+		// timer channel is alreay empty. If it was not the case, the new check
+		// in the goroutine runtime loop will read from the new channel we set
+		// later.
+		p.timer.Stop()
+	}
+
+	ts := time.Now().Unix()
+
+	if cancelOld {
+		expiredPools, err := types.GetExpiredPools(p.ctx, p.db, ts)
+		if err != nil {
+			return errors.Wrap(err, "could not load expired pools")
+		}
+
+		for i := range expiredPools {
+			filter := workloadtypes.WorkloadFilter{}.WithPoolID(int64(expiredPools[i].ID)).WithNextAction(workloadtypes.Deploy)
+			workloads, err := filter.Find(p.ctx, p.db)
+			if err != nil {
+				return errors.Wrap(err, "could not load workloads to expire")
+			}
+			for j := range workloads {
+				workloads[j].SetNextAction(workloadtypes.Delete)
+				if err = workloadtypes.WorkloadSetNextAction(p.ctx, p.db, workloads[j].GetID(), workloadtypes.Delete); err != nil {
+					return errors.Wrap(err, "could not set workload to delete state")
+				}
+				if err = workloadtypes.WorkloadPush(p.ctx, p.db, workloads[j]); err != nil {
+					return errors.Wrap(err, "could not push workload to delete in workload queue")
+				}
+			}
+		}
+	}
+
+	nextPoolToExpire, err := types.GetNextExpiredPool(p.ctx, p.db, ts)
+	if err != nil {
+		return errors.Wrap(err, "could not get next pool to expire")
+	}
+
+	p.timer = time.NewTimer(time.Until(time.Unix(nextPoolToExpire.EmptyAt, 0)))
 
 	return nil
 }

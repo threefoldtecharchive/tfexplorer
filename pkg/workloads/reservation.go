@@ -1198,11 +1198,8 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Created()
 	}
 
-	if err = types.WorkloadSetNextAction(r.Context(), db, id, generated.NextActionDelete); err != nil {
-		return nil, mw.Created()
-	}
-
-	if err := types.WorkloadPush(r.Context(), db, workload); err != nil {
+	workload, err = a.setWorkloadDelete(r.Context(), db, workload)
+	if err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -1213,4 +1210,14 @@ func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id 
 	// cancel reservation escrow in case the reservation has not yet been deployed
 	a.escrow.ReservationCanceled(id)
 	return types.ReservationSetNextAction(ctx, db, id, generated.NextActionDelete)
+}
+
+func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types.WorkloaderType) (types.WorkloaderType, error) {
+	w.SetNextAction(types.Delete)
+
+	if err := types.ReservationSetNextAction(ctx, db, w.GetID(), types.Delete); err != nil {
+		return w, errors.Wrap(err, "could not update workload to delete state")
+	}
+
+	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
 }
