@@ -899,7 +899,7 @@ func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newSignProvision(r)
 	}
 
 	if reservation.NextAction != generated.NextActionSign {
@@ -1031,7 +1031,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 
 	id, err := a.parseID(mux.Vars(r)["res_id"])
 	if err != nil {
-		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+		return a.newSignDelete(r)
 	}
 
 	var filter types.ReservationFilter
@@ -1084,6 +1084,79 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if err := types.WorkloadPush(r.Context(), db, reservation.Workloads("")...); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return nil, mw.Created()
+}
+
+func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
+	var signature generated.SigningSignature
+
+	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	sig, err := hex.DecodeString(signature.Signature)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature expecting hex encoded string"))
+	}
+
+	id, err := a.parseID(mux.Vars(r)["res_id"])
+	if err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(id)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	in := func(i int64, l []int64) bool {
+		for _, x := range l {
+			if x == i {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !in(signature.Tid, workload.GetSigningRequestDelete().Signers) {
+		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	}
+
+	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.NotFound(errors.Wrap(err, "customer id not found"))
+	}
+
+	if err := workload.SignatureVerify(user.Pubkey, sig); err != nil {
+		return nil, mw.UnAuthorized(errors.Wrap(err, "failed to verify signature"))
+	}
+
+	signature.Epoch = schema.Date{Time: time.Now()}
+	if err := types.WorkloadPushSignature(r.Context(), db, id, types.SignatureDelete, signature); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	workload, err = a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if workload.GetNextAction() != generated.NextActionDelete {
+		return nil, mw.Created()
+	}
+
+	if err = types.WorkloadSetNextAction(r.Context(), db, id, generated.NextActionDelete); err != nil {
+		return nil, mw.Created()
+	}
+
+	if err := types.WorkloadPush(r.Context(), db, workload); err != nil {
 		return nil, mw.Error(err)
 	}
 
