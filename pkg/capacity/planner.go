@@ -484,7 +484,6 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 	// out, this also does not behave properly with large timestamps, like the ones
 	// we would want to clamp.
 	if nextPoolToExpire.EmptyAt > time.Now().Add(unusedPoolExpiration).Unix() {
-		log.Debug().Msg("unix fired")
 		nextPoolToExpire.EmptyAt = time.Now().Add(unusedPoolExpiration).Unix()
 	}
 
