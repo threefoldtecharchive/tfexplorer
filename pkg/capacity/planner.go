@@ -110,6 +110,10 @@ type (
 	}
 )
 
+const (
+	unusedPoolExpiration = time.Hour * 24 * 365 * 280
+)
+
 // NewNaivePlanner creates a new NaivePlanner, using the provided escrow and
 // database connection
 func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
@@ -471,7 +475,17 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 		// than calculating exactly how far in the future we can set this, we simply
 		// add about 280 years to the current time.
 		log.Debug().Msg("next pool to expire not found, setting expiration at maximum")
-		nextPoolToExpire.EmptyAt = time.Now().Add(time.Hour * 24 * 365 * 280).Unix()
+		nextPoolToExpire.EmptyAt = time.Now().Add(unusedPoolExpiration).Unix()
+	}
+
+	// clamp max interval to prevent an overflow causing weird behavior later
+	//
+	// once again you may wonder, why not use `time.After(...)` here? As it turns
+	// out, this also does not behave properly with large timestamps, like the ones
+	// we would want to clamp.
+	if nextPoolToExpire.EmptyAt > time.Now().Add(unusedPoolExpiration).Unix() {
+		log.Debug().Msg("unix fired")
+		nextPoolToExpire.EmptyAt = time.Now().Add(unusedPoolExpiration).Unix()
 	}
 
 	log.Debug().Time("ExpireAt", time.Unix(nextPoolToExpire.EmptyAt, 0)).Msg("next pool to expire")
