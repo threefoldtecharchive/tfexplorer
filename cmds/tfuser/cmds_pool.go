@@ -109,6 +109,6 @@ func formatPool(pool types.Pool) string {
 	fmt.Fprintf(b, "Capacity in usage:\n")
 	fmt.Fprintf(b, "  Compute unit: %.2f\n", pool.ActiveCU)
 	fmt.Fprintf(b, "  Storage unit: %.2f\n", pool.ActiveSU)
-	fmt.Fprintf(b, "Will expired at: %s\n", time.Unix(pool.EmptyAt, 0).Format(time.RFC822))
+	fmt.Fprintf(b, "Will expired at: %s\n", time.Unix(pool.EmptyAt, 0).Format(time.RFC1123))
 	return b.String()
 }
