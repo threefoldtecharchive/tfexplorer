@@ -722,7 +722,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, rid); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -750,6 +750,11 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 	var filter types.WorkloadFilter
 	filter = filter.WithID(globalID)
 
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
 	workload, err := a.workloadpipeline(filter.Get(ctx, db))
 	if err != nil {
 		return nil, mw.NotFound(err)
@@ -765,7 +770,7 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(ctx, db, gwid, result.NodeId); err != nil {
+	if err := types.WorkloadPop(ctx, db, rid); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -851,7 +856,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, rid); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -873,6 +878,11 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid schema.ID, gwid string, nodeID string) (interface{}, mw.Response) {
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
 	var filter types.WorkloadFilter
 	filter = filter.WithID(wid)
 
@@ -910,7 +920,7 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(ctx, db, gwid, nodeID); err != nil {
+	if err := types.WorkloadPop(ctx, db, rid); err != nil {
 		return nil, mw.Error(err)
 	}
 

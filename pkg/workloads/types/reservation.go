@@ -625,19 +625,21 @@ func (f QueueFilter) Find(ctx context.Context, db *mongo.Database, opts ...*opti
 // WorkloadPush pushes a workload to the queue
 func WorkloadPush(ctx context.Context, db *mongo.Database, w ...WorkloaderType) error {
 	col := db.Collection(queueCollection)
-	docs := make([]interface{}, 0, len(w))
-	for _, wl := range w {
-		docs = append(docs, wl)
-	}
-	_, err := col.InsertMany(ctx, docs)
 
-	return err
+	for _, wl := range w {
+		_, err := col.UpdateOne(ctx, bson.M{"_id": wl.GetID()}, bson.M{"$set": wl}, options.Update().SetUpsert(true))
+		if err != nil {
+			return errors.Wrap(err, "could not upsert workload")
+		}
+	}
+
+	return nil
 }
 
 // WorkloadPop removes workload from queue
-func WorkloadPop(ctx context.Context, db *mongo.Database, id string, nodeID string) error {
+func WorkloadPop(ctx context.Context, db *mongo.Database, id schema.ID) error {
 	col := db.Collection(queueCollection)
-	_, err := col.DeleteOne(ctx, bson.M{"workload_id": id, "node_id": nodeID})
+	_, err := col.DeleteOne(ctx, bson.M{"_id": id})
 
 	return err
 }
@@ -675,20 +677,11 @@ func ResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result Re
 
 	// we don't care if we couldn't delete old result.
 	// in case it never existed, or the array is nil.
-	col.UpdateOne(ctx, filter, bson.M{
-		"$pull": bson.M{
-			"results": bson.M{
-				"workload_id": result.WorkloadId,
-				"node_id":     result.NodeId,
-			},
-		},
-	})
-
 	_, err := col.UpdateOne(ctx, filter, bson.D{
 		{
-			Key: "$push",
+			Key: "$set",
 			Value: bson.M{
-				"results": result,
+				"result": result,
 			},
 		},
 	})
