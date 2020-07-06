@@ -441,12 +441,14 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 		}
 
 		for i := range expiredPools {
+			log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Msg("expire pool workloads")
 			filter := workloadtypes.WorkloadFilter{}.WithPoolID(int64(expiredPools[i].ID)).WithNextAction(workloadtypes.Deploy)
 			workloads, err := filter.Find(p.ctx, p.db)
 			if err != nil {
 				return errors.Wrap(err, "could not load workloads to expire")
 			}
 			for j := range workloads {
+				log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Int64("Workload", int64(workloads[j].GetID())).Msg("expire workload")
 				workloads[j].SetNextAction(workloadtypes.Delete)
 				if err = workloadtypes.WorkloadSetNextAction(p.ctx, p.db, workloads[j].GetID(), workloadtypes.Delete); err != nil {
 					return errors.Wrap(err, "could not set workload to delete state")
