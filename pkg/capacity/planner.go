@@ -289,6 +289,22 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 		if err != nil {
 			return pi, errors.Wrap(err, "failed to load pool")
 		}
+		pool.SyncCurrentCapacity()
+		// verify node ID's, all node ID's from the existing pool should be present
+		// in the new reservation, but more are allowed. This makes sure we can
+		// add a node to a pool
+		for i := range pool.NodeIDs {
+			found := false
+			for j := range reservation.DataReservation.NodeIDs {
+				if pool.NodeIDs[i] == reservation.DataReservation.NodeIDs[j] {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return pi, errors.New("nodes can not be removed from a pool")
+			}
+		}
 
 	} else {
 		// create new pool

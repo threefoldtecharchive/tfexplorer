@@ -173,6 +173,15 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 
+	// make sure there are no duplicate node ID's
+	seenNodes := make(map[string]struct{})
+	for i := range reservation.DataReservation.NodeIDs {
+		if _, exists := seenNodes[reservation.DataReservation.NodeIDs[i]]; exists {
+			return nil, mw.Conflict(errors.New("duplicate node ID is not allowed in capacity pool"))
+		}
+		seenNodes[reservation.DataReservation.NodeIDs[i]] = struct{}{}
+	}
+
 	// check if all nodes belong to the same farm
 	farms, err := directory.FarmsForNodes(r.Context(), db, reservation.DataReservation.NodeIDs...)
 	if err != nil {
