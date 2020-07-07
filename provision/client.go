@@ -77,8 +77,6 @@ func (r *ReservationClient) DeployCapacityPool(reservation types.Reservation, cu
 		return wrklds.CapacityPoolCreateResponse{}, nil
 	}
 
-	fmt.Printf("%+v", reservationToCreate)
-
 	response, err := r.explorer.Workloads.PoolCreate(reservationToCreate)
 	if err != nil {
 		return wrklds.CapacityPoolCreateResponse{}, errors.Wrap(err, "failed to send reservation")

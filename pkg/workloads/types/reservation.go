@@ -336,88 +336,115 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if result != nil {
 			workload.SetResult(workloads.Result(*result))
 		}
+
 		return workload
 	}
 
 	var wrklds []WorkloaderType
-	for _, wl := range data.Containers {
+	for i := range data.Containers {
+		wl := data.Containers[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId)
+		wl.WorkloadType = generated.WorkloadTypeContainer
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
 
-	for _, wl := range data.Volumes {
+	for i := range data.Volumes {
+		wl := data.Volumes[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeVolume
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Zdbs {
+	for i := range data.Zdbs {
+		wl := data.Zdbs[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeZDB
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Kubernetes {
+	for i := range data.Kubernetes {
+		wl := data.Kubernetes[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeKubernetes
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Proxies {
+	for i := range data.Proxies {
+		wl := data.Proxies[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeProxy
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.ReverseProxy {
+	for i := range data.ReverseProxy {
+		wl := data.ReverseProxy[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeReverseProxy
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Subdomains {
+	for i := range data.Subdomains {
+		wl := data.Subdomains[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeSubDomain
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.DomainDelegates {
+	for i := range data.DomainDelegates {
+		wl := data.DomainDelegates[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeDomainDelegate
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Gateway4To6s {
+	for i := range data.Gateway4To6s {
+		wl := data.Gateway4To6s[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeGateway4To6
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Networks {
-		for _, nr := range wl.ToNetworkResources() {
-
+	for i := range data.Networks {
+		wl := data.Networks[i]
+		networkResources := wl.ToNetworkResources()
+		for i := range networkResources {
+			nr := networkResources[i]
 			if len(nodeID) > 0 && nr.NodeId != nodeID {
 				continue
 			}
 
-			wrklds = append(wrklds, newWrkl(&nr, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(nr.UniqueWorkloadID())))
+			uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+			nr.WorkloadType = generated.WorkloadTypeNetworkResource
+			wrklds = append(wrklds, newWrkl(&nr, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 		}
 	}
-	for _, wl := range data.NetworkResources {
+	for i := range data.NetworkResources {
+		wl := data.NetworkResources[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(wl.UniqueWorkloadID())))
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeNetworkResource
+		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
 	}
 
 	return wrklds

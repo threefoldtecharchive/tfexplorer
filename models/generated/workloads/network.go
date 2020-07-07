@@ -25,6 +25,10 @@ func (n Network) ToNetworkResources() []NetworkResource {
 
 	for i := range n.NetworkResources {
 		nr := NetworkResource{
+			ReservationInfo: ReservationInfo{
+				WorkloadId:   int64(i + 1),
+				WorkloadType: WorkloadTypeNetworkResource,
+			},
 			Name:                         n.Name,
 			WireguardPrivateKeyEncrypted: n.NetworkResources[i].WireguardPrivateKeyEncrypted,
 			WireguardPublicKey:           n.NetworkResources[i].WireguardPublicKey,
