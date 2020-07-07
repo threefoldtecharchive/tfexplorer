@@ -23,17 +23,17 @@ func (w *httpWorkloads) Create(workload workloads.Workloader) (resp wrklds.Reser
 	return
 }
 
-func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (workloads []workloads.Workloader, err error) {
+func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservations []workloads.Reservation, err error) {
 	query := url.Values{}
 	if nextAction != nil {
-		query.Set("next_action", fmt.Sprintf("%d", nextAction))
+		query.Set("next_action", fmt.Sprintf("%d", *nextAction))
 	}
 	if customerTid != 0 {
 		query.Set("customer_tid", fmt.Sprint(customerTid))
 	}
 	page.apply(query)
 
-	_, err = w.get(w.url("reservations"), query, &workloads, http.StatusOK)
+	_, err = w.get(w.url("reservations"), query, &reservations, http.StatusOK)
 	return
 }
 
@@ -82,6 +82,10 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workl
 	}
 
 	response, err := http.Get(u)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	if err := w.process(response, &list, http.StatusOK); err != nil {
 		return nil, 0, err
 	}

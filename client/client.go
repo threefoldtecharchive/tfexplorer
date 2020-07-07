@@ -87,7 +87,7 @@ type (
 	// Workloads interface
 	Workloads interface {
 		Create(reservation workloads.Workloader) (resp wrklds.ReservationCreateResponse, err error)
-		List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Workloader, err error)
+		List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Reservation, err error)
 		Get(id schema.ID) (reservation workloads.Workloader, err error)
 
 		SignProvision(id schema.ID, user schema.ID, signature string) error

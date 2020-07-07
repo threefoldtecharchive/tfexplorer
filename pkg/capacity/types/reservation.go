@@ -54,8 +54,8 @@ type (
 	// some stuff on our end.
 	ReservationData struct {
 		PoolID     int64    `bson:"pool_id" json:"pool_id"`
-		CUs        uint64   `bson:"cus" json:"c_us"`
-		SUs        uint64   `bson:"sus" json:"s_us"`
+		CUs        uint64   `bson:"cus" json:"cus"`
+		SUs        uint64   `bson:"sus" json:"sus"`
 		NodeIDs    []string `bson:"node_ids" json:"node_ids"`
 		Currencies []string `bson:"currencies" json:"currencies"`
 	}

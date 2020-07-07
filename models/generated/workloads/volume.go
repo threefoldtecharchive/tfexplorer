@@ -37,14 +37,13 @@ func (v *Volume) SignatureChallenge() ([]byte, error) {
 	}
 	b := bytes.NewBuffer(ric)
 	fmt.Fprintf(b, "%d", v.Size)
-	fmt.Fprintf(b, "%d", v.Type)
+	fmt.Fprintf(b, "%s", v.Type.String())
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
+	fmt.Println(b.String())
+	h := sha256.Sum256(b.Bytes())
+	fmt.Printf("%x\n", h)
 
-	return h.Sum(nil), nil
+	return h[:], nil
 }
 
 type VolumeTypeEnum uint8

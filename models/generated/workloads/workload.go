@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -354,9 +355,6 @@ func (i *ReservationInfo) SetSignaturesDelete(signatures []SigningSignature) {
 func (i *ReservationInfo) SignatureChallenge() ([]byte, error) { //TODO: name of this is shit
 	b := &bytes.Buffer{}
 
-	if _, err := fmt.Fprintf(b, "%d", i.ID); err != nil {
-		return nil, err
-	}
 	if _, err := fmt.Fprintf(b, "%d", i.WorkloadId); err != nil {
 		return nil, err
 	}
@@ -369,7 +367,7 @@ func (i *ReservationInfo) SignatureChallenge() ([]byte, error) { //TODO: name of
 	if _, err := fmt.Fprintf(b, "%d", i.CustomerTid); err != nil {
 		return nil, err
 	}
-	if _, err := fmt.Fprintf(b, "%d", i.WorkloadType); err != nil {
+	if _, err := fmt.Fprintf(b, "%s", strings.ToUpper(i.WorkloadType.String())); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%d", i.ExpirationProvisioning.Unix()); err != nil {

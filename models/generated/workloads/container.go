@@ -90,16 +90,16 @@ func (c *Container) SignatureChallenge() ([]byte, error) {
 			return nil, err
 		}
 	}
-	for _, v := range c.StatsAggregator {
-		if err := v.SigingEncode(b); err != nil {
-			return nil, err
-		}
-	}
-	for _, v := range c.Logs {
-		if err := v.SigingEncode(b); err != nil {
-			return nil, err
-		}
-	}
+	// for _, v := range c.StatsAggregator {
+	// 	if err := v.SigingEncode(b); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+	// for _, v := range c.Logs {
+	// 	if err := v.SigingEncode(b); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 	if err := c.Capacity.SigingEncode(b); err != nil {
 		return nil, err
 	}
@@ -205,13 +205,14 @@ type StatsAggregator struct {
 }
 
 func (s StatsAggregator) SigingEncode(w io.Writer) error {
-	if _, err := fmt.Fprintf(w, "%s", s.Type); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(w, "%s", s.Data.Endpoint); err != nil {
-		return err
-	}
 	return nil
+	// if _, err := fmt.Fprintf(w, "%s", s.Type); err != nil {
+	// 	return err
+	// }
+	// if _, err := fmt.Fprintf(w, "%s", s.Data.Endpoint); err != nil {
+	// 	return err
+	// }
+	// return nil
 }
 
 type StatsRedis struct {
