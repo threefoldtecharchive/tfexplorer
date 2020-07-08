@@ -15,6 +15,7 @@ type NetworkResource struct {
 	ReservationInfo `bson:",inline"`
 
 	Name                         string            `bson:"name" json:"name"`
+	NetworkIprange               schema.IPRange    `bson:"network_iprange" json:"network_iprange"`
 	WireguardPrivateKeyEncrypted string            `bson:"wireguard_private_key_encrypted" json:"wireguard_private_key_encrypted"`
 	WireguardPublicKey           string            `bson:"wireguard_public_key" json:"wireguard_public_key"`
 	WireguardListenPort          int64             `bson:"wireguard_listen_port" json:"wireguard_listen_port"`
@@ -35,6 +36,9 @@ func (n *NetworkResource) SignatureChallenge() ([]byte, error) {
 
 	b := bytes.NewBuffer(ric)
 	if _, err := fmt.Fprintf(b, "%s", n.Name); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", n.NetworkIprange.String()); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%s", n.WireguardPrivateKeyEncrypted); err != nil {
