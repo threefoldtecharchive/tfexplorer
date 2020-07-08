@@ -53,8 +53,8 @@ type (
 		GetPoolID() int64
 		GetNodeID() string
 		UniqueWorkloadID() string
-		SetReference(schema.ID)
-		GetReference() schema.ID
+		SetReference(string)
+		GetReference() string
 
 		Capaciter
 	}
@@ -199,7 +199,7 @@ type ReservationInfo struct {
 	PoolId     int64  `bson:"pool_id" json:"pool_id"`
 
 	// Referene to an old reservation, used in conversion
-	Reference schema.ID `bson:"reference" json:"reference"`
+	Reference string `bson:"reference" json:"reference"`
 
 	Description             string         `bson:"description" json:"description"`
 	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
@@ -370,7 +370,7 @@ func (i *ReservationInfo) SignatureChallenge() ([]byte, error) { //TODO: name of
 	if _, err := fmt.Fprintf(b, "%d", i.PoolId); err != nil {
 		return nil, err
 	}
-	if _, err := fmt.Fprintf(b, "%d", i.Reference); err != nil {
+	if _, err := fmt.Fprintf(b, "%s", i.Reference); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%d", i.CustomerTid); err != nil {
@@ -411,10 +411,10 @@ func (i *ReservationInfo) SetPoolID(poolID int64) {
 	i.PoolId = poolID
 }
 
-func (i *ReservationInfo) GetReference() schema.ID {
+func (i *ReservationInfo) GetReference() string {
 	return i.Reference
 }
 
-func (i *ReservationInfo) SetReference(ref schema.ID) {
+func (i *ReservationInfo) SetReference(ref string) {
 	i.Reference = ref
 }
