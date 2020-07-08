@@ -1096,7 +1096,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 
 	id, err := a.parseID(mux.Vars(r)["res_id"])
 	if err != nil {
-		return a.newSignDelete(r)
+		return nil, mw.BadRequest(err)
 	}
 
 	var filter types.ReservationFilter
@@ -1105,7 +1105,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newSignDelete(r)
 	}
 
 	in := func(i int64, l []int64) bool {
