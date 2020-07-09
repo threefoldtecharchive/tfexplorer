@@ -28,21 +28,7 @@ type Container struct {
 }
 
 func (c *Container) GetRSU() RSU {
-	rsu := RSU{
-		CRU: c.Capacity.Cpu,
-		// round mru to 4 digits precision
-		MRU: math.Round(float64(c.Capacity.Memory)/1024*10000) / 10000,
-	}
-	switch c.Capacity.DiskType {
-	case DiskTypeHDD:
-		hru := math.Round(float64(c.Capacity.DiskSize)/1024*10000) / 10000
-		rsu.HRU = int64(hru)
-	case DiskTypeSSD:
-		sru := math.Round(float64(c.Capacity.DiskSize)/1024*10000) / 10000
-		rsu.SRU = int64(sru)
-	}
-
-	return rsu
+	return c.Capacity.GetRSU()
 }
 
 func (c *Container) SignatureChallenge() ([]byte, error) {
@@ -118,6 +104,24 @@ func (c ContainerCapacity) SigingEncode(w io.Writer) error {
 		return err
 	}
 	return nil
+}
+
+func (c ContainerCapacity) GetRSU() RSU {
+	rsu := RSU{
+		CRU: c.Cpu,
+		// round mru to 4 digits precision
+		MRU: math.Round(float64(c.Memory)/1024*10000) / 10000,
+	}
+	switch c.DiskType {
+	case DiskTypeHDD:
+		hru := math.Round(float64(c.DiskSize)/1024*10000) / 10000
+		rsu.HRU = hru
+	case DiskTypeSSD:
+		sru := math.Round(float64(c.DiskSize)/1024*10000) / 10000
+		rsu.SRU = sru
+	}
+
+	return rsu
 }
 
 type Logs struct {
