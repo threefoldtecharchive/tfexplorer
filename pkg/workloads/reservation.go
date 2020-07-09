@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -941,8 +942,14 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 }
 
 func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
-	defer r.Body.Close()
 	var signature generated.SigningSignature
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+	r.Body.Close() //  must close
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
 		return nil, mw.BadRequest(err)
@@ -964,6 +971,7 @@ func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 		return a.newSignProvision(r)
 	}
 
@@ -1017,11 +1025,6 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	sig, err := hex.DecodeString(signature.Signature)
-	if err != nil {
-		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature expecting hex encoded string"))
-	}
-
 	id, err := a.parseID(mux.Vars(r)["res_id"])
 	if err != nil {
 		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
@@ -1058,7 +1061,7 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(errors.Wrap(err, "customer id not found"))
 	}
 
-	if err := workload.SignatureVerify(user.Pubkey, sig); err != nil {
+	if err := workload.SignatureProvisionRequestVerify(user.Pubkey, signature); err != nil {
 		return nil, mw.UnAuthorized(errors.Wrap(err, "failed to verify signature"))
 	}
 
@@ -1082,8 +1085,14 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
-	defer r.Body.Close()
 	var signature generated.SigningSignature
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+	r.Body.Close() //  must close
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
 		return nil, mw.BadRequest(err)
@@ -1105,6 +1114,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 		return a.newSignDelete(r)
 	}
 
@@ -1162,11 +1172,6 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	sig, err := hex.DecodeString(signature.Signature)
-	if err != nil {
-		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature expecting hex encoded string"))
-	}
-
 	id, err := a.parseID(mux.Vars(r)["res_id"])
 	if err != nil {
 		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
@@ -1199,7 +1204,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(errors.Wrap(err, "customer id not found"))
 	}
 
-	if err := workload.SignatureVerify(user.Pubkey, sig); err != nil {
+	if err := workload.SignatureDeleteRequestVerify(user.Pubkey, signature); err != nil {
 		return nil, mw.UnAuthorized(errors.Wrap(err, "failed to verify signature"))
 	}
 

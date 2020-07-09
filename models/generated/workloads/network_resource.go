@@ -2,7 +2,6 @@ package workloads
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 
 	schema "github.com/threefoldtech/tfexplorer/schema"
@@ -64,10 +63,5 @@ func (n *NetworkResource) SignatureChallenge() ([]byte, error) {
 		}
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }

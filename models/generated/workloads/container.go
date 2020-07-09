@@ -2,7 +2,6 @@ package workloads
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"math"
@@ -90,26 +89,12 @@ func (c *Container) SignatureChallenge() ([]byte, error) {
 			return nil, err
 		}
 	}
-	// for _, v := range c.StatsAggregator {
-	// 	if err := v.SigingEncode(b); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-	// for _, v := range c.Logs {
-	// 	if err := v.SigingEncode(b); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
+
 	if err := c.Capacity.SigingEncode(b); err != nil {
 		return nil, err
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }
 
 type ContainerCapacity struct {

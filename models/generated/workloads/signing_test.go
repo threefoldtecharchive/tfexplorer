@@ -1,6 +1,7 @@
 package workloads
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net"
 	"testing"
@@ -36,15 +37,19 @@ func TestVolumeSigningChalenge(t *testing.T) {
 	sc, err := v.SignatureChallenge()
 	require.NoError(t, err)
 
-	signature, err := crypto.Sign(kp.PrivateKey, sc)
+	msg := sha256.Sum256(sc)
+
+	signature, err := crypto.Sign(kp.PrivateKey, msg[:])
 	require.NoError(t, err)
 
-	err = crypto.Verify(kp.PublicKey, sc, signature)
+	err = crypto.Verify(kp.PublicKey, msg[:], signature)
 	assert.NoError(t, err)
 
 	v.NodeId = "node2"
 	sc, err = v.SignatureChallenge()
 	require.NoError(t, err)
+
+	msg = sha256.Sum256(sc)
 
 	err = crypto.Verify(kp.PublicKey, sc, signature)
 	assert.Error(t, err)
@@ -94,18 +99,20 @@ func TestContainerSigningChalenge(t *testing.T) {
 	sc, err := v.SignatureChallenge()
 	require.NoError(t, err)
 
-	signature, err := crypto.Sign(kp.PrivateKey, sc)
+	msg := sha256.Sum256(sc)
+	signature, err := crypto.Sign(kp.PrivateKey, msg[:])
 	require.NoError(t, err)
 
 	fmt.Printf("pubkey: %x\n", kp.PublicKey)
 	fmt.Printf("signarure: %x\n", signature)
-	err = crypto.Verify(kp.PublicKey, sc, signature)
+	err = crypto.Verify(kp.PublicKey, msg[:], signature)
 	assert.NoError(t, err)
 
 	v.NodeId = "node2"
 	sc, err = v.SignatureChallenge()
 	require.NoError(t, err)
+	msg = sha256.Sum256(sc)
 
-	err = crypto.Verify(kp.PublicKey, sc, signature)
+	err = crypto.Verify(kp.PublicKey, msg[:], signature)
 	assert.Error(t, err)
 }

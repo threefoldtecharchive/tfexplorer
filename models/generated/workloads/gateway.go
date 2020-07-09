@@ -78,12 +78,7 @@ func (p *GatewayReverseProxy) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }
 
 var _ Workloader = (*GatewaySubdomain)(nil)

@@ -2,7 +2,6 @@ package workloads
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 )
 
@@ -39,11 +38,7 @@ func (v *Volume) SignatureChallenge() ([]byte, error) {
 	fmt.Fprintf(b, "%d", v.Size)
 	fmt.Fprintf(b, "%s", v.Type.String())
 
-	fmt.Println(b.String())
-	h := sha256.Sum256(b.Bytes())
-	fmt.Printf("%x\n", h)
-
-	return h[:], nil
+	return b.Bytes(), nil
 }
 
 type VolumeTypeEnum uint8

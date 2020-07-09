@@ -3,6 +3,8 @@ package types
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -219,12 +221,14 @@ func (w *WorkloaderType) Verify(pk string, sig []byte) error {
 		return errors.Wrap(err, "invalid verification key")
 	}
 
-	msg, err := w.SignatureChallenge()
+	b, err := w.SignatureChallenge()
 	if err != nil {
 		return err
 	}
 
-	return crypto.Verify(key, msg, sig)
+	msg := sha256.Sum256(b)
+
+	return crypto.Verify(key, msg[:], sig)
 }
 
 // SignatureVerify is similar to Verify but the verification is done
@@ -245,6 +249,68 @@ func (w *WorkloaderType) SignatureVerify(pk string, sig []byte) error {
 	}
 
 	return crypto.Verify(key, buf.Bytes(), sig)
+}
+
+// SignatureDeleteRequestVerify verify the signature from a signature request
+// this is used for workload delete
+// the signature is created from the workload siging challenge + "delete" + customer tid
+func (w *WorkloaderType) SignatureDeleteRequestVerify(pk string, sig generated.SigningSignature) error {
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
+
+	b, err := w.SignatureChallenge()
+	if err != nil {
+		return err
+	}
+
+	buf := bytes.NewBuffer(b)
+	if _, err := buf.WriteString("delete"); err != nil {
+		return err
+	}
+	if _, err := buf.WriteString(fmt.Sprintf("%d", sig.Tid)); err != nil {
+		return err
+	}
+
+	msg := sha256.Sum256(buf.Bytes())
+	signature, err := hex.DecodeString(sig.Signature)
+	if err != nil {
+		return err
+	}
+
+	return crypto.Verify(key, msg[:], signature)
+}
+
+// SignatureProvisionRequestVerify verify the signature from a signature request
+// this is used for provision
+// the signature is created from the workload siging challenge + "provision" + customer tid
+func (w *WorkloaderType) SignatureProvisionRequestVerify(pk string, sig generated.SigningSignature) error {
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
+
+	b, err := w.SignatureChallenge()
+	if err != nil {
+		return err
+	}
+
+	buf := bytes.NewBuffer(b)
+	if _, err := buf.WriteString("provision"); err != nil {
+		return err
+	}
+	if _, err := buf.WriteString(fmt.Sprintf("%d", sig.Tid)); err != nil {
+		return err
+	}
+
+	msg := sha256.Sum256(buf.Bytes())
+	signature, err := hex.DecodeString(sig.Signature)
+	if err != nil {
+		return err
+	}
+
+	return crypto.Verify(key, msg[:], signature)
 }
 
 // IsAny checks if the workload status is any of the given status
