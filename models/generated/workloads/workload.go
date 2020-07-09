@@ -44,8 +44,6 @@ type (
 		SetSigningRequestProvision(request SigningRequest)
 		GetSigningRequestDelete() SigningRequest
 		SetSigningRequestDelete(request SigningRequest)
-		GetExpirationProvisioning() schema.Date
-		SetExpirationProvisioning(date schema.Date)
 		SetSignaturesProvision(signatures []SigningSignature)
 		SetSignaturesDelete(signatuers []SigningSignature)
 		SignatureChallenge() ([]byte, error)
@@ -204,7 +202,6 @@ type ReservationInfo struct {
 	Description             string         `bson:"description" json:"description"`
 	SigningRequestProvision SigningRequest `bson:"signing_request_provision" json:"signing_request_provision"`
 	SigningRequestDelete    SigningRequest `bson:"signing_request_delete" json:"signing_request_delete"`
-	ExpirationProvisioning  schema.Date    `bson:"expiration_provisioning" json:"expiration_provisioning"`
 
 	ID                  schema.ID          `bson:"_id" json:"id"`
 	Json                string             `bson:"json" json:"json"`
@@ -308,10 +305,6 @@ func (i *ReservationInfo) GetSigningRequestDelete() SigningRequest {
 	return i.SigningRequestDelete
 }
 
-func (i *ReservationInfo) GetExpirationProvisioning() schema.Date {
-	return i.ExpirationProvisioning
-}
-
 func (i *ReservationInfo) SetJson(json string) {
 	i.Json = json
 }
@@ -344,10 +337,6 @@ func (i *ReservationInfo) SetSigningRequestDelete(request SigningRequest) {
 	i.SigningRequestDelete = request
 }
 
-func (i *ReservationInfo) SetExpirationProvisioning(date schema.Date) {
-	i.ExpirationProvisioning = date
-}
-
 func (i *ReservationInfo) SetSignaturesProvision(signatures []SigningSignature) {
 	i.SignaturesProvision = signatures
 }
@@ -377,9 +366,6 @@ func (i *ReservationInfo) SignatureChallenge() ([]byte, error) { //TODO: name of
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%s", strings.ToUpper(i.WorkloadType.String())); err != nil {
-		return nil, err
-	}
-	if _, err := fmt.Fprintf(b, "%d", i.ExpirationProvisioning.Unix()); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%d", i.Epoch.Unix()); err != nil {

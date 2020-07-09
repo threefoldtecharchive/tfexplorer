@@ -1,8 +1,6 @@
 package types
 
 import (
-	"time"
-
 	"github.com/rs/zerolog/log"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
@@ -101,12 +99,6 @@ func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
 		// reservation has expired
 		// set its status (next action) to delete
 		slog.Debug().Msg("expired or to be deleted")
-		p.w.SetNextAction(generated.NextActionDelete)
-		return p.w, true
-	}
-
-	if p.w.GetExpirationProvisioning().Before(time.Now()) && !p.w.IsSuccessfullyDeployed() {
-		log.Debug().Msg("provision expiration reached and not fully provisionned")
 		p.w.SetNextAction(generated.NextActionDelete)
 		return p.w, true
 	}
