@@ -9,6 +9,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
+	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -17,6 +18,8 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	if err := types.Setup(context.TODO(), db); err != nil {
 		return err
 	}
+
+	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
 
 	var api API
 	api.escrow = escrow
@@ -37,6 +40,12 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	reservations.HandleFunc("/pools", mw.AsHandlerFunc(api.setupPool)).Methods(http.MethodPost).Name("pool-create")
 	reservations.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(api.getPool)).Methods(http.MethodGet).Name("pool-get")
 	reservations.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(api.listPools)).Methods(http.MethodGet).Name("pool-get-by-owner")
+
+	// conversion
+	conversionAuthenticated := reservations.PathPrefix("/convert").Subrouter()
+	conversionAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
+	conversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(api.getConversionList)).Methods(http.MethodGet).Name("reservation-conversion-list")
+	conversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(api.postConversionList)).Methods(http.MethodPost).Name("reservation-conversion-post")
 
 	// new style workloads
 	workload := parent.PathPrefix("/workload").Subrouter()

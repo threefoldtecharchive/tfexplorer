@@ -52,7 +52,7 @@ func ApplyQueryFilter(r *http.Request, filter ReservationFilter) (ReservationFil
 		return nil, errors.Wrap(err, "customer_tid should be an integer")
 	}
 	if customerid != 0 {
-		filter = filter.WithCustomerID(int(customerid))
+		filter = filter.WithCustomerID(customerid)
 	}
 	sNextAction := r.FormValue("next_action")
 	if len(sNextAction) != 0 {
@@ -88,7 +88,7 @@ func (f ReservationFilter) WithNextAction(action generated.NextActionEnum) Reser
 }
 
 // WithCustomerID filter reservation on customer
-func (f ReservationFilter) WithCustomerID(customerID int) ReservationFilter {
+func (f ReservationFilter) WithCustomerID(customerID int64) ReservationFilter {
 	return append(f, bson.E{
 		Key: "customer_tid", Value: customerID,
 	})

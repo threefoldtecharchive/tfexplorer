@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -71,7 +72,7 @@ var (
 
 // NewPool sets up a new pool, ready to use, with the given data.
 //
-// The pool will not have an ID set, this happens on first save.
+// If id is 0, it will be set on first save
 func NewPool(id schema.ID, ownerID int64, nodeIDs []string) Pool {
 	return Pool{
 		ID:          id,
@@ -183,6 +184,9 @@ func (p *Pool) syncPoolExpiration() {
 
 // CapacityPoolCreate save new capacity pool to the database
 func CapacityPoolCreate(ctx context.Context, db *mongo.Database, pool Pool) (Pool, error) {
+	if pool.ID == 0 {
+		pool.ID = models.MustID(ctx, db, CapacityReservationCollection)
+	}
 	_, err := db.Collection(CapacityPoolCollection).InsertOne(ctx, pool)
 	if err != nil {
 		return pool, err

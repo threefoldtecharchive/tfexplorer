@@ -84,6 +84,13 @@ func (f WorkloadFilter) WithNodeID(id string) WorkloadFilter {
 	})
 }
 
+// WithReference searches workloads with reference
+func (f WorkloadFilter) WithReference(ref string) WorkloadFilter {
+	return append(f, bson.E{
+		Key: "reference", Value: ref,
+	})
+}
+
 // Or returns filter that reads as (f or o)
 func (f WorkloadFilter) Or(o WorkloadFilter) WorkloadFilter {
 	return WorkloadFilter{
@@ -353,9 +360,11 @@ func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
 func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
-	id := models.MustID(ctx, db, ReservationCollection)
-	w.SetID(id)
-
+	id := schema.ID(w.GetID())
+	if id == 0 {
+		id = models.MustID(ctx, db, ReservationCollection)
+		w.SetID(id)
+	}
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
 	if err != nil {
 		return 0, err

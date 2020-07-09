@@ -76,6 +76,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	workload.SetSignaturesDelete(make([]generated.SigningSignature, 0))
 	workload.SetSignatureFarmer(generated.SigningSignature{})
 	workload.SetResult(generated.Result{})
+	workload.SetID(schema.ID(0))
 
 	if err := workload.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
