@@ -114,7 +114,7 @@ func (c ContainerCapacity) SigingEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%d", c.DiskSize); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "%d", c.DiskType); err != nil {
+	if _, err := fmt.Fprintf(w, "%s", c.DiskType.String()); err != nil {
 		return err
 	}
 	return nil
