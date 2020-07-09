@@ -63,8 +63,8 @@ type (
 
 	RSU struct {
 		CRU int64
-		SRU int64
-		HRU int64
+		SRU float64
+		HRU float64
 		MRU float64
 	}
 )

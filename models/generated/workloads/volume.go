@@ -19,11 +19,11 @@ func (v *Volume) GetRSU() RSU {
 	switch v.Type {
 	case VolumeTypeHDD:
 		return RSU{
-			HRU: v.Size,
+			HRU: float64(v.Size),
 		}
 	case VolumeTypeSSD:
 		return RSU{
-			SRU: v.Size,
+			SRU: float64(v.Size),
 		}
 	}
 	return RSU{}

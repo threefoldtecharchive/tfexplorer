@@ -23,11 +23,11 @@ func (z *ZDB) GetRSU() RSU {
 	switch z.DiskType {
 	case DiskTypeHDD:
 		return RSU{
-			HRU: z.Size,
+			HRU: float64(z.Size),
 		}
 	case DiskTypeSSD:
 		return RSU{
-			SRU: z.Size,
+			SRU: float64(z.Size),
 		}
 	}
 	return RSU{}
