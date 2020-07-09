@@ -68,11 +68,6 @@ func (k *K8S) SignatureChallenge() ([]byte, error) {
 			return nil, err
 		}
 	}
-	for _, s := range k.StatsAggregator {
-		if err := s.SigingEncode(b); err != nil {
-			return nil, err
-		}
-	}
 
 	return b.Bytes(), nil
 }

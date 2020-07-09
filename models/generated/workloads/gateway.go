@@ -2,7 +2,6 @@ package workloads
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 )
 
@@ -42,12 +41,7 @@ func (p *GatewayProxy) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }
 
 var _ Workloader = (*GatewayReverseProxy)(nil)
@@ -111,12 +105,7 @@ func (s *GatewaySubdomain) SignatureChallenge() ([]byte, error) {
 		}
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }
 
 var _ Workloader = (*GatewayDelegate)(nil)
@@ -143,12 +132,7 @@ func (d *GatewayDelegate) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }
 
 var _ Workloader = (*Gateway4To6)(nil)
@@ -175,10 +159,5 @@ func (g *Gateway4To6) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 
-	h := sha256.New()
-	if _, err := h.Write(b.Bytes()); err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return b.Bytes(), nil
 }

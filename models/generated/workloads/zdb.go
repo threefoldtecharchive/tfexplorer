@@ -43,13 +43,13 @@ func (z *ZDB) SignatureChallenge() ([]byte, error) {
 	if _, err := fmt.Fprintf(b, "%d", z.Size); err != nil {
 		return nil, err
 	}
-	if _, err := fmt.Fprintf(b, "%d", z.Mode); err != nil {
+	if _, err := fmt.Fprintf(b, "%s", z.Mode.String()); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%s", z.Password); err != nil {
 		return nil, err
 	}
-	if _, err := fmt.Fprintf(b, "%d", z.DiskType); err != nil {
+	if _, err := fmt.Fprintf(b, "%s", z.DiskType.String()); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%t", z.Public); err != nil {
