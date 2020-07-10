@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -167,23 +167,47 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.New("unexpected amount of workloads"))
 	}
 
+	emptyResult := workloads.Result{}
 	for i := range workloaders {
 		// customer signature should be the only change
 		expectedWls[i].SetCustomerSignature(workloaders[i].GetCustomerSignature())
-		if !reflect.DeepEqual(expectedWls[i], workloaders[i]) {
+
+		// we skip the result object when comparing the expected and received workloads
+		savedResult := workloaders[i].GetResult() //we save it though so we can put it back before saving into the DB
+		workloaders[i].SetResult(emptyResult)
+		expectedWls[i].SetResult(emptyResult)
+
+		// skip signature farmer, it's always empty anyhow
+		expectedWls[i].SetSignatureFarmer(workloads.SigningSignature{})
+		workloaders[i].SetSignatureFarmer(workloads.SigningSignature{})
+
+		// truncate time to account for the lost nanosecond precision during json marshalling
+		workloaders[i].SetEpoch(schema.Date{Time: workloaders[i].GetEpoch().Time.Truncate(time.Second)})
+		expectedWls[i].SetEpoch(schema.Date{Time: expectedWls[i].GetEpoch().Time.Truncate(time.Second)})
+
+		// use string representation cause reflect.DeepEqual was impossible to get right
+		expected := fmt.Sprintf("%+v", expectedWls[i].Workloader)
+		received := fmt.Sprintf("%+v", workloaders[i].Workloader)
+		if expected != received {
 			return nil, mw.BadRequest(errors.New("invalid workload"))
 		}
+
 		sig, err := hex.DecodeString(workloaders[i].GetCustomerSignature())
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
+
 		if err = workloaders[i].Verify(user.Pubkey, sig); err != nil {
-			return nil, mw.BadRequest(err)
+			return nil, mw.BadRequest(fmt.Errorf("workload %d signature verification failed: %w", workloaders[i].GetID(), err))
 		}
+
+		// set the result back in place to be added into the db
+		workloaders[i].SetResult(savedResult)
 	}
 
 	// all reservations are as created and have valid signatures
 	for i := range workloaders {
+		workloaders[i].SetID(0) //force to create a new workload ID
 		if _, err = types.WorkloadCreate(r.Context(), db, workloaders[i]); err != nil {
 			return nil, mw.Error(err)
 		}
@@ -296,7 +320,13 @@ func loadNetworks(res []types.Reservation) ([]workloads.Workloader, error) {
 				workload.SetID(r.ID)
 				workload.SetEpoch(r.Epoch)
 				workload.SetMetadata(r.Metadata)
+				workload.SetReference(fmt.Sprintf("%d-%d", r.ID, network.WorkloadID()))
 				workloaders = append(workloaders, workload)
+				for _, result := range r.Results {
+					if result.NodeId == workload.GetNodeID() {
+						workload.SetResult(result)
+					}
+				}
 			}
 		}
 	}

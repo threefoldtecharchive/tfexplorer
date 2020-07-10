@@ -57,11 +57,6 @@ func (n *NetworkResource) SignatureChallenge() ([]byte, error) {
 			return nil, err
 		}
 	}
-	for _, s := range n.StatsAggregator {
-		if err := s.SigingEncode(b); err != nil {
-			return nil, err
-		}
-	}
-
+	fmt.Println(string(b.String()))
 	return b.Bytes(), nil
 }
