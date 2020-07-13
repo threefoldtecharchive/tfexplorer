@@ -15,9 +15,10 @@ const (
 	ConversionCollection = "conversion"
 )
 
-// ErrErrNoConversion means no conversion is saved for a user
+// ErrNoConversion means no conversion is saved for a user
 var ErrNoConversion = errors.New("no conversion yet")
 
+// ConversionDoc holds some data about a geenrated conversion for a user
 type ConversionDoc struct {
 	User      schema.ID        `bson:"user"`
 	Workloads []WorkloaderType `bson:"workloads"`

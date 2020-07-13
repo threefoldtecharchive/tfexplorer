@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
@@ -15,11 +14,6 @@ import (
 
 	"github.com/threefoldtech/tfexplorer/provision"
 	"github.com/urfave/cli"
-)
-
-var (
-	day             = time.Hour * 24
-	defaultDuration = day * 30
 )
 
 func cmdsProvision(c *cli.Context) error {
