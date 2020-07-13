@@ -249,7 +249,7 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 			return nil, mw.Error(err)
 		}
 		if workloaders[i].GetResult().State == workloads.ResultStateOK {
-			if err := a.capacityPlanner.UpdateUsedCapacity(workloaders[i], true); err != nil {
+			if err := a.capacityPlanner.AddUsedCapacity(workloaders[i]); err != nil {
 				return nil, mw.Error(err)
 			}
 		}

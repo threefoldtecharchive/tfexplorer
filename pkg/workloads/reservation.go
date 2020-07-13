@@ -775,8 +775,6 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 		return nil, mw.NotFound(errors.New("workload id does not exist"))
 	}
 
-	oldResult := workload.GetResult()
-
 	if err := types.WorkloadResultPush(ctx, db, globalID, result); err != nil {
 		return nil, mw.Error(err)
 	}
@@ -786,24 +784,19 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 	}
 
 	if result.State == generated.ResultStateError {
-		if oldResult.State == generated.ResultStateOK {
-			// remove capacity from pool
-			if err := a.capacityPlanner.UpdateUsedCapacity(workload, false); err != nil {
-				log.Error().Err(err).Msg("failed to decrease used capacity in pool")
-				return nil, mw.Error(err)
-			}
+		// remove capacity from pool
+		if err := a.capacityPlanner.RemoveUsedCapacity(workload); err != nil {
+			log.Error().Err(err).Msg("failed to decrease used capacity in pool")
+			return nil, mw.Error(err)
 		}
 		if err := types.WorkloadSetNextAction(ctx, db, globalID, generated.NextActionDelete); err != nil {
 			return nil, mw.Error(err)
 		}
 	} else if result.State == generated.ResultStateOK {
-		// check if the result was not set prior
-		if oldResult.NodeId == "" || (oldResult.NodeId != "" && oldResult.State == generated.ResultStateError) {
-			// add capacity to pool
-			if err := a.capacityPlanner.UpdateUsedCapacity(workload, true); err != nil {
-				log.Error().Err(err).Msg("failed to increase used capacity in pool")
-				return nil, mw.Error(err)
-			}
+		// add capacity to pool
+		if err := a.capacityPlanner.AddUsedCapacity(workload); err != nil {
+			log.Error().Err(err).Msg("failed to increase used capacity in pool")
+			return nil, mw.Error(err)
 		}
 	}
 	return nil, mw.Created()
@@ -916,15 +909,12 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		}
 	}
 
-	oldState := result.State
 	result.State = generated.ResultStateDeleted
 
-	if oldState == generated.ResultStateOK {
-		// remove capacity from pool
-		if err := a.capacityPlanner.UpdateUsedCapacity(workload, false); err != nil {
-			log.Error().Err(err).Msg("failed to decrease used capacity in pool")
-			return nil, mw.Error(err)
-		}
+	// remove capacity from pool
+	if err := a.capacityPlanner.RemoveUsedCapacity(workload); err != nil {
+		log.Error().Err(err).Msg("failed to decrease used capacity in pool")
+		return nil, mw.Error(err)
 	}
 
 	if err := types.WorkloadResultPush(ctx, db, wid, *result); err != nil {

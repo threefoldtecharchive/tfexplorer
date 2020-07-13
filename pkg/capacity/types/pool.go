@@ -59,6 +59,9 @@ type (
 		// CustomerTid is the threebot id of the pool owner. Only the owner can
 		// assign workloads to the pool
 		CustomerTid int64 `bson:"customer_tid" json:"customer_tid"`
+
+		// ActiveWorkloadIDs for this pool, this list contains only unique entries
+		ActiveWorkloadIDs []schema.ID `bson:"active_workload_ids" json:"active_workload_ids"`
 	}
 )
 
@@ -75,29 +78,45 @@ var (
 // If id is 0, it will be set on first save
 func NewPool(id schema.ID, ownerID int64, nodeIDs []string) Pool {
 	return Pool{
-		ID:          id,
-		Cus:         0,
-		Sus:         0,
-		NodeIDs:     nodeIDs,
-		LastUpdated: time.Now().Unix(),
-		ActiveCU:    0,
-		ActiveSU:    0,
-		EmptyAt:     math.MaxInt64,
-		CustomerTid: ownerID,
+		ID:                id,
+		Cus:               0,
+		Sus:               0,
+		NodeIDs:           nodeIDs,
+		LastUpdated:       time.Now().Unix(),
+		ActiveCU:          0,
+		ActiveSU:          0,
+		EmptyAt:           math.MaxInt64,
+		CustomerTid:       ownerID,
+		ActiveWorkloadIDs: []schema.ID{},
 	}
 }
 
 // AddCapacity adds new capacity to the pool
 func (p *Pool) AddCapacity(CUs float64, SUs float64) {
 	p.SyncCurrentCapacity()
-	p.Cus += CUs
-	p.Sus += SUs
+	if CUs > 0 {
+		p.Cus += CUs
+	}
+	if SUs > 0 {
+		p.Sus += SUs
+	}
 	p.syncPoolExpiration()
 }
 
 // AddWorkload adds the used CU and SU of a deployed workload to the currently
-// active CU and SU of the pool
-func (p *Pool) AddWorkload(CU float64, SU float64) {
+// active CU and SU of the pool, and adds the id to the actively used ids.
+func (p *Pool) AddWorkload(id schema.ID, CU float64, SU float64) {
+	var found bool
+	for i := range p.ActiveWorkloadIDs {
+		if p.ActiveWorkloadIDs[i] == id {
+			found = true
+			break
+		}
+	}
+	if found {
+		// workload has already been added
+		return
+	}
 	p.SyncCurrentCapacity()
 	if CU > 0 {
 		p.ActiveCU += CU
@@ -105,12 +124,30 @@ func (p *Pool) AddWorkload(CU float64, SU float64) {
 	if SU > 0 {
 		p.ActiveSU += SU
 	}
+	p.ActiveWorkloadIDs = append(p.ActiveWorkloadIDs, id)
 	p.syncPoolExpiration()
 }
 
 // RemoveWorkload remove the used CU and SU of a deployed workload to the currently
-// active CU and SU of the pool
-func (p *Pool) RemoveWorkload(CU float64, SU float64) {
+// active CU and SU of the pool, and removes the id from the actively used id's.
+func (p *Pool) RemoveWorkload(id schema.ID, CU float64, SU float64) {
+	var found bool
+	for i := range p.ActiveWorkloadIDs {
+		if p.ActiveWorkloadIDs[i] == id {
+			found = true
+			// remove the id already
+			// swap the element to remove with the last element, then truncate the slice
+			// this messes up ordering which we don't have anyway, and is significantly
+			// more performant than removing the element in the middle of the slice
+			p.ActiveWorkloadIDs[len(p.ActiveWorkloadIDs)-1], p.ActiveWorkloadIDs[i] = p.ActiveWorkloadIDs[i], p.ActiveWorkloadIDs[len(p.ActiveWorkloadIDs)-1]
+			p.ActiveWorkloadIDs = p.ActiveWorkloadIDs[:len(p.ActiveWorkloadIDs)-1]
+			break
+		}
+	}
+	if !found {
+		// workload hasn't been added, or already removed
+		return
+	}
 	p.SyncCurrentCapacity()
 	if CU > 0 {
 		p.ActiveCU -= CU

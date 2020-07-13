@@ -30,8 +30,12 @@ type (
 		// HasCapacity checks if the workload could be provisioned with its attached
 		// pool as it is right now.
 		HasCapacity(w workloads.Workloader, seconds uint) (bool, error)
-		// UpdateUsedCapacity for a pool
-		UpdateUsedCapacity(w workloads.Workloader, increase bool) error
+		// AddUsedCapacity adds a deployed workload to the pool. If the workload
+		// is already in the pool (based on ID), nothing happens.
+		AddUsedCapacity(w workloads.Workloader) error
+		// RemoveUsedCapacity removes a deployed workoad from the pool. If the workload
+		// is not in the pool (based on ID), nothing happends.
+		RemoveUsedCapacity(w workloads.Workloader) error
 		// PoolByID returns the pool with the given ID
 		PoolByID(id int64) (types.Pool, error)
 		// PoolsForOwner returns all pools for a given owner
@@ -258,14 +262,30 @@ func (p *NaivePlanner) PoolsForOwner(owner int64) ([]types.Pool, error) {
 	return res.pools, res.err
 }
 
-// UpdateUsedCapacity implements Planner
-func (p *NaivePlanner) UpdateUsedCapacity(w workloads.Workloader, used bool) error {
+// AddUsedCapacity implements Planner
+func (p *NaivePlanner) AddUsedCapacity(w workloads.Workloader) error {
 	ch := make(chan updateUsedCapacityResponse)
 	defer close(ch)
 
 	p.updateUsedCapacityChan <- updateUsedCapacityJob{
 		w:            w,
-		used:         used,
+		used:         true,
+		responseChan: ch,
+	}
+
+	res := <-ch
+
+	return res.err
+}
+
+// RemoveUsedCapacity implements Planner
+func (p *NaivePlanner) RemoveUsedCapacity(w workloads.Workloader) error {
+	ch := make(chan updateUsedCapacityResponse)
+	defer close(ch)
+
+	p.updateUsedCapacityChan <- updateUsedCapacityJob{
+		w:            w,
+		used:         false,
 		responseChan: ch,
 	}
 
@@ -342,7 +362,8 @@ func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, 
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	pool.AddWorkload(CloudUnitsFromResourceUnits(w.GetRSU()))
+	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
+	pool.AddWorkload(w.GetID(), cu, su)
 
 	return time.Now().Add(time.Second*time.Duration(seconds)).Unix() < pool.EmptyAt, nil
 }
@@ -416,10 +437,11 @@ func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) err
 		return errors.Wrap(err, "could not load pool")
 	}
 
+	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
 	if used {
-		pool.AddWorkload(CloudUnitsFromResourceUnits(w.GetRSU()))
+		pool.AddWorkload(w.GetID(), cu, su)
 	} else {
-		pool.RemoveWorkload(CloudUnitsFromResourceUnits(w.GetRSU()))
+		pool.RemoveWorkload(w.GetID(), cu, su)
 	}
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
