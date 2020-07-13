@@ -360,11 +360,9 @@ func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
 func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
-	id := schema.ID(w.GetID())
-	if id == 0 {
-		id = models.MustID(ctx, db, ReservationCollection)
-		w.SetID(id)
-	}
+	id := models.MustID(ctx, db, ReservationCollection)
+	w.SetID(id)
+
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
 	if err != nil {
 		return 0, err
@@ -493,6 +491,10 @@ func (w *WorkloaderType) Validate() error {
 
 	if w.GetPoolID() == 0 {
 		return errors.New("pool is required")
+	}
+
+	if w.GetReference() != "" {
+		return errors.New("reference is illegal for new workloads")
 	}
 
 	return nil
