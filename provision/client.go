@@ -3,7 +3,6 @@ package provision
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer"
@@ -29,8 +28,8 @@ func NewReservationClient(explorer *client.Client, userID *tfexplorer.UserIdenti
 }
 
 // Deploy the workload
-func (r *ReservationClient) Deploy(workload workloads.Workloader, currencies []string, expirationProvisioning time.Time) (wrklds.ReservationCreateResponse, error) {
-	reservationToCreate, err := r.DryRun(workload, expirationProvisioning)
+func (r *ReservationClient) Deploy(workload workloads.Workloader, currencies []string) (wrklds.ReservationCreateResponse, error) {
+	reservationToCreate, err := r.DryRun(workload)
 	if err != nil {
 		return wrklds.ReservationCreateResponse{}, nil
 	}
@@ -44,7 +43,7 @@ func (r *ReservationClient) Deploy(workload workloads.Workloader, currencies []s
 }
 
 // DryRun will return the workload to deploy and marshals the data of the workload
-func (r *ReservationClient) DryRun(workload workloads.Workloader, expirationProvisioning time.Time) (workloads.Workloader, error) {
+func (r *ReservationClient) DryRun(workload workloads.Workloader) (workloads.Workloader, error) {
 	userID := int64(r.userID.ThreebotID)
 	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
 	if err != nil {
@@ -52,8 +51,6 @@ func (r *ReservationClient) DryRun(workload workloads.Workloader, expirationProv
 	}
 
 	workload.SetCustomerTid(userID)
-
-	workload.SetExpirationProvisioning(schema.Date{Time: expirationProvisioning})
 
 	msg, err := workload.SignatureChallenge()
 	if err != nil {

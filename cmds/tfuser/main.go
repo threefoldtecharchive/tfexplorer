@@ -221,6 +221,11 @@ func main() {
 									Name:  "force-hidden",
 									Usage: "Forcibly mark the node as hidden, even if it is registered with public endpoints",
 								},
+								cli.Int64Flag{
+									Name:  "poolID",
+									Usage: "ID of the pool",
+									Value: 0,
+								},
 							},
 							Action: cmdsAddNode,
 						},
@@ -469,10 +474,6 @@ func main() {
 			Usage:  "Provision a workload",
 			Before: requireSeed,
 			Flags: []cli.Flag{
-				// cli.StringFlag{
-				// 	Name:  "duration",
-				// 	Usage: "duration of the reservation. By default is number of days. But also support notation with duration suffix like m for minute or h for hours",
-				// },
 				cli.StringSliceFlag{
 					Name:  "asset",
 					Usage: "add an asset which is acceptable to pay the reservation",

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -25,27 +24,10 @@ var (
 
 func cmdsProvision(c *cli.Context) error {
 	var (
-		d           = c.String("duration")
 		assets      = c.StringSlice("asset")
 		workloaders = c.StringSlice("workload")
 		dryRun      = c.Bool("dry-run")
-		err         error
 	)
-
-	var duration time.Duration
-	if d == "" {
-		duration = defaultDuration
-	} else {
-		duration, err = time.ParseDuration(d)
-		if err != nil {
-			nrDays, err := strconv.Atoi(d)
-			if err != nil {
-				return errors.Wrap(err, "unsupported duration format")
-			}
-			duration = time.Duration(nrDays) * day
-		}
-	}
-	timein := time.Now().Local().Add(duration)
 
 	reservationClient := provision.NewReservationClient(bcdb, mainui)
 
@@ -62,7 +44,7 @@ func cmdsProvision(c *cli.Context) error {
 		}
 
 		if dryRun {
-			res, err := reservationClient.DryRun(workloader, timein)
+			res, err := reservationClient.DryRun(workloader)
 			if err != nil {
 				return errors.Wrap(err, "failed to parse reservation as JSON")
 			}
@@ -74,7 +56,7 @@ func cmdsProvision(c *cli.Context) error {
 			continue
 		}
 
-		result, err := reservationClient.Deploy(workloader, assets, timein)
+		result, err := reservationClient.Deploy(workloader, assets)
 		if err != nil {
 			return errors.Wrap(err, "failed to deploy reservation")
 		}
