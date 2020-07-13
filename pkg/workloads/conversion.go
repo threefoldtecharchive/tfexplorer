@@ -248,6 +248,11 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		if _, err = types.WorkloadCreate(r.Context(), db, workloaders[i]); err != nil {
 			return nil, mw.Error(err)
 		}
+		if workloaders[i].GetResult().State == workloads.ResultStateOK {
+			if err := a.capacityPlanner.UpdateUsedCapacity(workloaders[i], true); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
 	}
 
 	if err = types.SetUserConversionSucceeded(r.Context(), db, schema.ID(userTid)); err != nil {
