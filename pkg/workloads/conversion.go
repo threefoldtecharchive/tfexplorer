@@ -210,7 +210,8 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 	poolCU := make(map[int64]float64)
 	poolSU := make(map[int64]float64)
 	for _, wl := range workloaders {
-		reservationID, err := a.parseID(wl.GetReference())
+		ss := strings.Split(wl.GetReference(), "-")
+		reservationID, err := a.parseID(ss[0])
 		if err != nil {
 			return nil, mw.Error(err)
 		}
