@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -205,25 +206,26 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		workloaders[i].SetResult(savedResult)
 	}
 
-	// all reservations are as created and have valid signatures
-	for i := range workloaders {
-		workloaders[i].SetID(0) //force to create a new workload ID
-		if _, err = types.WorkloadCreate(r.Context(), db, workloaders[i]); err != nil {
-			return nil, mw.Error(err)
-		}
-	}
-
-	if err = types.SetUserConversionSucceeded(r.Context(), db, schema.ID(userTid)); err != nil {
-		return nil, mw.Error(err)
-	}
-
 	// calculate how much to add per pool
 	poolCU := make(map[int64]float64)
 	poolSU := make(map[int64]float64)
 	for _, wl := range workloaders {
+		reservationID, err := a.parseID(wl.GetReference())
+		if err != nil {
+			return nil, mw.Error(err)
+		}
+		reservation, err := types.ReservationFilter{}.WithID(reservationID).Get(r.Context(), db)
+		if err != nil {
+			return nil, mw.Error(err)
+		}
+		if reservation.Expired() {
+			// should not happen
+			continue
+		}
+		secondsLeft := math.Floor(time.Until(reservation.DataReservation.ExpirationReservation.Time).Seconds())
 		cu, su := capacity.CloudUnitsFromResourceUnits(wl.GetRSU())
-		poolCU[wl.GetPoolID()] = poolCU[wl.GetPoolID()] + cu
-		poolSU[wl.GetPoolID()] = poolSU[wl.GetPoolID()] + su
+		poolCU[wl.GetPoolID()] = poolCU[wl.GetPoolID()] + cu*secondsLeft
+		poolSU[wl.GetPoolID()] = poolSU[wl.GetPoolID()] + su*secondsLeft
 	}
 
 	// this is fine since these pools should not be used yet
@@ -237,6 +239,18 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		if err = capacitytypes.UpdatePool(r.Context(), db, pool); err != nil {
 			return nil, mw.Error(err)
 		}
+	}
+
+	// all reservations are as created and have valid signatures
+	for i := range workloaders {
+		workloaders[i].SetID(0) //force to create a new workload ID
+		if _, err = types.WorkloadCreate(r.Context(), db, workloaders[i]); err != nil {
+			return nil, mw.Error(err)
+		}
+	}
+
+	if err = types.SetUserConversionSucceeded(r.Context(), db, schema.ID(userTid)); err != nil {
+		return nil, mw.Error(err)
 	}
 
 	return nil, nil
