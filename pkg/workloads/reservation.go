@@ -1224,7 +1224,11 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id schema.ID) error {
 	// cancel reservation escrow in case the reservation has not yet been deployed
 	a.escrow.ReservationCanceled(id)
-	return types.ReservationSetNextAction(ctx, db, id, generated.NextActionDelete)
+	// No longer set the reservation as deleted. This means a workload which managed
+	// to deploy will stay allive. This code path should not happen (it can only
+	// happen just after the upgrade, for reservations with a pending escrow), and
+	// its not worth the hassle to manually figure out where to send the tokens.
+	return nil
 }
 
 func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types.WorkloaderType) (types.WorkloaderType, error) {
