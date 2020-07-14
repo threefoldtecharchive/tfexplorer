@@ -225,8 +225,16 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		}
 		secondsLeft := math.Floor(time.Until(reservation.DataReservation.ExpirationReservation.Time).Seconds())
 		cu, su := capacity.CloudUnitsFromResourceUnits(wl.GetRSU())
-		poolCU[wl.GetPoolID()] = poolCU[wl.GetPoolID()] + cu*secondsLeft
-		poolSU[wl.GetPoolID()] = poolSU[wl.GetPoolID()] + su*secondsLeft
+		poolID := wl.GetPoolID()
+
+		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wl.GetWorkloadType().String())
+
+		if cu > 0 {
+			poolCU[poolID] = poolCU[poolID] + cu*secondsLeft
+		}
+		if su > 0 {
+			poolSU[poolID] = poolSU[poolID] + su*secondsLeft
+		}
 	}
 
 	// this is fine since these pools should not be used yet
