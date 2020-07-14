@@ -308,6 +308,7 @@ func loadWorkloaders(res []types.Reservation) ([]workloads.Workloader, error) {
 			if w.Workloader.GetResult().State != workloads.ResultStateOK {
 				continue
 			}
+			w.Workloader.SetReference(fmt.Sprintf("%d-%d", r.ID, w.WorkloadID()))
 			workloaders = append(workloaders, w.Workloader)
 		}
 	}

@@ -333,7 +333,6 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		workload.SetID(id)
 		workload.SetEpoch(epoch)
 		workload.SetMetadata(meta)
-		workload.SetReference(fmt.Sprintf("%d-%d", r.ID, w.WorkloadID()))
 		if result != nil {
 			workload.SetResult(workloads.Result(*result))
 		}
