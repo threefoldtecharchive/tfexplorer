@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
 
@@ -18,7 +20,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 1,
 				MRU: 1,
 			},
-			cu: 1,
+			cu: 0,
 			su: 0,
 		},
 		{
@@ -26,7 +28,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 2,
 				MRU: 4,
 			},
-			cu: 1,
+			cu: 0.75,
 			su: 0,
 		},
 		{
@@ -34,19 +36,15 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 4,
 				MRU: 8,
 			},
-			cu: 1,
+			cu: 1.75,
 			su: 0,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%v", tt.rsu), func(t *testing.T) {
-			got, got1 := CloudUnitsFromResourceUnits(tt.rsu)
-			if got != tt.cu {
-				t.Errorf("CloudUnitsFromResourceUnits() got = %v, want %v", got, tt.cu)
-			}
-			if got1 != tt.su {
-				t.Errorf("CloudUnitsFromResourceUnits() got1 = %v, want %v", got1, tt.su)
-			}
+			cu, su := CloudUnitsFromResourceUnits(tt.rsu)
+			assert.Equal(t, tt.cu, cu, "wrong number of cu")
+			assert.Equal(t, tt.su, su, "wrong number of su")
 		})
 	}
 }
