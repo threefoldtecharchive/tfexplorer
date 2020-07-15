@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -21,11 +22,17 @@ type GatewayAPI struct{}
 type gatewayQuery struct {
 	Country string
 	City    string
+	FarmID  int
 }
 
 func (n *gatewayQuery) Parse(r *http.Request) mw.Response {
 	n.Country = r.URL.Query().Get("country")
 	n.City = r.URL.Query().Get("city")
+	sID := r.URL.Query().Get("farm_id")
+	iID, err := strconv.Atoi(sID)
+	if err == nil {
+		n.FarmID = iID
+	}
 	return nil
 }
 
@@ -33,6 +40,7 @@ func (n *gatewayQuery) Parse(r *http.Request) mw.Response {
 func (s *GatewayAPI) List(ctx context.Context, db *mongo.Database, q gatewayQuery, opts ...*options.FindOptions) ([]directory.Gateway, int64, error) {
 	var filter directory.GatewayFilter
 	filter = filter.WithLocation(q.Country, q.City)
+	filter = filter.WithFarmID(q.FarmID)
 
 	cur, err := filter.Find(ctx, db, opts...)
 	if err != nil {
