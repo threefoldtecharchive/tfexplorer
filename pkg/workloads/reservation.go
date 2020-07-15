@@ -1,10 +1,12 @@
 package workloads
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,18 +15,18 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/threefoldtech/tfexplorer/config"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity"
+	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
-	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -32,108 +34,171 @@ import (
 type (
 	// API struct
 	API struct {
-		escrow escrow.Escrow
+		escrow          escrow.Escrow
+		capacityPlanner capacity.Planner
 	}
 
 	// ReservationCreateResponse wraps reservation create response
 	ReservationCreateResponse struct {
-		ID                schema.ID                             `json:"reservation_id"`
-		EscrowInformation escrowtypes.CustomerEscrowInformation `json:"escrow_information"`
+		ID schema.ID `json:"reservation_id"`
+	}
+
+	// CapacityPoolCreateResponse wraps capacity pool reservation create response
+	CapacityPoolCreateResponse struct {
+		ID                schema.ID                                     `json:"reservation_id"`
+		EscrowInformation escrowtypes.CustomerCapacityEscrowInformation `json:"escrow_information,omitempty"`
 	}
 )
 
 // freeTFT currency code
 const freeTFT = "FreeTFT"
 
-func (a *API) validAddresses(ctx context.Context, db *mongo.Database, res *types.Reservation) error {
-	if config.Config.Network == "" {
-		log.Info().Msg("escrow disabled, no validation of farmer wallet address needed")
-		return nil
-	}
-
-	workloads := res.Workloads("")
-	var nodes []string
-
-	for _, wl := range workloads {
-		nodes = append(nodes, wl.NodeID)
-	}
-
-	farms, err := directory.FarmsForNodes(ctx, db, nodes...)
-	if err != nil {
-		return err
-	}
-
-	for _, farm := range farms {
-		for _, a := range farm.WalletAddresses {
-			validator, err := stellar.NewAddressValidator(config.Config.Network, a.Asset)
-			if err != nil {
-				if errors.Is(err, stellar.ErrAssetCodeNotSupported) {
-					continue
-				}
-				return errors.Wrap(err, "could not initialize address validator")
-			}
-			if err := validator.Valid(a.Address); err != nil {
-				return fmt.Errorf("farm %s has an invalid address for currency %s: %w", farm.Name, a.Asset, err)
-			}
-		}
-
-	}
-
-	return nil
-}
+// minimum amount of seconds a workload needs to be able to live with a given
+// pool before we even want to attempt to deploy it
+const minCapacitySeconds = 120 // 2 min
 
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
-	var reservation types.Reservation
-	if err := json.NewDecoder(r.Body).Decode(&reservation); err != nil {
+
+	bodyBuf := bytes.NewBuffer(nil)
+	bodyBuf.ReadFrom(r.Body)
+	w, err := workloads.UnmarshalJSON(bodyBuf.Bytes())
+	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	if reservation.Expired() {
-		return nil, mw.BadRequest(fmt.Errorf("creating for a reservation that expires in the past"))
-	}
-
-	duration := time.Until(reservation.DataReservation.ExpirationReservation.Time)
-	if duration < time.Hour {
-		return nil, mw.BadRequest(fmt.Errorf("the minimum duration for a reservation is 1 hour, you tried to reserve for %s", duration.String()))
-	}
+	workload := types.WorkloaderType{Workloader: w}
 
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
 	// in later stages
-	reservation.SignaturesProvision = make([]generated.SigningSignature, 0)
-	reservation.SignaturesDelete = make([]generated.SigningSignature, 0)
-	reservation.SignaturesFarmer = make([]generated.SigningSignature, 0)
-	reservation.Results = make([]generated.Result, 0)
+	workload.SetSignaturesProvision(make([]generated.SigningSignature, 0))
+	workload.SetSignaturesDelete(make([]generated.SigningSignature, 0))
+	workload.SetSignatureFarmer(generated.SigningSignature{})
+	workload.SetResult(generated.Result{})
+	workload.SetID(schema.ID(0))
 
-	if err := reservation.Validate(); err != nil {
+	if err := workload.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	reservation, err := a.pipeline(reservation, nil)
+	workload, err = a.workloadpipeline(workload, nil)
 	if err != nil {
 		// if failed to create pipeline, then
 		// this reservation has failed initial validation
 		return nil, mw.BadRequest(err)
 	}
 
-	if reservation.IsAny(types.Invalid, types.Delete) {
-		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", reservation.NextAction.String()))
+	if workload.IsAny(types.Invalid, types.Delete) {
+		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.GetNextAction().String()))
 	}
 
 	db := mw.Database(r)
 
-	if err := a.validAddresses(r.Context(), db, &reservation); err != nil {
-		return nil, mw.Error(err, http.StatusFailedDependency) //FIXME: what is this strange status ?
+	var filter phonebook.UserFilter
+	filter = filter.WithID(schema.ID(workload.GetCustomerTid()))
+	user, err := filter.Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", workload.GetCustomerTid()))
+	}
+
+	signature, err := hex.DecodeString(workload.GetCustomerSignature())
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature format, expecting hex encoded string"))
+	}
+
+	if err := workload.Verify(user.Pubkey, signature); err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
+	}
+
+	workload.SetEpoch(schema.Date{Time: time.Now()})
+
+	allowed, err := a.capacityPlanner.IsAllowed(workload)
+	if err != nil {
+		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
+			return nil, mw.NotFound(errors.New("pool does not exist"))
+		}
+		log.Error().Err(err).Msg("failed to load workload capacity pool")
+		return nil, mw.Error(errors.New("could not load the required capacity pool"))
+	}
+
+	if !allowed {
+		return nil, mw.Forbidden(errors.New("not allowed to deploy workload on this pool"))
+	}
+
+	id, err := types.WorkloadCreate(r.Context(), db, workload)
+	if err != nil {
+		log.Error().Err(err).Msg("could not create workload")
+		return nil, mw.Error(err)
+	}
+
+	workload, err = types.WorkloadFilter{}.WithID(id).Get(r.Context(), db)
+	if err != nil {
+		log.Error().Err(err).Msg("could not fetch workload we just saved")
+		return nil, mw.Error(err)
+	}
+
+	allowed, err = a.capacityPlanner.HasCapacity(workload, minCapacitySeconds)
+	if err != nil {
+		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
+			log.Error().Err(err).Int64("poolID", workload.GetPoolID()).Msg("pool disappeared")
+			return nil, mw.Error(errors.New("pool does not exist"))
+		}
+		log.Error().Err(err).Msg("failed to load workload capacity pool")
+		return nil, mw.Error(errors.New("could not load the required capacity pool"))
+	}
+
+	if !allowed {
+		log.Debug().Msg("don't deploy workload as its pool is almost empty")
+		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
+	}
+
+	// immediately deploy the workload
+	if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
+		log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
+		return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
+	}
+
+	return ReservationCreateResponse{ID: id}, mw.Created()
+}
+
+func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
+	defer r.Body.Close()
+	var reservation capacitytypes.Reservation
+	if err := json.NewDecoder(r.Body).Decode(&reservation); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	if err := reservation.Validate(); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	db := mw.Database(r)
+
+	// make sure there are no duplicate node ID's
+	seenNodes := make(map[string]struct{})
+	for i := range reservation.DataReservation.NodeIDs {
+		if _, exists := seenNodes[reservation.DataReservation.NodeIDs[i]]; exists {
+			return nil, mw.Conflict(errors.New("duplicate node ID is not allowed in capacity pool"))
+		}
+		seenNodes[reservation.DataReservation.NodeIDs[i]] = struct{}{}
+	}
+
+	// check if all nodes belong to the same farm
+	farms, err := directory.FarmsForNodes(r.Context(), db, reservation.DataReservation.NodeIDs...)
+	if err != nil {
+		return nil, mw.Error(err, http.StatusInternalServerError)
+	}
+	if len(farms) > 1 {
+		return nil, mw.BadRequest(errors.New("all nodes for a capacity pool must belong to the same farm"))
 	}
 
 	// check if freeTFT is allowed to be used
 	// if all nodes are marked as free to use then FreeTFT is allowed
 	// otherwise it is not
-
 	var freeNodes int
 
-	usedNodes := reservation.NodeIDs()
+	usedNodes := reservation.DataReservation.NodeIDs
 	count, err := (directory.NodeFilter{}).
 		WithNodeIDs(usedNodes).
 		WithFreeToUse(true).
@@ -143,23 +208,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	}
 	freeNodes += int(count)
 
-	usedGateways := reservation.GatewayIDs()
-	count, err = (directory.GatewayFilter{}).
-		WithGWIDs(usedGateways).
-		WithFreeToUse(true).
-		Count(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err, http.StatusInternalServerError)
-	}
-	freeNodes += int(count)
-
-	paidNodes := len(usedNodes) + len(usedGateways)
-
+	paidNodes := len(usedNodes)
 	log.Info().
-		Int64("reservation_id", int64(reservation.ID)).
 		Int("paid_nodes", paidNodes).
 		Int("free_nodes", freeNodes).
-		Msg("distribution of free nodes")
+		Msg("distribution of free nodes in capacity reservation")
 
 	currencies := make([]string, len(reservation.DataReservation.Currencies))
 	copy(currencies, reservation.DataReservation.Currencies)
@@ -180,36 +233,59 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", reservation.CustomerTid))
 	}
 
-	signature, err := hex.DecodeString(reservation.CustomerSignature)
-	if err != nil {
-		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature format, expecting hex encoded string"))
-	}
-
-	if err := reservation.Verify(user.Pubkey, signature); err != nil {
+	if err := reservation.Verify(user.Pubkey); err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
 	}
 
-	reservation.Epoch = schema.Date{Time: time.Now()}
+	reservation, err = capacitytypes.CapacityReservationCreate(r.Context(), db, reservation)
+	if err != nil {
+		return nil, mw.Error(errors.Wrap(err, "could not insert reservation in db"))
+	}
 
-	id, err := types.ReservationCreate(r.Context(), db, reservation)
+	info, err := a.capacityPlanner.Reserve(reservation, currencies)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
 
-	reservation, err = types.ReservationFilter{}.WithID(id).Get(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
-	escrowDetails, err := a.escrow.RegisterReservation(generated.Reservation(reservation), currencies)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
-	return ReservationCreateResponse{
+	return CapacityPoolCreateResponse{
 		ID:                reservation.ID,
-		EscrowInformation: escrowDetails,
+		EscrowInformation: info,
 	}, mw.Created()
+}
+
+func (a *API) getPool(r *http.Request) (interface{}, mw.Response) {
+	idstr := mux.Vars(r)["id"]
+
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(errors.New("id must be an integer"))
+	}
+
+	pool, err := a.capacityPlanner.PoolByID(id)
+	if err != nil {
+		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
+			return nil, mw.NotFound(errors.New("capacity pool not found"))
+		}
+		return nil, mw.Error(err)
+	}
+
+	return pool, nil
+}
+
+func (a *API) listPools(r *http.Request) (interface{}, mw.Response) {
+	ownerstr := mux.Vars(r)["owner"]
+
+	owner, err := strconv.ParseInt(ownerstr, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(errors.New("owner id must be an integer"))
+	}
+
+	pool, err := a.capacityPlanner.PoolsForOwner(owner)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return pool, nil
 }
 
 func (a *API) parseID(id string) (schema.ID, error) {
@@ -234,6 +310,19 @@ func (a *API) pipeline(r types.Reservation, err error) (types.Reservation, error
 	return r, nil
 }
 
+func (a *API) workloadpipeline(w types.WorkloaderType, err error) (types.WorkloaderType, error) {
+	if err != nil {
+		return w, err
+	}
+	pl, err := types.NewWorkloaderPipeline(w)
+	if err != nil {
+		return w, errors.Wrap(err, "failed to process reservation state pipeline")
+	}
+
+	w, _ = pl.Next()
+	return w, nil
+}
+
 func (a *API) get(r *http.Request) (interface{}, mw.Response) {
 	id, err := a.parseID(mux.Vars(r)["res_id"])
 	if err != nil {
@@ -250,6 +339,24 @@ func (a *API) get(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	return reservation, nil
+}
+
+func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
+	id, err := a.parseID(mux.Vars(r)["res_id"])
+	if err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(id)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	return workload, nil
 }
 
 func (a *API) list(r *http.Request) (interface{}, mw.Response) {
@@ -298,21 +405,55 @@ func (a *API) list(r *http.Request) (interface{}, mw.Response) {
 	return reservations, mw.Ok().WithHeader("Pages", pages)
 }
 
-func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, limit int64) ([]types.Workload, error) {
-
-	type intermediate struct {
-		WorkloadID string                     `bson:"workload_id" json:"workload_id"`
-		User       string                     `bson:"user" json:"user"`
-		Type       generated.WorkloadTypeEnum `bson:"type" json:"type"`
-		Content    bson.Raw                   `bson:"content" json:"content"`
-		Created    schema.Date                `bson:"created" json:"created"`
-		Duration   int64                      `bson:"duration" json:"duration"`
-		Signature  string                     `bson:"signature" json:"signature"`
-		ToDelete   bool                       `bson:"to_delete" json:"to_delete"`
-		NodeID     string                     `json:"node_id" bson:"node_id"`
+func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
+	var filter types.WorkloadFilter
+	filter, err := types.ApplyQueryFilterWorkload(r, filter)
+	if err != nil {
+		return nil, mw.BadRequest(err)
 	}
 
-	workloads := make([]types.Workload, 0)
+	db := mw.Database(r)
+	pager := models.PageFromRequest(r)
+	cur, err := filter.FindCursor(r.Context(), db, pager)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	defer cur.Close(r.Context())
+
+	total, err := filter.Count(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	reservations := []types.WorkloaderType{}
+
+	for cur.Next(r.Context()) {
+		var workload types.WorkloaderType
+		if err := cur.Decode(&workload); err != nil {
+			// skip reservations we can not load
+			// this is probably an old reservation
+			currentID := cur.Current.Lookup("_id").Int64()
+			log.Error().Err(err).Int64("id", currentID).Msg("failed to decode reservation")
+			continue
+		}
+
+		workload, err := a.workloadpipeline(workload, nil)
+		if err != nil {
+			log.Error().Err(err).Int64("id", int64(workload.GetID())).Msg("failed to process reservation")
+			continue
+		}
+
+		reservations = append(reservations, workload)
+	}
+
+	pages := fmt.Sprintf("%d", models.NrPages(total, *pager.Limit))
+	return reservations, mw.Ok().WithHeader("Pages", pages)
+}
+
+func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, limit int64) ([]types.WorkloaderType, error) {
+
+	workloads := make([]types.WorkloaderType, 0)
 
 	var queue types.QueueFilter
 	queue = queue.WithNodeID(nodeID)
@@ -322,104 +463,13 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 		return nil, err
 	}
 	defer cur.Close(ctx)
+
 	for cur.Next(ctx) {
-		// why we have intermediate struct you say? I will tell you
-		// Content in the workload structure is definition as of type interface{}
-		// bson if found a nil interface, it initialize it with bson.D (list of elements)
-		// so data in Content will be something like [{key: k1, value: v1}, {key: k2, value: v2}]
-		// which is not the same structure expected in the node
-		// hence we use bson.M to force it to load data in a map like {k1: v1, k2: v2}
-		var wl intermediate
-
+		var wl types.WorkloaderType
 		if err := cur.Decode(&wl); err != nil {
-			return workloads, err
+			return nil, err
 		}
-
-		obj := generated.ReservationWorkload{
-			WorkloadId: wl.WorkloadID,
-			User:       wl.User,
-			Type:       wl.Type,
-			Created:    wl.Created,
-			Duration:   wl.Duration,
-			Signature:  wl.Signature,
-			ToDelete:   wl.ToDelete,
-		}
-
-		switch wl.Type {
-		case generated.WorkloadTypeContainer:
-			var data generated.Container
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeVolume:
-			var data generated.Volume
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeZDB:
-			var data generated.ZDB
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeNetwork:
-			var data generated.Network
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeKubernetes:
-			var data generated.K8S
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeDomainDelegate:
-			var data generated.GatewayDelegate
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeSubDomain:
-			var data generated.GatewaySubdomain
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeProxy:
-			var data generated.GatewayProxy
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-
-		case generated.WorkloadTypeReverseProxy:
-			var data generated.GatewayReverseProxy
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-		case generated.WorkloadTypeGateway4To6:
-			var data generated.Gateway4To6
-			if err := bson.Unmarshal(wl.Content, &data); err != nil {
-				return nil, err
-			}
-			obj.Content = data
-		}
-
-		workloads = append(workloads, types.Workload{
-			NodeID:              wl.NodeID,
-			ReservationWorkload: obj,
-		})
+		workloads = append(workloads, wl)
 	}
 
 	return workloads, nil
@@ -451,15 +501,68 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	// store last reservation ID
-	lastID, err := types.ReservationLastID(r.Context(), db)
+	lastReservationID, err := types.ReservationLastID(r.Context(), db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
 
-	filter := types.ReservationFilter{}.WithIDGE(from)
+	lastWorkloadID, err := types.WorkloadsLastID(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	lastID := lastReservationID
+	if lastWorkloadID > lastID {
+		lastID = lastWorkloadID
+	}
+
+	filter := types.WorkloadFilter{}.WithIDGE(from)
 	filter = filter.WithNodeID(nodeID)
 
-	cur, err := filter.Find(r.Context(), db)
+	cur, err := filter.FindCursor(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+	defer cur.Close(r.Context())
+
+	for cur.Next(r.Context()) {
+		var workloader types.WorkloaderType
+		if err := cur.Decode(&workloader); err != nil {
+			return nil, mw.Error(err)
+		}
+
+		workloader, err = a.workloadpipeline(workloader, nil)
+		if err != nil {
+			log.Error().Err(err).Int64("id", int64(workloader.GetID())).Msg("failed to process workload")
+			continue
+		}
+
+		if workloader.GetNextAction() == types.Delete {
+			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.GetID(), generated.NextActionDelete); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
+
+		if !workloader.IsAny(types.Deploy, types.Delete) {
+			continue
+		}
+
+		workloads = append(workloads, workloader)
+
+		if len(workloads) >= maxPageSize {
+			break
+		}
+	}
+
+	// if we have sufficient data return
+	if len(workloads) >= maxPageSize {
+		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+	}
+
+	rfilter := types.ReservationFilter{}.WithIDGE(from)
+	rfilter = rfilter.WithNodeID(nodeID)
+
+	cur, err = rfilter.Find(r.Context(), db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -513,35 +616,68 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newWorkloadGet(r)
 	}
 	// we use an empty node-id in listing to return all workloads in this reservation
 	workloads := reservation.Workloads("")
 
-	var workload *types.Workload
+	var workload types.WorkloaderType
+	var found bool
 	for _, wl := range workloads {
-		if wl.WorkloadId == gwid {
-			workload = &wl
+		if wl.UniqueWorkloadID() == gwid {
+			workload = wl
+			found = true
 			break
 		}
 	}
 
-	if workload == nil {
+	if !found {
+		return nil, mw.NotFound(err)
+	}
+
+	var result struct {
+		types.WorkloaderType
+		Result types.Result `json:"result"`
+	}
+	result.WorkloaderType = workload
+	for _, rs := range reservation.Results {
+		if rs.WorkloadId == workload.UniqueWorkloadID() {
+			t := types.Result(rs)
+			result.Result = t
+			break
+		}
+	}
+
+	return result, nil
+}
+
+func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
+	gwid := mux.Vars(r)["gwid"]
+
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(rid)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.UniqueWorkloadID() != gwid {
 		return nil, mw.NotFound(fmt.Errorf("workload not found"))
 	}
 
 	var result struct {
-		types.Workload
-		Result []types.Result `json:"result"`
+		types.WorkloaderType
+		Result types.Result `json:"result"`
 	}
-	result.Workload = *workload
-	for _, rs := range reservation.Results {
-		if rs.WorkloadId == workload.WorkloadId {
-			t := types.Result(rs)
-			result.Result = append(result.Result, t)
-			break
-		}
-	}
+	result.WorkloaderType = workload
+	result.Result = types.Result(workload.GetResult())
 
 	return result, nil
 }
@@ -562,28 +698,6 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	var filter types.ReservationFilter
-	filter = filter.WithID(rid)
-
-	db := mw.Database(r)
-	reservation, err := a.pipeline(filter.Get(r.Context(), db))
-	if err != nil {
-		return nil, mw.NotFound(err)
-	}
-	// we use an empty node-id in listing to return all workloads in this reservation
-	workloads := reservation.Workloads(nodeID)
-	var workload *types.Workload
-	for _, wl := range workloads {
-		if wl.WorkloadId == gwid {
-			workload = &wl
-			break
-		}
-	}
-
-	if workload == nil {
-		return nil, mw.NotFound(errors.New("workload not found"))
-	}
-
 	result.NodeId = nodeID
 	result.WorkloadId = gwid
 	result.Epoch = schema.Date{Time: time.Now()}
@@ -592,11 +706,34 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.UnAuthorized(errors.Wrap(err, "invalid result signature"))
 	}
 
+	var filter types.ReservationFilter
+	filter = filter.WithID(rid)
+
+	db := mw.Database(r)
+	reservation, err := a.pipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return a.newworkloadPutResult(r.Context(), db, gwid, rid, result)
+	}
+
+	workloads := reservation.Workloads(nodeID)
+
+	var found bool
+	for _, wl := range workloads {
+		if wl.UniqueWorkloadID() == gwid {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return nil, mw.NotFound(errors.New("workload not found"))
+	}
+
 	if err := types.ResultPush(r.Context(), db, rid, result); err != nil {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, rid); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -617,6 +754,51 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
+	return nil, mw.Created()
+}
+
+func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid string, globalID schema.ID, result types.Result) (interface{}, mw.Response) {
+	var filter types.WorkloadFilter
+	filter = filter.WithID(globalID)
+
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
+	workload, err := a.workloadpipeline(filter.Get(ctx, db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.Workload().ReservationWorkload.WorkloadId != gwid {
+		return nil, mw.NotFound(errors.New("workload id does not exist"))
+	}
+
+	if err := types.WorkloadResultPush(ctx, db, globalID, result); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadPop(ctx, db, rid); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if result.State == generated.ResultStateError {
+		// remove capacity from pool
+		if err := a.capacityPlanner.RemoveUsedCapacity(workload); err != nil {
+			log.Error().Err(err).Msg("failed to decrease used capacity in pool")
+			return nil, mw.Error(err)
+		}
+		if err := types.WorkloadSetNextAction(ctx, db, globalID, generated.NextActionDelete); err != nil {
+			return nil, mw.Error(err)
+		}
+	} else if result.State == generated.ResultStateOK {
+		// add capacity to pool
+		if err := a.capacityPlanner.AddUsedCapacity(workload); err != nil {
+			log.Error().Err(err).Msg("failed to increase used capacity in pool")
+			return nil, mw.Error(err)
+		}
+	}
 	return nil, mw.Created()
 }
 
@@ -645,20 +827,20 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return a.newworkloadPutDeleted(r.Context(), db, rid, gwid, nodeID)
 	}
 
-	// we use an empty node-id in listing to return all workloads in this reservation
 	workloads := reservation.Workloads(nodeID)
-	var workload *types.Workload
+
+	var found bool
 	for _, wl := range workloads {
-		if wl.WorkloadId == gwid {
-			workload = &wl
+		if wl.UniqueWorkloadID() == gwid {
+			found = true
 			break
 		}
 	}
 
-	if workload == nil {
+	if !found {
 		return nil, mw.NotFound(errors.New("workload not found"))
 	}
 
@@ -678,7 +860,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadPop(r.Context(), db, gwid, nodeID); err != nil {
+	if err := types.WorkloadPop(r.Context(), db, rid); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -699,9 +881,66 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 	return nil, nil
 }
 
+func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid schema.ID, gwid string, nodeID string) (interface{}, mw.Response) {
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(wid)
+
+	workload, err := a.workloadpipeline(filter.Get(ctx, db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.Workload().WorkloadId != gwid {
+		return nil, mw.NotFound(errors.New("workload not found"))
+	}
+
+	result := workload.ResultOf(gwid)
+	if result == nil {
+		// no result for this work load
+		// QUESTION: should we still mark the result as deleted?
+		result = &types.Result{
+			WorkloadId: gwid,
+			Epoch:      schema.Date{Time: time.Now()},
+		}
+	}
+
+	result.State = generated.ResultStateDeleted
+
+	// remove capacity from pool
+	if err := a.capacityPlanner.RemoveUsedCapacity(workload); err != nil {
+		log.Error().Err(err).Msg("failed to decrease used capacity in pool")
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadResultPush(ctx, db, wid, *result); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadPop(ctx, db, rid); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if err := types.WorkloadSetNextAction(ctx, db, workload.GetID(), generated.NextActionDeleted); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return nil, nil
+}
+
 func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
-	defer r.Body.Close()
 	var signature generated.SigningSignature
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+	r.Body.Close() //  must close
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
 		return nil, mw.BadRequest(err)
@@ -723,7 +962,8 @@ func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		return a.newSignProvision(r)
 	}
 
 	if reservation.NextAction != generated.NextActionSign {
@@ -769,9 +1009,81 @@ func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Created()
 }
 
-func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
-	defer r.Body.Close()
+func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 	var signature generated.SigningSignature
+
+	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	id, err := a.parseID(mux.Vars(r)["res_id"])
+	if err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(id)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	if workload.GetNextAction() != generated.NextActionSign {
+		return nil, mw.UnAuthorized(fmt.Errorf("workload not expecting signatures"))
+	}
+
+	in := func(i int64, l []int64) bool {
+		for _, x := range l {
+			if x == i {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !in(signature.Tid, workload.GetSigningRequestProvision().Signers) {
+		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	}
+
+	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.NotFound(errors.Wrap(err, "customer id not found"))
+	}
+
+	if err := workload.SignatureProvisionRequestVerify(user.Pubkey, signature); err != nil {
+		return nil, mw.UnAuthorized(errors.Wrap(err, "failed to verify signature"))
+	}
+
+	signature.Epoch = schema.Date{Time: time.Now()}
+	if err := types.WorkloadPushSignature(r.Context(), db, id, types.SignatureProvision, signature); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	workload, err = a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if workload.GetNextAction() == generated.NextActionDeploy {
+		if err = types.WorkloadPush(r.Context(), db, workload); err != nil {
+			return nil, mw.Error(err)
+		}
+	}
+
+	return nil, mw.Created()
+}
+
+func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
+	var signature generated.SigningSignature
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+	r.Body.Close() //  must close
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
 		return nil, mw.BadRequest(err)
@@ -784,7 +1096,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 
 	id, err := a.parseID(mux.Vars(r)["res_id"])
 	if err != nil {
-		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+		return nil, mw.BadRequest(err)
 	}
 
 	var filter types.ReservationFilter
@@ -793,7 +1105,8 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		return a.newSignDelete(r)
 	}
 
 	in := func(i int64, l []int64) bool {
@@ -843,8 +1156,87 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Created()
 }
 
+func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
+	var signature generated.SigningSignature
+
+	if err := json.NewDecoder(r.Body).Decode(&signature); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	id, err := a.parseID(mux.Vars(r)["res_id"])
+	if err != nil {
+		return nil, mw.BadRequest(fmt.Errorf("invalid reservation id"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(id)
+
+	db := mw.Database(r)
+	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	in := func(i int64, l []int64) bool {
+		for _, x := range l {
+			if x == i {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !in(signature.Tid, workload.GetSigningRequestDelete().Signers) {
+		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	}
+
+	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.NotFound(errors.Wrap(err, "customer id not found"))
+	}
+
+	if err := workload.SignatureDeleteRequestVerify(user.Pubkey, signature); err != nil {
+		return nil, mw.UnAuthorized(errors.Wrap(err, "failed to verify signature"))
+	}
+
+	signature.Epoch = schema.Date{Time: time.Now()}
+	if err := types.WorkloadPushSignature(r.Context(), db, id, types.SignatureDelete, signature); err != nil {
+		return nil, mw.Error(err)
+	}
+
+	workload, err = a.workloadpipeline(filter.Get(r.Context(), db))
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	if workload.GetNextAction() != generated.NextActionDelete {
+		return nil, mw.Created()
+	}
+
+	workload, err = a.setWorkloadDelete(r.Context(), db, workload)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return nil, mw.Created()
+}
+
 func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id schema.ID) error {
 	// cancel reservation escrow in case the reservation has not yet been deployed
 	a.escrow.ReservationCanceled(id)
-	return types.ReservationSetNextAction(ctx, db, id, generated.NextActionDelete)
+	// No longer set the reservation as deleted. This means a workload which managed
+	// to deploy will stay allive. This code path should not happen (it can only
+	// happen just after the upgrade, for reservations with a pending escrow), and
+	// its not worth the hassle to manually figure out where to send the tokens.
+	return nil
+}
+
+func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types.WorkloaderType) (types.WorkloaderType, error) {
+	w.SetNextAction(types.Delete)
+
+	if err := types.ReservationSetNextAction(ctx, db, w.GetID(), types.Delete); err != nil {
+		return w, errors.Wrap(err, "could not update workload to delete state")
+	}
+
+	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
 }

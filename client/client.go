@@ -8,6 +8,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/models/generated/phonebook"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/capacity"
@@ -85,17 +86,21 @@ type (
 
 	// Workloads interface
 	Workloads interface {
-		Create(reservation workloads.Reservation) (resp wrklds.ReservationCreateResponse, err error)
+		Create(reservation workloads.Workloader) (resp wrklds.ReservationCreateResponse, err error)
 		List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Reservation, err error)
-		Get(id schema.ID) (reservation workloads.Reservation, err error)
+		Get(id schema.ID) (reservation workloads.Workloader, err error)
 
 		SignProvision(id schema.ID, user schema.ID, signature string) error
 		SignDelete(id schema.ID, user schema.ID, signature string) error
 
-		Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error)
-		WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error)
+		Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error)
+		WorkloadGet(gwid string) (result workloads.Workloader, err error)
 		WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
 		WorkloadPutDeleted(nodeID, gwid string) error
+
+		PoolCreate(reservation types.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error)
+		PoolGet(poolID string) (result types.Pool, err error)
+		PoolsGetByOwner(ownerID string) (result []types.Pool, err error)
 	}
 
 	// Identity is used by the client to authenticate to the explorer API

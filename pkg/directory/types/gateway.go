@@ -60,14 +60,22 @@ func (n *Gateway) Validate() error {
 // GatewayFilter type
 type GatewayFilter bson.D
 
-// WithID filter node with ID
+// WithID filter gateway with ID
 func (f GatewayFilter) WithID(id schema.ID) GatewayFilter {
 	return append(f, bson.E{Key: "_id", Value: id})
 }
 
-// WithGWID search nodes with this node id
+// WithGWID search gateways with this gateway id
 func (f GatewayFilter) WithGWID(id string) GatewayFilter {
 	return append(f, bson.E{Key: "node_id", Value: id})
+}
+
+// WithFarmID search gateways with this node id
+func (f GatewayFilter) WithFarmID(id int) GatewayFilter {
+	if id > 0 {
+		f = append(f, bson.E{Key: "farm_id", Value: id})
+	}
+	return f
 }
 
 // WithGWIDs list gateways which ndoe_id is in ids slice

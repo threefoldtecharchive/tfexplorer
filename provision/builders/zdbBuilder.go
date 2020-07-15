@@ -1,10 +1,15 @@
 package builders
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/threefoldtech/zos/pkg"
+	"github.com/threefoldtech/zos/pkg/crypto"
 )
 
 // ZDBBuilder is a struct that can build ZDB's
@@ -16,7 +21,11 @@ type ZDBBuilder struct {
 func NewZdbBuilder(nodeID string, size int64, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZDBBuilder {
 	return &ZDBBuilder{
 		ZDB: workloads.ZDB{
-			NodeId:   nodeID,
+			ReservationInfo: workloads.ReservationInfo{
+				WorkloadId:   1,
+				NodeId:       nodeID,
+				WorkloadType: workloads.WorkloadTypeZDB,
+			},
 			Size:     size,
 			Mode:     mode,
 			DiskType: diskType,
@@ -53,6 +62,8 @@ func (z *ZDBBuilder) Build() (workloads.ZDB, error) {
 	}
 
 	z.ZDB.Password = encrypted
+	z.Epoch = schema.Date{Time: time.Now()}
+
 	return z.ZDB, nil
 }
 
@@ -96,4 +107,24 @@ func (z *ZDBBuilder) WithPublic(public bool) *ZDBBuilder {
 func (z *ZDBBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *ZDBBuilder {
 	z.ZDB.StatsAggregator = aggregators
 	return z
+}
+
+// WithPoolID sets the poolID to the zdb
+func (z *ZDBBuilder) WithPoolID(poolID int64) *ZDBBuilder {
+	z.ZDB.PoolId = poolID
+	return z
+}
+
+func encryptSecret(plain, nodeID string) (string, error) {
+	if len(plain) == 0 {
+		return "", nil
+	}
+
+	pubkey, err := crypto.KeyFromID(pkg.StrIdentifier(nodeID))
+	if err != nil {
+		return "", err
+	}
+
+	encrypted, err := crypto.Encrypt([]byte(plain), pubkey)
+	return hex.EncodeToString(encrypted), err
 }

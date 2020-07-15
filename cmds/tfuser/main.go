@@ -48,7 +48,6 @@ func main() {
 		cli.StringFlag{
 			Name:   "seed",
 			Usage:  "path to the file container the seed of the user private key",
-			Value:  "user.seed",
 			EnvVar: "SEED_PATH",
 		},
 	}
@@ -70,9 +69,10 @@ func main() {
 			if err != nil {
 				return err
 			}
+			bcdb, err = client.NewClient(bcdbAddr, mainui)
+		} else {
+			bcdb, err = client.NewClient(bcdbAddr, nil)
 		}
-
-		bcdb, err = client.NewClient(bcdbAddr, mainui)
 		if err != nil {
 			return err
 		}
@@ -221,6 +221,11 @@ func main() {
 									Name:  "force-hidden",
 									Usage: "Forcibly mark the node as hidden, even if it is registered with public endpoints",
 								},
+								cli.Int64Flag{
+									Name:  "poolID",
+									Usage: "ID of the pool",
+									Value: 0,
+								},
 							},
 							Action: cmdsAddNode,
 						},
@@ -339,6 +344,11 @@ func main() {
 							Name:  "stats",
 							Usage: "like process logs, but for metrics (metrics are pushed as json)",
 						},
+						cli.Uint64Flag{
+							Name:  "poolID, p",
+							Usage: "ID of the pool",
+							Value: 0,
+						},
 					},
 					Action: generateContainer,
 				},
@@ -364,6 +374,11 @@ func main() {
 									Name:     "type, t",
 									Usage:    "Type of disk to use, HHD or SSD",
 									Required: true,
+								},
+								cli.Uint64Flag{
+									Name:  "poolID, p",
+									Usage: "ID of the pool",
+									Value: 0,
 								},
 							},
 							Action: generateVolume,
@@ -399,6 +414,11 @@ func main() {
 								cli.BoolFlag{
 									Name:  "public",
 									Usage: "TODO",
+								},
+								cli.Uint64Flag{
+									Name:  "poolID, p",
+									Usage: "ID of the pool",
+									Value: 0,
 								},
 							},
 							Action: generateZDB,
@@ -439,6 +459,11 @@ func main() {
 							Name:  "ssh-keys",
 							Usage: "Ssh keys to authorize for the vm. Can be either a full ssh key, or a \"github:username\" form which will pull the ssh keys from github",
 						},
+						cli.Uint64Flag{
+							Name:  "poolID, p",
+							Usage: "ID of the pool",
+							Value: 0,
+						},
 					},
 					Action: generateKubernetes,
 				},
@@ -449,10 +474,6 @@ func main() {
 			Usage:  "Provision a workload",
 			Before: requireSeed,
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "duration",
-					Usage: "duration of the reservation. By default is number of days. But also support notation with duration suffix like m for minute or h for hours",
-				},
 				cli.StringSliceFlag{
 					Name:  "asset",
 					Usage: "add an asset which is acceptable to pay the reservation",
@@ -462,24 +483,8 @@ func main() {
 					Usage: "dry run, prints the reservation instead of registering it",
 				},
 				cli.StringSliceFlag{
-					Name:  "volume",
-					Usage: "add a volume to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "zdb",
-					Usage: "add a zdb to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "container",
-					Usage: "add a container to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "kube",
-					Usage: "add a kube to provision",
-				},
-				cli.StringSliceFlag{
-					Name:  "network",
-					Usage: "add a network to provision",
+					Name:  "workload",
+					Usage: "workload to provision",
 				},
 			},
 			Action: cmdsProvision,
@@ -527,6 +532,71 @@ func main() {
 				},
 			},
 			Action: cmdsLive,
+		},
+		{
+			Name:   "pool",
+			Usage:  "Capacity pool actions",
+			Before: requireSeed,
+			Subcommands: []cli.Command{
+				{
+					Name:   "create",
+					Usage:  "Create a capacity pool",
+					Before: requireSeed,
+					Flags: []cli.Flag{
+						cli.IntFlag{
+							Name:  "cus",
+							Usage: "number of compute unit seconds",
+						},
+						cli.IntFlag{
+							Name:  "sus",
+							Usage: "number of storage unit seconds",
+						},
+						cli.StringSliceFlag{
+							Name:  "nodeIDs",
+							Usage: "an array of node ids to deploy the capacity pool on",
+						},
+						cli.StringSliceFlag{
+							Name:  "asset",
+							Usage: "add an asset which is acceptable to pay the reservation",
+						},
+						cli.BoolFlag{
+							Name:  "dry-run",
+							Usage: "dry run the deployment",
+						},
+						cli.IntFlag{
+							Name:  "poolID",
+							Usage: "if pool id is given then it will extend the existing one",
+						},
+					},
+					Action: cmdsCreatePool,
+				},
+				{
+					Name:   "get",
+					Usage:  "Get a capacity pool",
+					Before: requireSeed,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:     "poolID",
+							Usage:    "id of the pool",
+							Required: true,
+						},
+					},
+					Action: cmdsGetPool,
+				},
+				{
+					Name:   "list",
+					Usage:  "List capacity pools by owner ID",
+					Before: requireSeed,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:     "ownerID",
+							Usage:    "id of the owner of the pools",
+							Required: true,
+						},
+					},
+					Action: cmdsGetPoolsByOwner,
+				},
+			},
 		},
 	}
 

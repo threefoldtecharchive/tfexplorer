@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
@@ -40,105 +38,10 @@ func cmdsLive(c *cli.Context) error {
 
 type m map[string]interface{}
 
-const timeLayout = "02-Jan-2006 15:04:05"
-
-func printResult(r workloads.Reservation) {
-	expire := r.DataReservation.ExpirationReservation
+func printResult(r workloads.Workloader) {
 	output := m{}
-	fmt.Printf("ID: %d Expires: %s\n", r.ID, expire.Format(timeLayout))
-
-	resultPerID := make(map[int64][]workloads.Result, len(r.Results))
-	for _, r := range r.Results {
-		var (
-			rid int64
-			wid int64
-		)
-		fmt.Sscanf(r.WorkloadId, "%d-%d", &rid, &wid)
-		results := resultPerID[wid]
-		results = append(results, r)
-
-		resultPerID[wid] = results
-	}
-
-	resultData := func(in json.RawMessage) m {
-		var o m
-		if err := json.Unmarshal(in, &o); err != nil {
-			panic("invalid json")
-		}
-		return o
-	}
-
-	allResults := func(in []workloads.Result) []m {
-		var o []m
-		for _, i := range in {
-			r := resultData(i.DataJson)
-			r["node"] = i.NodeId
-			r["state"] = i.State.String()
-			o = append(o, r)
-		}
-		return o
-	}
-
-	for _, n := range r.DataReservation.Networks {
-		d := m{
-			"kind":    "network",
-			"name":    n.Name,
-			"results": allResults(resultPerID[n.WorkloadId]),
-		}
-
-		output[fmt.Sprintf("Workload %d", n.WorkloadId)] = d
-	}
-
-	for _, c := range r.DataReservation.Containers {
-		var ips []string
-		for _, ip := range c.NetworkConnection {
-			ips = append(ips, ip.Ipaddress.String())
-		}
-
-		d := m{
-			"kind":    "container",
-			"flist":   c.Flist,
-			"ip":      ips,
-			"results": allResults(resultPerID[c.WorkloadId]),
-		}
-
-		output[fmt.Sprintf("Workload %d", c.WorkloadId)] = d
-	}
-
-	for _, v := range r.DataReservation.Volumes {
-		d := m{
-			"kind":    "volume",
-			"size":    v.Size,
-			"type":    v.Type.String(),
-			"results": allResults(resultPerID[v.WorkloadId]),
-		}
-
-		output[fmt.Sprintf("Workload %d", v.WorkloadId)] = d
-
-	}
-
-	for _, z := range r.DataReservation.Zdbs {
-		d := m{
-			"kind":    "zdb",
-			"size":    z.Size,
-			"mode":    z.Mode.String(),
-			"results": allResults(resultPerID[z.WorkloadId]),
-		}
-
-		output[fmt.Sprintf("Workload %d", z.WorkloadId)] = d
-	}
-
-	for _, k := range r.DataReservation.Kubernetes {
-		d := m{
-			"kind":    "kubernetes",
-			"size":    k.Size,
-			"network": k.NetworkId,
-			"ip":      k.MasterIps,
-			"results": allResults(resultPerID[k.WorkloadId]),
-		}
-
-		output[fmt.Sprintf("Workload %d", k.WorkloadId)] = d
-	}
+	fmt.Printf("ID: %d", r.GetID())
+	fmt.Printf("Workload type: %s", r.GetWorkloadType().String())
 
 	if err := yaml.NewEncoder(os.Stdout).Encode(output); err != nil {
 		log.Error().Err(err).Msg("failed to print result")
@@ -159,14 +62,13 @@ type job struct {
 	id      int
 	user    int64
 	expired bool
-	deleted bool
 }
 
-func (s *scraper) Scrap(user int64) chan workloads.Reservation {
+func (s *scraper) Scrap(user int64) chan workloads.Workloader {
 
 	var (
 		cIn  = make(chan job)
-		cOut = make(chan workloads.Reservation)
+		cOut = make(chan workloads.Workloader)
 	)
 
 	s.wg.Add(s.poolSize)
@@ -195,35 +97,26 @@ func (s *scraper) Scrap(user int64) chan workloads.Reservation {
 	return cOut
 }
 
-func worker(wg *sync.WaitGroup, cIn <-chan job, cOut chan<- workloads.Reservation) {
+func worker(wg *sync.WaitGroup, cIn <-chan job, cOut chan<- workloads.Workloader) {
 	defer func() {
 		wg.Done()
 	}()
-
-	now := time.Now()
 
 	for job := range cIn {
 		res, err := getResult(job.id)
 		if err != nil {
 			continue
 		}
-
-		expired := now.After(res.DataReservation.ExpirationReservation.Time)
-
-		if !job.expired && expired {
+		if res.GetResult().State == workloads.ResultStateDeleted {
 			continue
 		}
-		// FIXME: beurk
-		if !job.deleted && len(res.Results) > 0 && res.Results[0].State == workloads.ResultStateDeleted {
-			continue
-		}
-		if res.CustomerTid != job.user {
+		if res.GetCustomerTid() != job.user {
 			continue
 		}
 		cOut <- res
 	}
 }
 
-func getResult(id int) (res workloads.Reservation, err error) {
+func getResult(id int) (res workloads.Workloader, err error) {
 	return bcdb.Workloads.Get(schema.ID(id))
 }

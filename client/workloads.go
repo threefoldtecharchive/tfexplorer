@@ -1,7 +1,6 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,38 +8,37 @@ import (
 
 	"github.com/stellar/go/support/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
+	wrkldstypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 )
-
-// errUnknownWorkload define error when an unknown workload is found from reservation
-var errUnknownWorkload = errors.New("unknown workload type")
 
 type httpWorkloads struct {
 	*httpClient
 }
 
-func (w *httpWorkloads) Create(reservation workloads.Reservation) (resp wrklds.ReservationCreateResponse, err error) {
-	_, err = w.post(w.url("reservations"), reservation, &resp, http.StatusCreated)
+func (w *httpWorkloads) Create(workload workloads.Workloader) (resp wrklds.ReservationCreateResponse, err error) {
+	_, err = w.post(w.url("reservations"), workload, &resp, http.StatusCreated)
 	return
 }
 
-func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservation []workloads.Reservation, err error) {
+func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid int64, page *Pager) (reservations []workloads.Reservation, err error) {
 	query := url.Values{}
 	if nextAction != nil {
-		query.Set("next_action", fmt.Sprintf("%d", nextAction))
+		query.Set("next_action", fmt.Sprintf("%d", *nextAction))
 	}
 	if customerTid != 0 {
 		query.Set("customer_tid", fmt.Sprint(customerTid))
 	}
 	page.apply(query)
 
-	_, err = w.get(w.url("reservations"), query, &reservation, http.StatusOK)
+	_, err = w.get(w.url("reservations"), query, &reservations, http.StatusOK)
 	return
 }
 
-func (w *httpWorkloads) Get(id schema.ID) (reservation workloads.Reservation, err error) {
-	_, err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &reservation, http.StatusOK)
+func (w *httpWorkloads) Get(id schema.ID) (workload workloads.Workloader, err error) {
+	_, err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &workload, http.StatusOK)
 	return
 }
 
@@ -72,95 +70,23 @@ func (w *httpWorkloads) SignDelete(id schema.ID, user schema.ID, signature strin
 	return err
 }
 
-type intermediateWL struct {
-	workloads.ReservationWorkload
-	Content json.RawMessage `json:"content"`
-}
-
-func (wl *intermediateWL) Workload() (result workloads.ReservationWorkload, err error) {
-	result = wl.ReservationWorkload
-	switch wl.Type {
-	case workloads.WorkloadTypeContainer:
-		var o workloads.Container
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeKubernetes:
-		var o workloads.K8S
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeNetwork:
-		var o workloads.Network
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeVolume:
-		var o workloads.Volume
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeZDB:
-		var o workloads.ZDB
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeProxy:
-		var o workloads.GatewayProxy
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeReverseProxy:
-		var o workloads.GatewayReverseProxy
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeSubDomain:
-		var o workloads.GatewaySubdomain
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeDomainDelegate:
-		var o workloads.GatewayDelegate
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	case workloads.WorkloadTypeGateway4To6:
-		var o workloads.Gateway4To6
-		if err := json.Unmarshal(wl.Content, &o); err != nil {
-			return result, err
-		}
-		result.Content = o
-	default:
-		return result, errUnknownWorkload
-	}
-
-	return
-}
-
-func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.ReservationWorkload, uint64, error) {
+func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error) {
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
-	var list []intermediateWL
+	var list []wrkldstypes.WorkloaderType
 
-	response, err := w.get(
-		w.url("reservations", "workloads", nodeID),
-		query,
-		&list,
-		http.StatusOK,
-	)
+	u := w.url("reservations", "workloads", nodeID)
+	if len(query) > 0 {
+		u = fmt.Sprintf("%s?%s", u, query.Encode())
+	}
 
+	response, err := http.Get(u)
 	if err != nil {
+		return nil, 0, err
+	}
+
+	if err := w.process(response, &list, http.StatusOK); err != nil {
 		return nil, 0, err
 	}
 
@@ -172,34 +98,23 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Reser
 		}
 	}
 
-	results := make([]workloads.ReservationWorkload, 0, len(list))
-	for _, i := range list {
-		wl, err := i.Workload()
-		if err != nil {
-			// skipping unknown workloads
-			if err == errUnknownWorkload {
-				continue
-			}
-
-			// something else went wrong
-			return nil, lastID, err
-		}
-
-		// forward this workload to caller
-		results = append(results, wl)
+	output := make([]workloads.Workloader, len(list))
+	for i, w := range list {
+		output[i] = w.Workloader
 	}
 
-	return results, lastID, err
+	return output, lastID, err
 }
 
-func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.ReservationWorkload, err error) {
-	var output intermediateWL
+func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.Workloader, err error) {
+	// var output intermediateWL
+	var output workloads.Workloader
 	_, err = w.get(w.url("reservations", "workloads", gwid), nil, &output, http.StatusOK)
 	if err != nil {
 		return
 	}
 
-	return output.Workload()
+	return output, nil
 }
 
 func (w *httpWorkloads) WorkloadPutResult(nodeID, gwid string, result workloads.Result) error {
@@ -210,4 +125,29 @@ func (w *httpWorkloads) WorkloadPutResult(nodeID, gwid string, result workloads.
 func (w *httpWorkloads) WorkloadPutDeleted(nodeID, gwid string) error {
 	_, err := w.delete(w.url("reservations", "workloads", gwid, nodeID), nil, nil, http.StatusOK)
 	return err
+}
+
+func (w *httpWorkloads) PoolCreate(reservation types.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error) {
+	_, err = w.post(w.url("reservations", "pools"), reservation, &resp, http.StatusCreated)
+	return
+}
+
+func (w *httpWorkloads) PoolGet(poolID string) (result types.Pool, err error) {
+	var pool types.Pool
+	_, err = w.get(w.url("reservations", "pools", poolID), nil, &pool, http.StatusOK)
+	if err != nil {
+		return
+	}
+
+	return pool, nil
+}
+
+func (w *httpWorkloads) PoolsGetByOwner(ownerID string) (result []types.Pool, err error) {
+	var pools []types.Pool
+	_, err = w.get(w.url("reservations", "pools", "owner", ownerID), nil, &pools, http.StatusOK)
+	if err != nil {
+		return
+	}
+
+	return pools, nil
 }

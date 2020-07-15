@@ -1,16 +1,44 @@
 package workloads
 
+import (
+	"bytes"
+	"fmt"
+)
+
+var _ Workloader = (*Volume)(nil)
+var _ Capaciter = (*Volume)(nil)
+
 type Volume struct {
-	WorkloadId      int64             `bson:"workload_id" json:"workload_id"`
-	NodeId          string            `bson:"node_id" json:"node_id"`
-	Size            int64             `bson:"size" json:"size"`
-	Type            VolumeTypeEnum    `bson:"type" json:"type"`
-	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
-	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
+	ReservationInfo `bson:",inline"`
+
+	Size int64          `bson:"size" json:"size"`
+	Type VolumeTypeEnum `bson:"type" json:"type"`
 }
 
-func (v Volume) WorkloadID() int64 {
-	return v.WorkloadId
+func (v *Volume) GetRSU() RSU {
+	switch v.Type {
+	case VolumeTypeHDD:
+		return RSU{
+			HRU: float64(v.Size),
+		}
+	case VolumeTypeSSD:
+		return RSU{
+			SRU: float64(v.Size),
+		}
+	}
+	return RSU{}
+}
+
+func (v *Volume) SignatureChallenge() ([]byte, error) {
+	ric, err := v.ReservationInfo.SignatureChallenge()
+	if err != nil {
+		return nil, err
+	}
+	b := bytes.NewBuffer(ric)
+	fmt.Fprintf(b, "%d", v.Size)
+	fmt.Fprintf(b, "%s", v.Type.String())
+
+	return b.Bytes(), nil
 }
 
 type VolumeTypeEnum uint8

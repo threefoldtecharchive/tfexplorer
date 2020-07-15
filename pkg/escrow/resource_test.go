@@ -26,42 +26,42 @@ func TestProcessReservation(t *testing.T) {
 	data := workloads.ReservationData{
 		Containers: []workloads.Container{
 			{
-				NodeId: "1",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    2,
 					Memory: 4096,
 				},
 			},
 			{
-				NodeId: "1",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    1,
 					Memory: 2096,
 				},
 			},
 			{
-				NodeId: "2",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "2"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    3,
 					Memory: 3096,
 				},
 			},
 			{
-				NodeId: "2",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "2"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    2,
 					Memory: 5000,
 				},
 			},
 			{
-				NodeId: "3",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    2,
 					Memory: 6589,
 				},
 			},
 			{
-				NodeId: "3",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    2,
 					Memory: 1234,
@@ -70,72 +70,72 @@ func TestProcessReservation(t *testing.T) {
 		},
 		Volumes: []workloads.Volume{
 			{
-				NodeId: "1",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            500,
 			},
 			{
-				NodeId: "1",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            500,
 			},
 			{
-				NodeId: "2",
-				Type:   workloads.VolumeTypeSSD,
-				Size:   100,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "2"},
+				Type:            workloads.VolumeTypeSSD,
+				Size:            100,
 			},
 			{
-				NodeId: "2",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   2500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "2"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            2500,
 			},
 			{
-				NodeId: "3",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   1000,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            1000,
 			},
 		},
 		Zdbs: []workloads.ZDB{
 			{
-				NodeId:   "1",
-				DiskType: workloads.DiskTypeSSD,
-				Size:     750,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				DiskType:        workloads.DiskTypeSSD,
+				Size:            750,
 			},
 			{
-				NodeId:   "3",
-				DiskType: workloads.DiskTypeSSD,
-				Size:     250,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				DiskType:        workloads.DiskTypeSSD,
+				Size:            250,
 			},
 			{
-				NodeId:   "3",
-				DiskType: workloads.DiskTypeHDD,
-				Size:     500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				DiskType:        workloads.DiskTypeHDD,
+				Size:            500,
 			},
 		},
 		Kubernetes: []workloads.K8S{
 			{
-				NodeId: "1",
-				Size:   1,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Size:            1,
 			},
 			{
-				NodeId: "1",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Size:            2,
 			},
 			{
-				NodeId: "1",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Size:            2,
 			},
 			{
-				NodeId: "2",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "2"},
+				Size:            2,
 			},
 			{
-				NodeId: "2",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "2"},
+				Size:            2,
 			},
 			{
-				NodeId: "3",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Size:            2,
 			},
 		},
 	}
@@ -391,42 +391,42 @@ func TestCalculateReservationCost(t *testing.T) {
 	data := workloads.ReservationData{
 		Containers: []workloads.Container{
 			{
-				NodeId: "1",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    2,
 					Memory: 2048,
 				},
 			},
 			{
-				NodeId: "1",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    4,
 					Memory: 5120,
 				},
 			},
 			{
-				NodeId: "3",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    2,
 					Memory: 1000,
 				},
 			},
 			{
-				NodeId: "3",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    4,
 					Memory: 4000,
 				},
 			},
 			{
-				NodeId: "3",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    4,
 					Memory: 4096,
 				},
 			},
 			{
-				NodeId: "3",
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
 				Capacity: workloads.ContainerCapacity{
 					Cpu:    1,
 					Memory: 1024,
@@ -435,72 +435,72 @@ func TestCalculateReservationCost(t *testing.T) {
 		},
 		Volumes: []workloads.Volume{
 			{
-				NodeId: "1",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            500,
 			},
 			{
-				NodeId: "1",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            500,
 			},
 			{
-				NodeId: "3",
-				Type:   workloads.VolumeTypeSSD,
-				Size:   100,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Type:            workloads.VolumeTypeSSD,
+				Size:            100,
 			},
 			{
-				NodeId: "3",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   2500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            2500,
 			},
 			{
-				NodeId: "3",
-				Type:   workloads.VolumeTypeHDD,
-				Size:   1000,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Type:            workloads.VolumeTypeHDD,
+				Size:            1000,
 			},
 		},
 		Zdbs: []workloads.ZDB{
 			{
-				NodeId:   "1",
-				DiskType: workloads.DiskTypeSSD,
-				Size:     750,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				DiskType:        workloads.DiskTypeSSD,
+				Size:            750,
 			},
 			{
-				NodeId:   "3",
-				DiskType: workloads.DiskTypeSSD,
-				Size:     250,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				DiskType:        workloads.DiskTypeSSD,
+				Size:            250,
 			},
 			{
-				NodeId:   "3",
-				DiskType: workloads.DiskTypeHDD,
-				Size:     500,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				DiskType:        workloads.DiskTypeHDD,
+				Size:            500,
 			},
 		},
 		Kubernetes: []workloads.K8S{
 			{
-				NodeId: "1",
-				Size:   1,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Size:            1,
 			},
 			{
-				NodeId: "1",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Size:            2,
 			},
 			{
-				NodeId: "1",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "1"},
+				Size:            2,
 			},
 			{
-				NodeId: "3",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Size:            2,
 			},
 			{
-				NodeId: "3",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Size:            2,
 			},
 			{
-				NodeId: "3",
-				Size:   2,
+				ReservationInfo: workloads.ReservationInfo{NodeId: "3"},
+				Size:            2,
 			},
 		},
 	}

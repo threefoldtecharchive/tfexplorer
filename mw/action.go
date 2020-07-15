@@ -116,6 +116,11 @@ func BadRequest(err error) Response {
 	return Error(err, http.StatusBadRequest)
 }
 
+// PaymentRequired result
+func PaymentRequired(err error) Response {
+	return Error(err, http.StatusPaymentRequired)
+}
+
 // NotFound response
 func NotFound(err error) Response {
 	return Error(err, http.StatusNotFound)

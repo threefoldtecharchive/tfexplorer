@@ -1,19 +1,67 @@
 package workloads
 
+import (
+	"bytes"
+	"fmt"
+)
+
+var _ Workloader = (*ZDB)(nil)
+var _ Capaciter = (*ZDB)(nil)
+
 type ZDB struct {
-	WorkloadId      int64             `bson:"workload_id" json:"workload_id"`
-	NodeId          string            `bson:"node_id" json:"node_id"`
+	ReservationInfo `bson:",inline"`
+
 	Size            int64             `bson:"size" json:"size"`
 	Mode            ZDBModeEnum       `bson:"mode" json:"mode"`
 	Password        string            `bson:"password" json:"password"`
 	DiskType        DiskTypeEnum      `bson:"disk_type" json:"disk_type"`
 	Public          bool              `bson:"public" json:"public"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
-	FarmerTid       int64             `bson:"farmer_tid" json:"farmer_tid"`
 }
 
-func (z ZDB) WorkloadID() int64 {
-	return z.WorkloadId
+func (z *ZDB) GetRSU() RSU {
+	switch z.DiskType {
+	case DiskTypeHDD:
+		return RSU{
+			HRU: float64(z.Size),
+		}
+	case DiskTypeSSD:
+		return RSU{
+			SRU: float64(z.Size),
+		}
+	}
+	return RSU{}
+}
+
+func (z *ZDB) SignatureChallenge() ([]byte, error) {
+	ric, err := z.ReservationInfo.SignatureChallenge()
+	if err != nil {
+		return nil, err
+	}
+
+	b := bytes.NewBuffer(ric)
+	if _, err := fmt.Fprintf(b, "%d", z.Size); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", z.Mode.String()); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", z.Password); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", z.DiskType.String()); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%t", z.Public); err != nil {
+		return nil, err
+	}
+	for _, s := range z.StatsAggregator {
+		if err := s.SigingEncode(b); err != nil {
+			return nil, err
+		}
+	}
+
+	return b.Bytes(), nil
 }
 
 type DiskTypeEnum uint8

@@ -101,6 +101,10 @@ func generateContainer(c *cli.Context) error {
 		WithLogs(logs).
 		WithStatsAggregator(sts)
 
+	if c.Int64("poolID") != 0 {
+		containerBuilder.WithPoolID(c.Int64("poolID"))
+	}
+
 	container, err := containerBuilder.Build()
 	if err != nil {
 		return errors.Wrap(err, "failed to build container")

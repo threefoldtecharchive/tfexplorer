@@ -62,6 +62,7 @@ type ReservationData struct {
 	Volumes                 []Volume              `bson:"volumes" json:"volumes"`
 	Zdbs                    []ZDB                 `bson:"zdbs" json:"zdbs"`
 	Networks                []Network             `bson:"networks" json:"networks"`
+	NetworkResources        []NetworkResource     `bson:"network_resource" json:"network_resource"`
 	Kubernetes              []K8S                 `bson:"kubernetes" json:"kubernetes"`
 	Proxies                 []GatewayProxy        `bson:"proxies" json:"proxies"`
 	ReverseProxy            []GatewayReverseProxy `bson:"reverse_proxies" json:"reverse_proxies"`
@@ -117,6 +118,7 @@ func (e ResultStateEnum) String() string {
 type ReservationWorkload struct {
 	WorkloadId string           `bson:"workload_id" json:"workload_id"`
 	User       string           `bson:"user" json:"user"`
+	PoolID     int64            `bson:"pool_id" json:"pool_id"`
 	Type       WorkloadTypeEnum `bson:"type" json:"type"`
 	Content    interface{}      `bson:"content" json:"content"`
 	Created    schema.Date      `bson:"created" json:"created"`
@@ -138,20 +140,22 @@ const (
 	WorkloadTypeSubDomain
 	WorkloadTypeDomainDelegate
 	WorkloadTypeGateway4To6
+	WorkloadTypeNetworkResource
 )
 
 // WorkloadTypes is a map of all the supported workload type
 var WorkloadTypes = map[WorkloadTypeEnum]string{
-	WorkloadTypeZDB:            "zdb",
-	WorkloadTypeContainer:      "container",
-	WorkloadTypeVolume:         "volume",
-	WorkloadTypeNetwork:        "network",
-	WorkloadTypeKubernetes:     "kubernetes",
-	WorkloadTypeProxy:          "proxy",
-	WorkloadTypeReverseProxy:   "reverse-proxy",
-	WorkloadTypeSubDomain:      "subdomain",
-	WorkloadTypeDomainDelegate: "domain-delegate",
-	WorkloadTypeGateway4To6:    "gateway4to6",
+	WorkloadTypeZDB:             "zdb",
+	WorkloadTypeContainer:       "container",
+	WorkloadTypeVolume:          "volume",
+	WorkloadTypeNetwork:         "network",
+	WorkloadTypeKubernetes:      "kubernetes",
+	WorkloadTypeProxy:           "proxy",
+	WorkloadTypeReverseProxy:    "reverse-proxy",
+	WorkloadTypeSubDomain:       "subdomain",
+	WorkloadTypeDomainDelegate:  "domain-delegate",
+	WorkloadTypeGateway4To6:     "gateway4to6",
+	WorkloadTypeNetworkResource: "network_resource",
 }
 
 func (e WorkloadTypeEnum) String() string {

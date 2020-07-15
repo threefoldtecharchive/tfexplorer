@@ -1,6 +1,11 @@
 package workloads
 
-import schema "github.com/threefoldtech/tfexplorer/schema"
+import (
+	"fmt"
+	"io"
+
+	schema "github.com/threefoldtech/tfexplorer/schema"
+)
 
 type Network struct {
 	Name             string               `bson:"name" json:"name"`
@@ -15,6 +20,30 @@ func (n Network) WorkloadID() int64 {
 	return n.WorkloadId
 }
 
+func (n Network) ToNetworkResources() []NetworkResource {
+	netRes := make([]NetworkResource, len(n.NetworkResources))
+
+	for i := range n.NetworkResources {
+		nr := NetworkResource{
+			ReservationInfo: ReservationInfo{
+				WorkloadId:   n.WorkloadID(),
+				WorkloadType: WorkloadTypeNetworkResource,
+			},
+			Name:                         n.Name,
+			NetworkIprange:               n.Iprange,
+			WireguardPrivateKeyEncrypted: n.NetworkResources[i].WireguardPrivateKeyEncrypted,
+			WireguardPublicKey:           n.NetworkResources[i].WireguardPublicKey,
+			WireguardListenPort:          n.NetworkResources[i].WireguardListenPort,
+			Iprange:                      n.NetworkResources[i].Iprange,
+			Peers:                        n.NetworkResources[i].Peers,
+		}
+		nr.NodeId = n.NetworkResources[i].NodeId
+		netRes[i] = nr
+	}
+
+	return netRes
+}
+
 type NetworkNetResource struct {
 	NodeId                       string          `bson:"node_id" json:"node_id"`
 	WireguardPrivateKeyEncrypted string          `bson:"wireguard_private_key_encrypted" json:"wireguard_private_key_encrypted"`
@@ -26,7 +55,25 @@ type NetworkNetResource struct {
 
 type WireguardPeer struct {
 	PublicKey      string           `bson:"public_key" json:"public_key"`
-	AllowedIprange []schema.IPRange `bson:"allowed_iprange" json:"allowed_iprange"`
 	Endpoint       string           `bson:"endpoint" json:"endpoint"`
 	Iprange        schema.IPRange   `bson:"iprange" json:"iprange"`
+	AllowedIprange []schema.IPRange `bson:"allowed_iprange" json:"allowed_iprange"`
+}
+
+func (p *WireguardPeer) SigingEncode(w io.Writer) error {
+	if _, err := fmt.Fprintf(w, "%s", p.PublicKey); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", p.Endpoint); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", p.Iprange.String()); err != nil {
+		return err
+	}
+	for _, iprange := range p.AllowedIprange {
+		if _, err := fmt.Fprintf(w, "%s", iprange.String()); err != nil {
+			return err
+		}
+	}
+	return nil
 }

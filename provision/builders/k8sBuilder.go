@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"io"
 	"net"
+	"time"
 
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 // K8sBuilder is a struct that can build K8S's
@@ -17,7 +19,11 @@ type K8sBuilder struct {
 func NewK8sBuilder(nodeID, networkID, secret string, size int64, IP net.IP) *K8sBuilder {
 	return &K8sBuilder{
 		K8S: workloads.K8S{
-			NodeId:        nodeID,
+			ReservationInfo: workloads.ReservationInfo{
+				WorkloadId:   1,
+				NodeId:       nodeID,
+				WorkloadType: workloads.WorkloadTypeKubernetes,
+			},
 			NetworkId:     networkID,
 			Ipaddress:     IP,
 			ClusterSecret: secret,
@@ -49,6 +55,7 @@ func (k8s *K8sBuilder) Save(writer io.Writer) error {
 
 // Build returns the kubernetes
 func (k8s *K8sBuilder) Build() workloads.K8S {
+	k8s.Epoch = schema.Date{Time: time.Now()}
 	return k8s.K8S
 }
 
@@ -97,5 +104,11 @@ func (k8s *K8sBuilder) WithSSHKeys(sshKeys []string) *K8sBuilder {
 // WithStatsAggregator sets the stats aggregators to the K8S
 func (k8s *K8sBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *K8sBuilder {
 	k8s.K8S.StatsAggregator = aggregators
+	return k8s
+}
+
+// WithPoolID sets the poolID to the k8s
+func (k8s *K8sBuilder) WithPoolID(poolID int64) *K8sBuilder {
+	k8s.PoolId = poolID
 	return k8s
 }

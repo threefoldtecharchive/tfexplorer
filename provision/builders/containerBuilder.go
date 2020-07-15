@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 // ContainerBuilder is a struct that can build containers
@@ -18,7 +20,11 @@ type ContainerBuilder struct {
 func NewContainerBuilder(nodeID, flist string, network []workloads.NetworkConnection) *ContainerBuilder {
 	return &ContainerBuilder{
 		Container: workloads.Container{
-			NodeId:            nodeID,
+			ReservationInfo: workloads.ReservationInfo{
+				WorkloadId:   1,
+				NodeId:       nodeID,
+				WorkloadType: workloads.WorkloadTypeContainer,
+			},
 			Flist:             flist,
 			HubUrl:            "zdb://hub.grid.tf:9900",
 			NetworkConnection: network,
@@ -69,6 +75,8 @@ func (c *ContainerBuilder) Build() (workloads.Container, error) {
 		c.Container.SecretEnvironment[k] = secret
 	}
 	c.Container.Environment = make(map[string]string)
+	c.Epoch = schema.Date{Time: time.Now()}
+
 	return c.Container, nil
 }
 
@@ -141,5 +149,11 @@ func (c *ContainerBuilder) WithLogs(logs []workloads.Logs) *ContainerBuilder {
 // WithContainerCapacity sets the container capacity to the container
 func (c *ContainerBuilder) WithContainerCapacity(cap workloads.ContainerCapacity) *ContainerBuilder {
 	c.Container.Capacity = cap
+	return c
+}
+
+// WithPoolID sets the poolID to the container
+func (c *ContainerBuilder) WithPoolID(poolID int64) *ContainerBuilder {
+	c.Container.PoolId = poolID
 	return c
 }

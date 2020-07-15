@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -51,7 +52,7 @@ func ApplyQueryFilter(r *http.Request, filter ReservationFilter) (ReservationFil
 		return nil, errors.Wrap(err, "customer_tid should be an integer")
 	}
 	if customerid != 0 {
-		filter = filter.WithCustomerID(int(customerid))
+		filter = filter.WithCustomerID(customerid)
 	}
 	sNextAction := r.FormValue("next_action")
 	if len(sNextAction) != 0 {
@@ -87,7 +88,7 @@ func (f ReservationFilter) WithNextAction(action generated.NextActionEnum) Reser
 }
 
 // WithCustomerID filter reservation on customer
-func (f ReservationFilter) WithCustomerID(customerID int) ReservationFilter {
+func (f ReservationFilter) WithCustomerID(customerID int64) ReservationFilter {
 	return append(f, bson.E{
 		Key: "customer_tid", Value: customerID,
 	})
@@ -100,7 +101,7 @@ func (f ReservationFilter) WithNodeID(id string) ReservationFilter {
 	// we need to search ALL types for any reservation that has the node ID
 	or := []bson.M{}
 
-	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6"} {
+	for _, typ := range []string{"containers", "volumes", "zdbs", "kubernetes", "proxies", "reverse_proxies", "subdomains", "domain_delegates", "gateway4to6", "capacity_pool"} {
 		key := fmt.Sprintf("data_reservation.%s.node_id", typ)
 		or = append(or, bson.M{key: id})
 	}
@@ -184,6 +185,7 @@ func (r *Reservation) Validate() error {
 
 	totalWl := len(r.DataReservation.Containers) +
 		len(r.DataReservation.Networks) +
+		len(r.DataReservation.NetworkResources) +
 		len(r.DataReservation.Volumes) +
 		len(r.DataReservation.Zdbs) +
 		len(r.DataReservation.Proxies) +
@@ -204,34 +206,34 @@ func (r *Reservation) Validate() error {
 		if w.Capacity.DiskType != generated.DiskTypeSSD {
 			return errors.New("Container disktype is not valid, it should be SSD")
 		}
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Volumes {
 		if w.Type != generated.VolumeTypeSSD {
 			return errors.New("Volume disktype is not valid, it should be SSD")
 		}
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Zdbs {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Kubernetes {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Proxies {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.ReverseProxy {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Subdomains {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.DomainDelegates {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Gateway4To6s {
-		workloaders = append(workloaders, w)
+		workloaders = append(workloaders, &w)
 	}
 
 	for _, w := range workloaders {
@@ -308,7 +310,7 @@ func (r *Reservation) ResultOf(id string) *Result {
 func (r *Reservation) AllDeleted() bool {
 	// check if all workloads have been deleted.
 	for _, wl := range r.Workloads("") {
-		result := r.ResultOf(wl.WorkloadId)
+		result := r.ResultOf(wl.UniqueWorkloadID())
 		if result == nil ||
 			result.State != generated.ResultStateDeleted {
 			return false
@@ -320,149 +322,233 @@ func (r *Reservation) AllDeleted() bool {
 
 // Workloads returns all reservation workloads (filter by nodeID)
 // if nodeID is empty, return all workloads
-func (r *Reservation) Workloads(nodeID string) []Workload {
+func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 
 	data := &r.DataReservation
 
-	newWrkl := func(wid string, t generated.WorkloadTypeEnum, nodeID string) Workload {
-		return Workload{
-			ReservationWorkload: generated.ReservationWorkload{
-				WorkloadId: wid,
-				User:       fmt.Sprint(r.CustomerTid),
-				Type:       t,
-				Created:    r.Epoch,
-				Duration:   int64(data.ExpirationReservation.Sub(r.Epoch.Time).Seconds()),
-				ToDelete:   r.NextAction == Delete || r.NextAction == Deleted,
-			},
-			NodeID: nodeID,
+	newWrkl := func(w workloads.Workloader, id schema.ID, user int64, na workloads.NextActionEnum, epoch schema.Date, meta string, provisionRequest workloads.SigningRequest, deleteRequest workloads.SigningRequest, result *Result) WorkloaderType {
+		workload := WorkloaderType{Workloader: w}
+		workload.SetCustomerTid(user)
+		workload.SetNextAction(na)
+		workload.SetID(id)
+		workload.SetEpoch(epoch)
+		workload.SetMetadata(meta)
+		if result != nil {
+			workload.SetResult(workloads.Result(*result))
 		}
+		workload.SetSigningRequestProvision(provisionRequest)
+		workload.SetSigningRequestDelete(deleteRequest)
+
+		return workload
 	}
 
-	var workloads []Workload
-	for _, wl := range data.Containers {
+	var wrklds []WorkloaderType
+	for i := range data.Containers {
+		wl := data.Containers[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeContainer,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId)
+		wl.WorkloadType = generated.WorkloadTypeContainer
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 
-	for _, wl := range data.Volumes {
+	for i := range data.Volumes {
+		wl := data.Volumes[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeVolume,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeVolume
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Zdbs {
+	for i := range data.Zdbs {
+		wl := data.Zdbs[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeZDB,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeZDB
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Kubernetes {
+	for i := range data.Kubernetes {
+		wl := data.Kubernetes[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeKubernetes,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeKubernetes
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Proxies {
+	for i := range data.Proxies {
+		wl := data.Proxies[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeProxy,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeProxy
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.ReverseProxy {
+	for i := range data.ReverseProxy {
+		wl := data.ReverseProxy[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeReverseProxy,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeReverseProxy
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Subdomains {
+	for i := range data.Subdomains {
+		wl := data.Subdomains[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeSubDomain,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
-
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeSubDomain
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.DomainDelegates {
+	for i := range data.DomainDelegates {
+		wl := data.DomainDelegates[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeDomainDelegate,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeDomainDelegate
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Gateway4To6s {
+	for i := range data.Gateway4To6s {
+		wl := data.Gateway4To6s[i]
 		if len(nodeID) > 0 && wl.NodeId != nodeID {
 			continue
 		}
-		wrkl := newWrkl(
-			fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-			generated.WorkloadTypeGateway4To6,
-			wl.NodeId)
-		wrkl.Content = wl
-		workloads = append(workloads, wrkl)
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeGateway4To6
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
-	for _, wl := range data.Networks {
-		for _, nr := range wl.NetworkResources {
-
+	for i := range data.Networks {
+		wl := data.Networks[i]
+		networkResources := wl.ToNetworkResources()
+		for i := range networkResources {
+			nr := networkResources[i]
 			if len(nodeID) > 0 && nr.NodeId != nodeID {
 				continue
 			}
 
-			wrkl := newWrkl(
-				fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId),
-				generated.WorkloadTypeNetwork,
-				nr.NodeId)
-			wrkl.Content = wl
-			workloads = append(workloads, wrkl)
+			uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+			nr.WorkloadType = generated.WorkloadTypeNetworkResource
+			wrklds = append(wrklds, newWrkl(
+				&nr,
+				r.ID,
+				r.CustomerTid,
+				r.NextAction,
+				r.Epoch,
+				r.Metadata,
+				r.DataReservation.SigningRequestProvision,
+				r.DataReservation.SigningRequestDelete,
+				r.ResultOf(uwid)))
 		}
 	}
+	for i := range data.NetworkResources {
+		wl := data.NetworkResources[i]
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
+		wl.WorkloadType = generated.WorkloadTypeNetworkResource
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
+	}
 
-	return workloads
+	return wrklds
 }
 
 // IsSuccessfullyDeployed check if all the workloads defined in the reservation
@@ -492,6 +578,10 @@ func (r *Reservation) NodeIDs() []string {
 		for _, nr := range w.NetworkResources {
 			ids[nr.NodeId] = struct{}{}
 		}
+	}
+
+	for _, w := range r.DataReservation.NetworkResources {
+		ids[w.NodeId] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Zdbs {
@@ -661,21 +751,23 @@ func (f QueueFilter) Find(ctx context.Context, db *mongo.Database, opts ...*opti
 }
 
 // WorkloadPush pushes a workload to the queue
-func WorkloadPush(ctx context.Context, db *mongo.Database, w ...Workload) error {
+func WorkloadPush(ctx context.Context, db *mongo.Database, w ...WorkloaderType) error {
 	col := db.Collection(queueCollection)
-	docs := make([]interface{}, 0, len(w))
-	for _, wl := range w {
-		docs = append(docs, wl)
-	}
-	_, err := col.InsertMany(ctx, docs)
 
-	return err
+	for _, wl := range w {
+		_, err := col.UpdateOne(ctx, bson.M{"_id": wl.GetID()}, bson.M{"$set": wl}, options.Update().SetUpsert(true))
+		if err != nil {
+			return errors.Wrap(err, "could not upsert workload")
+		}
+	}
+
+	return nil
 }
 
 // WorkloadPop removes workload from queue
-func WorkloadPop(ctx context.Context, db *mongo.Database, id string, nodeID string) error {
+func WorkloadPop(ctx context.Context, db *mongo.Database, id schema.ID) error {
 	col := db.Collection(queueCollection)
-	_, err := col.DeleteOne(ctx, bson.M{"workload_id": id, "node_id": nodeID})
+	_, err := col.DeleteOne(ctx, bson.M{"_id": id})
 
 	return err
 }
@@ -713,20 +805,11 @@ func ResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result Re
 
 	// we don't care if we couldn't delete old result.
 	// in case it never existed, or the array is nil.
-	col.UpdateOne(ctx, filter, bson.M{
-		"$pull": bson.M{
-			"results": bson.M{
-				"workload_id": result.WorkloadId,
-				"node_id":     result.NodeId,
-			},
-		},
-	})
-
 	_, err := col.UpdateOne(ctx, filter, bson.D{
 		{
-			Key: "$push",
+			Key: "$set",
 			Value: bson.M{
-				"results": result,
+				"result": result,
 			},
 		},
 	})
