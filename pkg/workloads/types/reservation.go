@@ -326,7 +326,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 
 	data := &r.DataReservation
 
-	newWrkl := func(w workloads.Workloader, id schema.ID, user int64, na workloads.NextActionEnum, epoch schema.Date, meta string, result *Result) WorkloaderType {
+	newWrkl := func(w workloads.Workloader, id schema.ID, user int64, na workloads.NextActionEnum, epoch schema.Date, meta string, provisionRequest workloads.SigningRequest, deleteRequest workloads.SigningRequest, result *Result) WorkloaderType {
 		workload := WorkloaderType{Workloader: w}
 		workload.SetCustomerTid(user)
 		workload.SetNextAction(na)
@@ -336,6 +336,8 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if result != nil {
 			workload.SetResult(workloads.Result(*result))
 		}
+		workload.SetSigningRequestProvision(provisionRequest)
+		workload.SetSigningRequestDelete(deleteRequest)
 
 		return workload
 	}
@@ -348,7 +350,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadId)
 		wl.WorkloadType = generated.WorkloadTypeContainer
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 
 	for i := range data.Volumes {
@@ -358,7 +369,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeVolume
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.Zdbs {
 		wl := data.Zdbs[i]
@@ -367,7 +387,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeZDB
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.Kubernetes {
 		wl := data.Kubernetes[i]
@@ -376,7 +405,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeKubernetes
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.Proxies {
 		wl := data.Proxies[i]
@@ -385,7 +423,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeProxy
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.ReverseProxy {
 		wl := data.ReverseProxy[i]
@@ -394,7 +441,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeReverseProxy
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.Subdomains {
 		wl := data.Subdomains[i]
@@ -403,7 +459,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeSubDomain
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.DomainDelegates {
 		wl := data.DomainDelegates[i]
@@ -412,7 +477,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeDomainDelegate
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.Gateway4To6s {
 		wl := data.Gateway4To6s[i]
@@ -421,7 +495,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeGateway4To6
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 	for i := range data.Networks {
 		wl := data.Networks[i]
@@ -434,7 +517,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 
 			uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 			nr.WorkloadType = generated.WorkloadTypeNetworkResource
-			wrklds = append(wrklds, newWrkl(&nr, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+			wrklds = append(wrklds, newWrkl(
+				&nr,
+				r.ID,
+				r.CustomerTid,
+				r.NextAction,
+				r.Epoch,
+				r.Metadata,
+				r.DataReservation.SigningRequestProvision,
+				r.DataReservation.SigningRequestDelete,
+				r.ResultOf(uwid)))
 		}
 	}
 	for i := range data.NetworkResources {
@@ -444,7 +536,16 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		}
 		uwid := fmt.Sprintf("%d-%d", r.ID, wl.WorkloadID())
 		wl.WorkloadType = generated.WorkloadTypeNetworkResource
-		wrklds = append(wrklds, newWrkl(&wl, r.ID, r.CustomerTid, r.NextAction, r.Epoch, r.Metadata, r.ResultOf(uwid)))
+		wrklds = append(wrklds, newWrkl(
+			&wl,
+			r.ID,
+			r.CustomerTid,
+			r.NextAction,
+			r.Epoch,
+			r.Metadata,
+			r.DataReservation.SigningRequestProvision,
+			r.DataReservation.SigningRequestDelete,
+			r.ResultOf(uwid)))
 	}
 
 	return wrklds
