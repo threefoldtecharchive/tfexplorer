@@ -21,36 +21,67 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 
 	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
 
-	var api API
-	api.escrow = escrow
-	api.capacityPlanner = planner
-	reservations := parent.PathPrefix("/reservations").Subrouter()
+	var service API
+	service.escrow = escrow
+	service.capacityPlanner = planner
 
-	reservations.HandleFunc("", mw.AsHandlerFunc(api.create)).Methods(http.MethodPost).Name("reservation-create")
-	reservations.HandleFunc("", mw.AsHandlerFunc(api.list)).Methods(http.MethodGet).Name("reservation-list")
-	reservations.HandleFunc("/{res_id:\\d+}", mw.AsHandlerFunc(api.get)).Methods(http.MethodGet).Name("reservation-get")
-	reservations.HandleFunc("/{res_id:\\d+}/sign/provision", mw.AsHandlerFunc(api.signProvision)).Methods(http.MethodPost).Name("reservation-sign-provision")
-	reservations.HandleFunc("/{res_id:\\d+}/sign/delete", mw.AsHandlerFunc(api.signDelete)).Methods(http.MethodPost).Name("reservation-sign-delete")
+	// versionned endpoints
+	api := parent.PathPrefix("/api/v1").Subrouter()
+	apiReservation := api.PathPrefix("/reservations").Subrouter()
 
-	reservations.HandleFunc("/workloads/{node_id}", mw.AsHandlerFunc(api.workloads)).Queries("from", "{from:\\d+}").Methods(http.MethodGet).Name("workloads-poll")
-	reservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(api.workloadGet)).Methods(http.MethodGet).Name("workload-get")
-	reservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}/{node_id}", mw.AsHandlerFunc(api.workloadPutResult)).Methods(http.MethodPut).Name("workloads-results")
-	reservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}/{node_id}", mw.AsHandlerFunc(api.workloadPutDeleted)).Methods(http.MethodDelete).Name("workloads-deleted")
+	apiReservation.HandleFunc("/pools", mw.AsHandlerFunc(service.setupPool)).Methods(http.MethodPost).Name("versionned-pool-create")
+	apiReservation.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(service.getPool)).Methods(http.MethodGet).Name("versionned-pool-get")
+	apiReservation.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(service.listPools)).Methods(http.MethodGet).Name("versionned-pool-get-by-owner")
 
-	reservations.HandleFunc("/pools", mw.AsHandlerFunc(api.setupPool)).Methods(http.MethodPost).Name("pool-create")
-	reservations.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(api.getPool)).Methods(http.MethodGet).Name("pool-get")
-	reservations.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(api.listPools)).Methods(http.MethodGet).Name("pool-get-by-owner")
+	apiReservation.HandleFunc("/workloads", mw.AsHandlerFunc(service.create)).Methods(http.MethodPost).Name("versionned-workloads-create")
+	apiReservation.HandleFunc("/workloads", mw.AsHandlerFunc(service.listWorkload)).Methods(http.MethodGet).Name("versionned-workloadreservation-list")
+	apiReservation.HandleFunc("/workloads/{res_id:\\d+}", mw.AsHandlerFunc(service.getWorkload)).Methods(http.MethodGet).Name("versionned-workloadreservation-get")
+	apiReservation.HandleFunc("/workloads/{res_id:\\d+}/sign/provision", mw.AsHandlerFunc(service.signProvision)).Methods(http.MethodPost).Name("versionned-reservation-sign-provision")
+	apiReservation.HandleFunc("/workloads/{res_id:\\d+}/sign/delete", mw.AsHandlerFunc(service.signDelete)).Methods(http.MethodPost).Name("versionned-reservation-sign-delete")
 
-	// conversion
-	conversionAuthenticated := reservations.PathPrefix("/convert").Subrouter()
+	conversionAuthenticated := apiReservation.PathPrefix("/convert").Subrouter()
 	conversionAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
-	conversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(api.getConversionList)).Methods(http.MethodGet).Name("reservation-conversion-list")
-	conversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(api.postConversionList)).Methods(http.MethodPost).Name("reservation-conversion-post")
+	conversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(service.getConversionList)).Methods(http.MethodGet).Name("versionned-conversion-list")
+	conversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(service.postConversionList)).Methods(http.MethodPost).Name("versionned-conversion-post")
+
+	// Nodes oriented endpoints
+	apiReservation.HandleFunc("/nodes/{node_id}/workloads", mw.AsHandlerFunc(service.workloads)).Queries("from", "{from:\\d+}").Methods(http.MethodGet).Name("versionned-workloads-poll")
+	apiReservation.HandleFunc("/nodes/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadGet)).Methods(http.MethodGet).Name("versionned-workload-get")
+	apiReservation.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutResult)).Methods(http.MethodPut).Name("versionned-workloads-results")
+	apiReservation.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutDeleted)).Methods(http.MethodDelete).Name("versionned-workloads-deleted")
+
+	// legacy endpoints
+	legacyReservations := parent.PathPrefix("/explorer/reservations").Subrouter()
+
+	legacyReservations.HandleFunc("", mw.AsHandlerFunc(service.create)).Methods(http.MethodPost).Name("reservation-create")
+	legacyReservations.HandleFunc("", mw.AsHandlerFunc(service.list)).Methods(http.MethodGet).Name("reservation-list")
+	legacyReservations.HandleFunc("/{res_id:\\d+}", mw.AsHandlerFunc(service.get)).Methods(http.MethodGet).Name("reservation-get")
+	legacyReservations.HandleFunc("/{res_id:\\d+}/sign/provision", mw.AsHandlerFunc(service.signProvision)).Methods(http.MethodPost).Name("reservation-sign-provision")
+	legacyReservations.HandleFunc("/{res_id:\\d+}/sign/delete", mw.AsHandlerFunc(service.signDelete)).Methods(http.MethodPost).Name("reservation-sign-delete")
 
 	// new style workloads
-	workload := parent.PathPrefix("/workload").Subrouter()
-	workload.HandleFunc("", mw.AsHandlerFunc(api.listWorkload)).Methods(http.MethodGet).Name("workloadreservation-list")
-	workload.HandleFunc("/{res_id:\\d+}", mw.AsHandlerFunc(api.getWorkload)).Methods(http.MethodGet).Name("workloadreservation-get")
+	workloads := parent.PathPrefix("/explorer/workloads").Subrouter()
+	workloads.HandleFunc("", mw.AsHandlerFunc(service.create)).Methods(http.MethodPost).Name("workload-create")
+	workloads.HandleFunc("", mw.AsHandlerFunc(service.listWorkload)).Methods(http.MethodGet).Name("workload-list")
+	workloads.HandleFunc("/{res_id:\\d+}", mw.AsHandlerFunc(service.getWorkload)).Methods(http.MethodGet).Name("workload-get")
+	workloads.HandleFunc("/{res_id:\\d+}/sign/provision", mw.AsHandlerFunc(service.signProvision)).Methods(http.MethodPost).Name("workload-sign-provision")
+	workloads.HandleFunc("/{res_id:\\d+}/sign/delete", mw.AsHandlerFunc(service.signDelete)).Methods(http.MethodPost).Name("workload-sign-delete")
+
+	legacyReservations.HandleFunc("/pools", mw.AsHandlerFunc(service.setupPool)).Methods(http.MethodPost).Name("pool-create")
+	legacyReservations.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(service.getPool)).Methods(http.MethodGet).Name("pool-get")
+	legacyReservations.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(service.listPools)).Methods(http.MethodGet).Name("pool-get-by-owner")
+
+	// conversion
+	legacyConversionAuthenticated := legacyReservations.PathPrefix("/explorer/convert").Subrouter()
+	legacyConversionAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
+	legacyConversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(service.getConversionList)).Methods(http.MethodGet).Name("conversion-list")
+	legacyConversionAuthenticated.HandleFunc("", mw.AsHandlerFunc(service.postConversionList)).Methods(http.MethodPost).Name("conversion-post")
+
+	// node oriented endpoints
+	legacyReservations.HandleFunc("/nodes/{node_id}/workloads", mw.AsHandlerFunc(service.workloads)).Queries("from", "{from:\\d+}").Methods(http.MethodGet).Name("nodes-workloads-poll")
+	legacyReservations.HandleFunc("/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadGet)).Methods(http.MethodGet).Name("nodes-workload-get")
+	legacyReservations.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutResult)).Methods(http.MethodPut).Name("nodes-workloads-results")
+	legacyReservations.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutDeleted)).Methods(http.MethodDelete).Name("nodes-workloads-deleted")
 
 	return nil
 }

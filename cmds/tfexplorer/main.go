@@ -152,6 +152,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	router.Path("/").HandlerFunc(serveStatic("/index.html", statikFS))
 	router.Path("/explorer").HandlerFunc(serveStatic("/docs.html", statikFS))
+	router.Path("/api/v1").HandlerFunc(serveStatic("/docs.html", statikFS))
 
 	if dropEscrowData {
 		log.Warn().Msg("dropping escrow and address collection")
@@ -193,9 +194,8 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
-	apiRouter := router.PathPrefix("/explorer").Subrouter()
 	for _, pkg := range pkgs {
-		if err := pkg(apiRouter, db.Database()); err != nil {
+		if err := pkg(router, db.Database()); err != nil {
 			log.Error().Err(err).Msg("failed to register package")
 		}
 	}
@@ -206,7 +206,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	planner := capacity.NewNaivePlanner(e, db.Database())
 	go planner.Run(context.Background())
-	if err = workloads.Setup(apiRouter, db.Database(), e, planner); err != nil {
+	if err = workloads.Setup(router, db.Database(), e, planner); err != nil {
 		log.Error().Err(err).Msg("failed to register package")
 	}
 
