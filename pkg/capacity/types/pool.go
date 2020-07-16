@@ -151,9 +151,17 @@ func (p *Pool) RemoveWorkload(id schema.ID, CU float64, SU float64) {
 	p.SyncCurrentCapacity()
 	if CU > 0 {
 		p.ActiveCU -= CU
+		// floats are annoying
+		if p.ActiveCU < 0 {
+			p.ActiveCU = 0
+		}
 	}
 	if SU > 0 {
 		p.ActiveSU -= SU
+		// floats are annoying
+		if p.ActiveSU < 0 {
+			p.ActiveSU = 0
+		}
 	}
 	p.syncPoolExpiration()
 }
