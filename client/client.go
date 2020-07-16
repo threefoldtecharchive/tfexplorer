@@ -93,14 +93,14 @@ type (
 		SignProvision(id schema.ID, user schema.ID, signature string) error
 		SignDelete(id schema.ID, user schema.ID, signature string) error
 
-		Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error)
-		WorkloadGet(gwid string) (result workloads.Workloader, err error)
-		WorkloadPutResult(nodeID, gwid string, result workloads.Result) error
-		WorkloadPutDeleted(nodeID, gwid string) error
-
 		PoolCreate(reservation types.Reservation) (resp wrklds.CapacityPoolCreateResponse, err error)
 		PoolGet(poolID string) (result types.Pool, err error)
 		PoolsGetByOwner(ownerID string) (result []types.Pool, err error)
+
+		NodeWorkloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error)
+		NodeWorkloadGet(gwid string) (result workloads.Workloader, err error)
+		NodeWorkloadPutResult(nodeID, gwid string, result workloads.Result) error
+		NodeWorkloadPutDeleted(nodeID, gwid string) error
 	}
 
 	// Identity is used by the client to authenticate to the explorer API
