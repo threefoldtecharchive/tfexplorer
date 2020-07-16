@@ -19,7 +19,7 @@ type httpWorkloads struct {
 }
 
 func (w *httpWorkloads) Create(workload workloads.Workloader) (resp wrklds.ReservationCreateResponse, err error) {
-	_, err = w.post(w.url("reservations"), workload, &resp, http.StatusCreated)
+	_, err = w.post(w.url("workloads"), workload, &resp, http.StatusCreated)
 	return
 }
 
@@ -33,18 +33,18 @@ func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid i
 	}
 	page.apply(query)
 
-	_, err = w.get(w.url("reservations"), query, &reservations, http.StatusOK)
+	_, err = w.get(w.url("workloads"), query, &reservations, http.StatusOK)
 	return
 }
 
 func (w *httpWorkloads) Get(id schema.ID) (workload workloads.Workloader, err error) {
-	_, err = w.get(w.url("reservations", fmt.Sprint(id)), nil, &workload, http.StatusOK)
+	_, err = w.get(w.url("workloads", fmt.Sprint(id)), nil, &workload, http.StatusOK)
 	return
 }
 
 func (w *httpWorkloads) SignProvision(id schema.ID, user schema.ID, signature string) error {
 	_, err := w.post(
-		w.url("reservations", fmt.Sprint(id), "sign", "provision"),
+		w.url("workloads", fmt.Sprint(id), "sign", "provision"),
 		workloads.SigningSignature{
 			Tid:       int64(user),
 			Signature: signature,
@@ -58,7 +58,7 @@ func (w *httpWorkloads) SignProvision(id schema.ID, user schema.ID, signature st
 
 func (w *httpWorkloads) SignDelete(id schema.ID, user schema.ID, signature string) error {
 	_, err := w.post(
-		w.url("reservations", fmt.Sprint(id), "sign", "delete"),
+		w.url("workloads", fmt.Sprint(id), "sign", "delete"),
 		workloads.SigningSignature{
 			Tid:       int64(user),
 			Signature: signature,
@@ -70,13 +70,13 @@ func (w *httpWorkloads) SignDelete(id schema.ID, user schema.ID, signature strin
 	return err
 }
 
-func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error) {
+func (w *httpWorkloads) NodeWorkloads(nodeID string, from uint64) ([]workloads.Workloader, uint64, error) {
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
 	var list []wrkldstypes.WorkloaderType
 
-	u := w.url("reservations", "workloads", nodeID)
+	u := w.url("reservations", "nodes", nodeID, "workloads")
 	if len(query) > 0 {
 		u = fmt.Sprintf("%s?%s", u, query.Encode())
 	}
@@ -106,10 +106,10 @@ func (w *httpWorkloads) Workloads(nodeID string, from uint64) ([]workloads.Workl
 	return output, lastID, err
 }
 
-func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.Workloader, err error) {
+func (w *httpWorkloads) NodeWorkloadGet(gwid string) (result workloads.Workloader, err error) {
 	// var output intermediateWL
 	var output workloads.Workloader
-	_, err = w.get(w.url("reservations", "workloads", gwid), nil, &output, http.StatusOK)
+	_, err = w.get(w.url("reservations", "nodes", "workloads", gwid), nil, &output, http.StatusOK)
 	if err != nil {
 		return
 	}
@@ -117,13 +117,13 @@ func (w *httpWorkloads) WorkloadGet(gwid string) (result workloads.Workloader, e
 	return output, nil
 }
 
-func (w *httpWorkloads) WorkloadPutResult(nodeID, gwid string, result workloads.Result) error {
-	_, err := w.put(w.url("reservations", "workloads", gwid, nodeID), result, nil, http.StatusCreated)
+func (w *httpWorkloads) NodeWorkloadPutResult(nodeID, gwid string, result workloads.Result) error {
+	_, err := w.put(w.url("reservations", "nodes", nodeID, "workloads", gwid), result, nil, http.StatusCreated)
 	return err
 }
 
-func (w *httpWorkloads) WorkloadPutDeleted(nodeID, gwid string) error {
-	_, err := w.delete(w.url("reservations", "workloads", gwid, nodeID), nil, nil, http.StatusOK)
+func (w *httpWorkloads) NodeWorkloadPutDeleted(nodeID, gwid string) error {
+	_, err := w.delete(w.url("reservations", "nodes", nodeID, "workloads", gwid), nil, nil, http.StatusOK)
 	return err
 }
 

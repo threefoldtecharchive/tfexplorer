@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/zaibon/httpsig"
@@ -47,6 +48,10 @@ func newHTTPClient(raw string, id Identity) (*httpClient, error) {
 	u, err := url.Parse(raw)
 	if err != nil {
 		return nil, fmt.Errorf("invalid url: %w", err)
+	}
+
+	if !strings.HasSuffix(u.Path, "/api/v1") {
+		u.Path = "/api/v1"
 	}
 
 	client := &httpClient{

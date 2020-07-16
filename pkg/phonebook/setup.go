@@ -22,13 +22,25 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	var userAPI = UserAPI{
 		verifier: userVerifier,
 	}
-	users := parent.PathPrefix("/users").Subrouter()
+
+	// versionned endpoints
+	api := parent.PathPrefix("/api/v1").Subrouter()
+	users := api.PathPrefix("/users").Subrouter()
 
 	users.HandleFunc("", mw.AsHandlerFunc(userAPI.create)).Methods(http.MethodPost).Name("user-create")
 	users.HandleFunc("", mw.AsHandlerFunc(userAPI.list)).Methods(http.MethodGet).Name(("user-list"))
 	users.HandleFunc("/{user_id}", mw.AsHandlerFunc(userAPI.register)).Methods(http.MethodPut).Name("user-register")
 	users.HandleFunc("/{user_id}", mw.AsHandlerFunc(userAPI.get)).Methods(http.MethodGet).Name("user-get")
 	users.HandleFunc("/{user_id}/validate", mw.AsHandlerFunc(userAPI.validate)).Methods(http.MethodPost).Name("user-validate")
+
+	// legacy endpoints
+	legacyUsers := parent.PathPrefix("/explorer/users").Subrouter()
+
+	legacyUsers.HandleFunc("", mw.AsHandlerFunc(userAPI.create)).Methods(http.MethodPost).Name("user-create")
+	legacyUsers.HandleFunc("", mw.AsHandlerFunc(userAPI.list)).Methods(http.MethodGet).Name(("user-list"))
+	legacyUsers.HandleFunc("/{user_id}", mw.AsHandlerFunc(userAPI.register)).Methods(http.MethodPut).Name("user-register")
+	legacyUsers.HandleFunc("/{user_id}", mw.AsHandlerFunc(userAPI.get)).Methods(http.MethodGet).Name("user-get")
+	legacyUsers.HandleFunc("/{user_id}/validate", mw.AsHandlerFunc(userAPI.validate)).Methods(http.MethodPost).Name("user-validate")
 
 	return nil
 }

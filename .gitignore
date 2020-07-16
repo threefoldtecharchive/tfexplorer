@@ -2,8 +2,9 @@
 bin/
 
 # generated code
-dist/ # the output of the frontend build
-statik/ # the embeding generated code from the disk folder
+dist/
+statik/
+statik.go
 
 # Binaries for programs and plugins
 *.exe
