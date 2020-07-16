@@ -843,7 +843,7 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 		return errors.Wrap(err, "failed to load escrow info")
 	}
 
-	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
+	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
 
