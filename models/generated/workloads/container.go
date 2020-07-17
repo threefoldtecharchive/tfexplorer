@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"sort"
 )
 
 var _ Workloader = (*Container)(nil)
@@ -38,11 +39,19 @@ func (c *Container) SignatureChallenge() ([]byte, error) {
 	}
 
 	encodeEnv := func(w io.Writer, env map[string]string) error {
-		for k, v := range env {
-			if _, err := fmt.Fprintf(w, "%s=%s", k, v); err != nil {
+
+		keys := make([]string, 0, len(env))
+		for k := range env {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			if _, err := fmt.Fprintf(w, "%s=%s", k, env[k]); err != nil {
 				return err
 			}
 		}
+
 		return nil
 	}
 
