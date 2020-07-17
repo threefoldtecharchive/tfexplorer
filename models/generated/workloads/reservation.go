@@ -31,6 +31,7 @@ const (
 	NextActionDelete
 	NextActionInvalid
 	NextActionDeleted
+	NextActionMigrated
 )
 
 func (e NextActionEnum) String() string {

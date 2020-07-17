@@ -261,6 +261,17 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 				return nil, mw.Error(err)
 			}
 		}
+
+		// Marked the migrated reservation as migrated so it is never send to the node anymore
+		ss := strings.Split(workloaders[i].GetReference(), "-")
+		rid, err := strconv.Atoi(ss[0])
+		if err != nil {
+			return nil, mw.Error(err)
+		}
+
+		if err := types.ReservationSetNextAction(r.Context(), db, schema.ID(rid), workloads.NextActionMigrated); err != nil {
+			return nil, mw.Error(err)
+		}
 	}
 
 	if err = types.SetUserConversionSucceeded(r.Context(), db, schema.ID(userTid)); err != nil {
