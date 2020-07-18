@@ -190,32 +190,33 @@ export default ({
       }
       state.nodeSpecs.amountregisteredFarms += value.length
     },
-    setTotalSpecs (state, value) {
-      if (value.length === 0) {
+    setTotalSpecs (state, nodes) {
+      if (nodes.length === 0) {
         return
       }
-      state.nodeSpecs.amountregisteredNodes = value.length
-      state.nodeSpecs.onlinenodes = countOnlineNodes(value)
-      state.nodeSpecs.countries = lodash.uniqBy(
-        value,
-        node => node.location.country
-      ).length
-      state.nodeSpecs.cru = lodash.sumBy(value, node => node.total_resources.cru)
-      state.nodeSpecs.mru = lodash.sumBy(value, node => node.total_resources.mru)
-      state.nodeSpecs.sru = lodash.sumBy(value, node => node.total_resources.sru)
-      state.nodeSpecs.hru = lodash.sumBy(value, node => node.total_resources.hru)
-      state.nodeSpecs.network = lodash.sumBy(value, node => node.workloads.network)
-      state.nodeSpecs.volume = lodash.sumBy(value, node => node.workloads.volume)
-      state.nodeSpecs.container = lodash.sumBy(value, node => node.workloads.container)
-      state.nodeSpecs.zdb_namespace = lodash.sumBy(value, node => node.workloads.zdb_namespace)
-      state.nodeSpecs.k8s_vm = lodash.sumBy(value, node => node.workloads.k8s_vm)
+
+      var onlineNodes = nodes.filter(online)
+
+      state.nodeSpecs.amountregisteredNodes = nodes.length
+      state.nodeSpecs.onlinenodes = onlineNodes.length
+      state.nodeSpecs.countries = lodash.uniqBy(nodes, node => node.location.country).length
+      state.nodeSpecs.cru = lodash.sumBy(onlineNodes, node => node.total_resources.cru)
+      state.nodeSpecs.mru = lodash.sumBy(onlineNodes, node => node.total_resources.mru)
+      state.nodeSpecs.sru = lodash.sumBy(onlineNodes, node => node.total_resources.sru)
+      state.nodeSpecs.hru = lodash.sumBy(onlineNodes, node => node.total_resources.hru)
+      state.nodeSpecs.network = lodash.sumBy(onlineNodes, node => node.workloads.network)
+      state.nodeSpecs.volume = lodash.sumBy(onlineNodes, node => node.workloads.volume)
+      state.nodeSpecs.container = lodash.sumBy(onlineNodes, node => node.workloads.container)
+      state.nodeSpecs.zdb_namespace = lodash.sumBy(onlineNodes, node => node.workloads.zdb_namespace)
+      state.nodeSpecs.k8s_vm = lodash.sumBy(onlineNodes, node => node.workloads.k8s_vm)
     },
-    setGatewaySpecs (state, value) {
-      if (value.length === 0) {
+    setGatewaySpecs (state, gateways) {
+      if (gateways.length === 0) {
         return
       }
-      state.gatewaySpecs.amountRegisteredGateways += value.length
-      state.gatewaySpecs.onlineGateways += countOnlineNodes(value)
+      var onlineGateways = gateways.filter(online)
+      state.gatewaySpecs.amountRegisteredGateways += gateways.length
+      state.gatewaySpecs.onlineGateways += onlineGateways.length
     },
     resetState (state) {
       // Merge rather than replace so we don't lose observers
@@ -238,12 +239,8 @@ export default ({
   }
 })
 
-function countOnlineNodes (data) {
-  let onlinecounter = 0
-  data.forEach(node => {
-    const timestamp = new Date().getTime() / 1000
-    const minutes = (timestamp - node.updated) / 60
-    if (minutes < 20) onlinecounter++
-  })
-  return onlinecounter
+function online (node) {
+  const timestamp = new Date().getTime() / 1000
+  const minutes = (timestamp - node.updated) / 60
+  return minutes < 20
 }
