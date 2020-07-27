@@ -199,7 +199,7 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		}
 
 		if err = workloaders[i].Verify(user.Pubkey, sig); err != nil {
-			return nil, mw.BadRequest(fmt.Errorf("workload %d signature verification failed: %w", workloaders[i].GetID(), err))
+			return nil, mw.BadRequest(fmt.Errorf("workload %d (%s) signature verification failed: %w", workloaders[i].GetID(), workloaders[i].GetWorkloadType().String(), err))
 		}
 
 		// set the result back in place to be added into the db
