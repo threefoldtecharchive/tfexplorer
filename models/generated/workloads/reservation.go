@@ -152,9 +152,9 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeNetwork:         "network",
 	WorkloadTypeKubernetes:      "kubernetes",
 	WorkloadTypeProxy:           "proxy",
-	WorkloadTypeReverseProxy:    "reverse-proxy",
+	WorkloadTypeReverseProxy:    "reverse_proxy",
 	WorkloadTypeSubDomain:       "subdomain",
-	WorkloadTypeDomainDelegate:  "domain-delegate",
+	WorkloadTypeDomainDelegate:  "domain_delegate",
 	WorkloadTypeGateway4To6:     "gateway4to6",
 	WorkloadTypeNetworkResource: "network_resource",
 }
