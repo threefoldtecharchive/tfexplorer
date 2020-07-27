@@ -71,7 +71,7 @@ func (a *API) getConversionList(r *http.Request) (interface{}, mw.Response) {
 
 	for _, w := range workloaders {
 		nodeID := w.GetNodeID()
-		farmID, err := nodeFarm(r.Context(), db, nodeID)
+		farmID, err := farmForNodeID(r.Context(), db, nodeID)
 		if err != nil {
 			return nil, mw.Error(err)
 		}
@@ -374,16 +374,24 @@ func loadNetworks(res []types.Reservation) ([]workloads.Workloader, error) {
 	return workloaders, nil
 }
 
-// nodeFarm return the farm id in which the node lives
-func nodeFarm(ctx context.Context, db *mongo.Database, nodeID string) (int64, error) {
-	var filter directorytypes.NodeFilter
-	filter = filter.WithNodeID(nodeID)
+// farmForNodeID return the farm id in which the node or gateway lives
+func farmForNodeID(ctx context.Context, db *mongo.Database, nodeID string) (int64, error) {
+	var nodeFilter directorytypes.NodeFilter
+	nodeFilter = nodeFilter.WithNodeID(nodeID)
+	var gwFilter directorytypes.GatewayFilter
+	gwFilter = gwFilter.WithGWID(nodeID)
+	var farmID int64
 
-	node, err := filter.Get(ctx, db, false)
-	if err != nil {
-		return 0, err
+	node, err := nodeFilter.Get(ctx, db, false)
+	if err == nil {
+		farmID = node.FarmId
+	} else {
+		gw, err := gwFilter.Get(ctx, db)
+		if err != nil {
+			return 0, err
+		}
+		farmID = gw.FarmId
 	}
-	farmID := node.FarmId
 
 	return int64(farmID), nil
 }
