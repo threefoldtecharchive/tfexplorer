@@ -102,7 +102,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	legacyNodesAuthenticated.HandleFunc("/{node_id}/used_resources", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.updateReservedResources))).Methods("POST").Name("node-reserved-resources")
 
 	legacyGw := parent.PathPrefix("/explorer/gateways").Subrouter()
-	legacyGwAuthenticated := parent.PathPrefix("/explorer//gateways").Subrouter()
+	legacyGwAuthenticated := parent.PathPrefix("/explorer/gateways").Subrouter()
 	legacyGwAuthMW := mw.NewAuthMiddleware(nodeVerifier)
 	legacyGwAuthenticated.Use(legacyGwAuthMW.Middleware)
 
