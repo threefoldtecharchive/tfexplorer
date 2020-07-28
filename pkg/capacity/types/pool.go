@@ -149,17 +149,21 @@ func (p *Pool) RemoveWorkload(id schema.ID, CU float64, SU float64) {
 		return
 	}
 	p.SyncCurrentCapacity()
+	// when clamping values also account for float skews on the positive side.
+	// 0.00001 should be a small enough value that no real workload can have this
+	// small amount, while it is significantly larger than what we expect from
+	// float weirdness.
 	if CU > 0 {
 		p.ActiveCU -= CU
 		// floats are annoying
-		if p.ActiveCU < 0 {
+		if p.ActiveCU < 0.00001 {
 			p.ActiveCU = 0
 		}
 	}
 	if SU > 0 {
 		p.ActiveSU -= SU
 		// floats are annoying
-		if p.ActiveSU < 0 {
+		if p.ActiveSU < 0.00001 {
 			p.ActiveSU = 0
 		}
 	}
