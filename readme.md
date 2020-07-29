@@ -21,6 +21,7 @@ Following commands can be passed to the explorer:
 | `-flush-escrows` | Remove the currently known escrow accounts and associated addresses in the db, then exit
 | `-backupsigners` | Repeatable flag, expects a valid Stellar address. If 3 are provided, multisig on the escrow accounts will be enabled. This is needed if one wishes to recover funds on the escrow accounts.
 | `-foundation-address` | Sets the "foundation address", this address will receive the payout of a reservation that is destined for the foundation, if any. If not set, the public address of the seed will be used.
+| `-threebot-connect` | URL of the 3bot connect API users endpoints. If specified, when creating a new user in the phonebook, the explorer will ensure there is no conflicting record in 3bot connect DB before accepting the new user. URL for production is `https://login.threefold.me/api/users/`
 
 > If a seed is passed to the explorer, payments for reservation will be enabled.
 

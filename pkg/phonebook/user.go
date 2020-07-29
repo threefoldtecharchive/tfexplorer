@@ -2,6 +2,7 @@ package phonebook
 
 import (
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,8 @@ import (
 
 // UserAPI struct
 type UserAPI struct {
-	verifier *httpsig.Verifier
+	verifier              *httpsig.Verifier
+	threebotConnectAPIURL string
 }
 
 func (u *UserAPI) isAuthenticated(r *http.Request) bool {
@@ -44,6 +46,15 @@ func (u *UserAPI) create(r *http.Request) (interface{}, mw.Response) {
 	// https://github.com/threefoldtech/zos/issues/706
 	if err := user.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
+	}
+
+	// Ensure we do not add user that exist in 3bot connect DB with another public key
+	// https://github.com/threefoldtech/home/issues/859
+	if err := u.compareUser(user); err != nil {
+		if errors.As(err, &errWrongPubKey{}) {
+			return nil, mw.Conflict(err)
+		}
+		return nil, mw.Error(err)
 	}
 
 	db := mw.Database(r)
@@ -223,4 +234,60 @@ func (u *UserAPI) validate(r *http.Request) (interface{}, mw.Response) {
 	}{
 		IsValid: ed25519.Verify(key, data, signature),
 	}, nil
+}
+
+type errWrongPubKey struct {
+	name   string
+	pubkey string
+}
+
+func (e errWrongPubKey) Error() string {
+	return fmt.Sprintf("user %s already exist in 3bot connect with another public key: %s", e.name, e.pubkey)
+}
+
+func (u *UserAPI) compareUser(user types.User) error {
+	if u.threebotConnectAPIURL == "" {
+		return nil
+	}
+
+	record := struct {
+		Doublename string `json:"doublename"`
+		PublicKey  string `json:"publickey"`
+	}{}
+
+	url := fmt.Sprintf("%s/%s", u.threebotConnectAPIURL, user.Name)
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	// user doesn't exist yet in 3bot connect, nothing to do
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("error while checking 3botConnect API for duplicate user: wrong HTTP response status %s", resp.Status)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		return err
+	}
+
+	pubKey, err := base64.StdEncoding.DecodeString(record.PublicKey)
+	if err != nil {
+		return err
+	}
+
+	hexPub := hex.EncodeToString(pubKey)
+	if hexPub != user.Pubkey {
+		return errWrongPubKey{
+			name:   record.Doublename,
+			pubkey: hexPub,
+		}
+	}
+
+	return nil
 }
