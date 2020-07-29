@@ -40,21 +40,19 @@ import (
 	"github.com/threefoldtech/zos/pkg/version"
 )
 
-// Pkg is a shorthand type for func
-type Pkg func(*mux.Router, *mongo.Database) error
-
 func main() {
 	app.Initialize()
 
 	var (
-		listen            string
-		dbConf            string
-		dbName            string
-		seed              string
-		foundationAddress string
-		ver               bool
-		flushEscrows      bool
-		backupSigners     stellar.Signers
+		listen             string
+		dbConf             string
+		dbName             string
+		seed               string
+		foundationAddress  string
+		threebotConnectURL string
+		ver                bool
+		flushEscrows       bool
+		backupSigners      stellar.Signers
 	)
 
 	flag.StringVar(&listen, "listen", ":8080", "listen address, default :8080")
@@ -63,6 +61,7 @@ func main() {
 	flag.StringVar(&seed, "seed", "", "wallet seed")
 	flag.StringVar(&config.Config.Network, "network", "", "tfchain network")
 	flag.StringVar(&foundationAddress, "foundation-address", "", "foundation address for the escrow foundation payment cut, if not set and the foundation should receive a cut from a resersvation payment, the wallet seed will receive the payment instead")
+	flag.StringVar(&threebotConnectURL, "threebot-connect", "", "URL to the 3bot Connect app API. if specified, new user will be check against it and ensure public key are the same")
 	flag.BoolVar(&ver, "v", false, "show version and exit")
 	flag.Var(&backupSigners, "backupsigner", "reusable flag which adds a signer to the escrow accounts, we need atleast 5 signers to activate multisig")
 	flag.BoolVar(&flushEscrows, "flush-escrows", false, "flush all escrows in the database, including currently active ones, and their associated addressses")
@@ -94,7 +93,7 @@ func main() {
 		log.Fatal().Err(err).Msg("fail to connect to database")
 	}
 
-	s, err := createServer(listen, dbName, client, seed, foundationAddress, dropEscrow, backupSigners)
+	s, err := createServer(listen, dbName, client, seed, foundationAddress, dropEscrow, backupSigners, threebotConnectURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create HTTP server")
 	}
@@ -127,7 +126,7 @@ func connectDB(ctx context.Context, connectionURI string) (*mongo.Client, error)
 	return client, nil
 }
 
-func createServer(listen, dbName string, client *mongo.Client, seed string, foundationAddress string, dropEscrowData bool, backupSigners stellar.Signers) (*http.Server, error) {
+func createServer(listen, dbName string, client *mongo.Client, seed string, foundationAddress string, dropEscrowData bool, backupSigners stellar.Signers, threebotConnectURL string) (*http.Server, error) {
 	db, err := mw.NewDatabaseMiddleware(dbName, client)
 	if err != nil {
 		return nil, err
@@ -187,17 +186,14 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	go e.Run(context.Background())
 
-	pkgs := []Pkg{
-		phonebook.Setup,
-		directory.Setup,
-	}
-
 	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
-	for _, pkg := range pkgs {
-		if err := pkg(router, db.Database()); err != nil {
-			log.Error().Err(err).Msg("failed to register package")
-		}
+	if err := directory.Setup(router, db.Database()); err != nil {
+		log.Fatal().Err(err).Msg("failed to register directory package")
+	}
+
+	if err := phonebook.Setup(router, db.Database(), threebotConnectURL); err != nil {
+		log.Fatal().Err(err).Msg("failed to register phonebook package")
 	}
 
 	if err = capacitydb.Setup(context.Background(), db.Database()); err != nil {
@@ -207,7 +203,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	planner := capacity.NewNaivePlanner(e, db.Database())
 	go planner.Run(context.Background())
 	if err = workloads.Setup(router, db.Database(), e, planner); err != nil {
-		log.Error().Err(err).Msg("failed to register package")
+		log.Error().Err(err).Msg("failed to register workloads package")
 	}
 
 	log.Printf("start on %s\n", listen)
