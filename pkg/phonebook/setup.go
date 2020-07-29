@@ -12,7 +12,7 @@ import (
 )
 
 // Setup injects and initializes directory package
-func Setup(parent *mux.Router, db *mongo.Database) error {
+func Setup(parent *mux.Router, db *mongo.Database, threebotConnectURL string) error {
 	if err := phonebook.Setup(context.TODO(), db); err != nil {
 		return err
 	}
@@ -20,7 +20,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
 
 	var userAPI = UserAPI{
-		verifier: userVerifier,
+		verifier:              userVerifier,
+		threebotConnectAPIURL: threebotConnectURL,
 	}
 
 	// versionned endpoints
