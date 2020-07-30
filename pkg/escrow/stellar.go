@@ -238,10 +238,6 @@ func (e *Stellar) refundExpiredCapacityReservations() error {
 			continue
 		}
 
-		escrowInfo.Canceled = true
-		if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
-			log.Error().Err(err).Msgf("failed to mark expired reservation escrow info as cancelled")
-		}
 	}
 	return nil
 }
@@ -396,6 +392,11 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 	}
 
 	if err = e.payoutFarmersCap(escrowInfo); err != nil {
+		slog.Debug().Msgf("farmer payout for capacity reservation %d failed, refund client", escrowInfo.ReservationID)
+		if err2 := e.refundCapacityEscrow(escrowInfo); err2 != nil {
+			// just log the error and return the main error
+			log.Error().Err(err2).Msg("could not refund client")
+		}
 		return errors.Wrap(err, "failed to mark reservation escrow info as paid")
 	}
 
@@ -845,6 +846,11 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 
 	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
+	}
+
+	escrowInfo.Canceled = true
+	if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
+		return errors.Wrap(err, "failed to mark expired reservation escrow info as cancelled")
 	}
 
 	slog.Info().Msgf("refunded client for escrow")
