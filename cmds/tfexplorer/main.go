@@ -154,8 +154,8 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 	router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(statikFS)))
 
 	router.Path("/").HandlerFunc(serveStatic("/index.html", statikFS))
-	router.Path("/explorer").HandlerFunc(serveStatic("/docs.html", statikFS))
-	router.Path("/api/v1").HandlerFunc(serveStatic("/docs.html", statikFS))
+	router.Path("/explorer").HandlerFunc(serveStatic("/docs_legacy.html", statikFS))
+	router.Path("/api/v1").HandlerFunc(serveStatic("/docs_api_v1.html", statikFS))
 
 	if dropEscrowData {
 		log.Warn().Msg("dropping escrow and address collection")
