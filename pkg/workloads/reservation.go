@@ -970,17 +970,8 @@ func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.UnAuthorized(fmt.Errorf("reservation not expecting signatures"))
 	}
 
-	in := func(i int64, l []int64) bool {
-		for _, x := range l {
-			if x == i {
-				return true
-			}
-		}
-		return false
-	}
-
-	if !in(signature.Tid, reservation.DataReservation.SigningRequestProvision.Signers) {
-		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	if httpErr := userCanSign(signature.Tid, reservation.DataReservation.SigningRequestProvision, reservation.SignaturesProvision); httpErr != nil {
+		return nil, httpErr
 	}
 
 	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
@@ -1034,17 +1025,8 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.UnAuthorized(fmt.Errorf("workload not expecting signatures"))
 	}
 
-	in := func(i int64, l []int64) bool {
-		for _, x := range l {
-			if x == i {
-				return true
-			}
-		}
-		return false
-	}
-
-	if !in(signature.Tid, workload.GetSigningRequestProvision().Signers) {
-		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	if httpErr := userCanSign(signature.Tid, workload.GetSigningRequestProvision(), workload.GetSignaturesProvision()); httpErr != nil {
+		return nil, httpErr
 	}
 
 	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
@@ -1109,17 +1091,8 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 		return a.newSignDelete(r)
 	}
 
-	in := func(i int64, l []int64) bool {
-		for _, x := range l {
-			if x == i {
-				return true
-			}
-		}
-		return false
-	}
-
-	if !in(signature.Tid, reservation.DataReservation.SigningRequestDelete.Signers) {
-		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	if httpErr := userCanSign(signature.Tid, reservation.DataReservation.SigningRequestDelete, reservation.SignaturesDelete); httpErr != nil {
+		return nil, httpErr
 	}
 
 	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
@@ -1177,17 +1150,8 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	in := func(i int64, l []int64) bool {
-		for _, x := range l {
-			if x == i {
-				return true
-			}
-		}
-		return false
-	}
-
-	if !in(signature.Tid, workload.GetSigningRequestDelete().Signers) {
-		return nil, mw.UnAuthorized(fmt.Errorf("signature not required for '%d'", signature.Tid))
+	if httpErr := userCanSign(signature.Tid, workload.GetSigningRequestDelete(), workload.GetSignaturesDelete()); httpErr != nil {
+		return nil, httpErr
 	}
 
 	user, err := phonebook.UserFilter{}.WithID(schema.ID(signature.Tid)).Get(r.Context(), db)
@@ -1239,4 +1203,32 @@ func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types
 	}
 
 	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
+}
+
+// userCanSign checks if a specific user has right to push a deletion or provision signature to the reservation/workload
+func userCanSign(userTid int64, req workloads.SigningRequest, signatures []workloads.SigningSignature) mw.Response {
+	in := func(i int64, l []int64) bool {
+		for _, x := range l {
+			if x == i {
+				return true
+			}
+		}
+		return false
+	}
+
+	// ensure the user trying to sign is required consensus
+	if !in(userTid, req.Signers) {
+		return mw.UnAuthorized(fmt.Errorf("signature not required for user '%d'", userTid))
+	}
+
+	// ensure the user trying to sign has not already provided a signature
+	userSigned := make([]int64, 0, len(signatures))
+	for i := range signatures {
+		userSigned = append(userSigned, signatures[i].Tid)
+	}
+	if in(userTid, userSigned) {
+		return mw.BadRequest(fmt.Errorf("user %d has already signed the reservation for deletion", userTid))
+	}
+
+	return nil
 }
