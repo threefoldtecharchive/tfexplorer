@@ -363,6 +363,20 @@ func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (
 	id := models.MustID(ctx, db, ReservationCollection)
 	w.SetID(id)
 
+	// ensure the signers array are never nill cause it would cause issue
+	// in mongo when trying to push signature later on
+	reqDel := w.GetSigningRequestDelete()
+	if reqDel.Signers == nil {
+		reqDel.Signers = make([]int64, 0)
+		w.SetSigningRequestDelete(reqDel)
+	}
+
+	reqPro := w.GetSigningRequestProvision()
+	if reqPro.Signers == nil {
+		reqDel.Signers = make([]int64, 0)
+		w.SetSigningRequestProvision(reqPro)
+	}
+
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
 	if err != nil {
 		return 0, err
