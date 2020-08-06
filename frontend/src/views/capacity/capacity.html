@@ -7,22 +7,16 @@
         <v-col class="pt-0">
 
           <v-row>
-            <v-flex md2 xs6 d-flex class="pa-2 others">
-              <miniGraph class="others" :value="nodeSpecs.amountregisteredNodes" title="Registered Nodes" />
-            </v-flex>
-            <v-flex md2 xs6 d-flex class="pa-2 others">
+            <v-flex md3 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="nodeSpecs.onlinenodes" title="Nodes online" />
             </v-flex>
-            <v-flex md2 xs6 d-flex class="pa-2 others">
-              <miniGraph class="others" :value="gatewaySpecs.amountRegisteredGateways" title="Registered Gateways" />
-            </v-flex>
-            <v-flex md2 xs6 d-flex class="pa-2 others">
+            <v-flex md3 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="gatewaySpecs.onlineGateways" title="Gateways Online" />
             </v-flex>
-            <v-flex md2 xs6 d-flex class="pa-2 others">
+            <v-flex md3 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="nodeSpecs.countries" title="Countries" />
             </v-flex>
-            <v-flex md2 xs6 d-flex class="pa-2 others">
+            <v-flex md3 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="nodeSpecs.amountregisteredFarms" title="Farms" />
             </v-flex>
           </v-row>
@@ -64,7 +58,7 @@
             <v-flex class="ma-2" d-flex>
               <nodesTable :searchnodes="selectedNode" :registerednodes="registeredNodes"
                 style="height: 100%; width:100%;" />
-              
+
             </v-flex>
           </v-row>
           <v-row>
