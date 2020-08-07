@@ -150,6 +150,9 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	if !allowed {
 		log.Debug().Msg("don't deploy workload as its pool is almost empty")
+		if err := types.WorkloadSetNextAction(r.Context(), db, id, generated.NextActionInvalid); err != nil {
+			return nil, mw.Error(fmt.Errorf("failed to marked the workload as invalid:%w", err))
+		}
 		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
 	}
 
