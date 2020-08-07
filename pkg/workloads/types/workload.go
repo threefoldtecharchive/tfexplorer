@@ -363,6 +363,20 @@ func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (
 	id := models.MustID(ctx, db, ReservationCollection)
 	w.SetID(id)
 
+	// ensure the signers array are never nill cause it would cause issue
+	// in mongo when trying to push signature later on
+	reqDel := w.GetSigningRequestDelete()
+	if reqDel.Signers == nil {
+		reqDel.Signers = make([]int64, 0)
+		w.SetSigningRequestDelete(reqDel)
+	}
+
+	reqPro := w.GetSigningRequestProvision()
+	if reqPro.Signers == nil {
+		reqDel.Signers = make([]int64, 0)
+		w.SetSigningRequestProvision(reqPro)
+	}
+
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
 	if err != nil {
 		return 0, err
@@ -413,30 +427,17 @@ func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType)
 
 //WorkloadPushSignature push signature to workload
 func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature generated.SigningSignature) error {
+	// this function just push the signature to the reservation array
+	// there are not other checks involved here. So before calling this function
+	// we need to ensure the signature has the rights to be pushed
 	var filter WorkloadFilter
 	filter = filter.WithID(id)
 	col := db.Collection(WorkloadCollection)
-	// NOTE: this should be a transaction not a bulk write
-	// but i had so many issues with transaction, and i couldn't
-	// get it to work. so I used bulk write in place instead
-	// until we figure this issue out.
-	// Note, the reason we don't just use addToSet is the signature
-	// object always have the current 'time' which means it's a different
-	// value than the one in the document even if it has same user id.
-	_, err := col.BulkWrite(ctx, []mongo.WriteModel{
-		mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(
-			bson.M{
-				"$pull": bson.M{
-					string(mode): bson.M{"tid": signature.Tid},
-				},
-			}),
-		mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(
-			bson.M{
-				"$addToSet": bson.M{
-					string(mode): signature,
-				},
-			}),
-	}, options.BulkWrite().SetOrdered(true))
+	_, err := col.UpdateOne(ctx, filter, bson.M{
+		"$push": bson.M{
+			string(mode): signature,
+		},
+	})
 
 	return err
 }

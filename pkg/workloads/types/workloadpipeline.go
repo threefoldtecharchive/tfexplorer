@@ -30,25 +30,8 @@ func (p *WorkloadPipeline) checkProvisionSignatures() bool {
 		return true
 	}
 
-	in := func(i int64, l []int64) bool {
-		for _, x := range l {
-			if x == i {
-				return true
-			}
-		}
-		return false
-	}
-
-	signatures := p.w.GetSignaturesProvision()
-	var count int64
-	for _, signature := range signatures {
-		if !in(signature.Tid, request.Signers) {
-			continue
-		}
-		count++
-	}
-
-	return count >= request.QuorumMin
+	signers := countSignatures(p.w.GetSignaturesProvision(), request)
+	return int64(signers) >= request.QuorumMin
 }
 
 func (p *WorkloadPipeline) checkDeleteSignatures() bool {
@@ -63,25 +46,8 @@ func (p *WorkloadPipeline) checkDeleteSignatures() bool {
 		return false
 	}
 
-	in := func(i int64, l []int64) bool {
-		for _, x := range l {
-			if x == i {
-				return true
-			}
-		}
-		return false
-	}
-
-	signatures := p.w.GetSignaturesDelete()
-	var count int64
-	for _, signature := range signatures {
-		if !in(signature.Tid, request.Signers) {
-			continue
-		}
-		count++
-	}
-
-	return count >= request.QuorumMin
+	signers := countSignatures(p.w.GetSignaturesDelete(), request)
+	return int64(signers) >= request.QuorumMin
 }
 
 // Next gets new modified reservation, and true if the reservation has changed from the input

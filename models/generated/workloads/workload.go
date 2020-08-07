@@ -330,18 +330,30 @@ func (i *ReservationInfo) SetDescription(description string) {
 }
 
 func (i *ReservationInfo) SetSigningRequestProvision(request SigningRequest) {
+	if request.Signers == nil {
+		request.Signers = make([]int64, 0)
+	}
 	i.SigningRequestProvision = request
 }
 
 func (i *ReservationInfo) SetSigningRequestDelete(request SigningRequest) {
+	if request.Signers == nil {
+		request.Signers = make([]int64, 0)
+	}
 	i.SigningRequestDelete = request
 }
 
 func (i *ReservationInfo) SetSignaturesProvision(signatures []SigningSignature) {
+	if signatures == nil {
+		signatures = make([]SigningSignature, 0)
+	}
 	i.SignaturesProvision = signatures
 }
 
 func (i *ReservationInfo) SetSignaturesDelete(signatures []SigningSignature) {
+	if signatures == nil {
+		signatures = make([]SigningSignature, 0)
+	}
 	i.SignaturesDelete = signatures
 }
 
