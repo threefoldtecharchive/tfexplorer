@@ -196,32 +196,16 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.New("all nodes for a capacity pool must belong to the same farm"))
 	}
 
-	// check if freeTFT is allowed to be used
-	// if all nodes are marked as free to use then FreeTFT is allowed
-	// otherwise it is not
-	var freeNodes int
-
-	usedNodes := reservation.DataReservation.NodeIDs
-	count, err := (directory.NodeFilter{}).
-		WithNodeIDs(usedNodes).
-		WithFreeToUse(true).
-		Count(r.Context(), db)
+	isAllFree, err := isAllFreeToUse(r.Context(), reservation.DataReservation.NodeIDs, db)
 	if err != nil {
 		return nil, mw.Error(err, http.StatusInternalServerError)
 	}
-	freeNodes += int(count)
-
-	paidNodes := len(usedNodes)
-	log.Info().
-		Int("paid_nodes", paidNodes).
-		Int("free_nodes", freeNodes).
-		Msg("distribution of free nodes in capacity reservation")
 
 	currencies := make([]string, len(reservation.DataReservation.Currencies))
 	copy(currencies, reservation.DataReservation.Currencies)
 
 	// filter out FreeTFT if not all the nodes can be paid with freeTFT
-	if freeNodes < paidNodes {
+	if !isAllFree {
 		for i, c := range currencies {
 			if c == freeTFT {
 				currencies = append(currencies[:i], currencies[i+1:]...)
@@ -1234,4 +1218,36 @@ func userCanSign(userTid int64, req workloads.SigningRequest, signatures []workl
 	}
 
 	return nil
+}
+
+func isAllFreeToUse(ctx context.Context, nodeIDs []string, db *mongo.Database) (bool, error) {
+	var freeNodes int64
+	// check if freeTFT is allowed to be used
+	// if all nodes are marked as free to use then FreeTFT is allowed
+	// otherwise it is not
+	count, err := (directory.NodeFilter{}).
+		WithNodeIDs(nodeIDs).
+		WithFreeToUse(true).
+		Count(ctx, db)
+	if err != nil {
+		return false, err
+	}
+	freeNodes += count
+
+	// also include the gateways belonging to the farm
+	count, err = (directory.GatewayFilter{}).
+		WithGWIDs(nodeIDs).
+		WithFreeToUse(true).
+		Count(ctx, db)
+	if err != nil {
+		return false, err
+	}
+	freeNodes += count
+
+	log.Info().
+		Int("requested_nodes", len(nodeIDs)).
+		Int64("free_nodes", freeNodes).
+		Msg("distribution of free nodes in capacity reservation")
+
+	return freeNodes >= int64(len(nodeIDs)), nil
 }
