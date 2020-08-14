@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	pprof "net/http/pprof"
+	_ "net/http/pprof"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -186,7 +186,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	go e.Run(context.Background())
 
-	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.PathPrefix("/debug/").Handler(http.DefaultServeMux)
 
 	if err := directory.Setup(router, db.Database()); err != nil {
 		log.Fatal().Err(err).Msg("failed to register directory package")
