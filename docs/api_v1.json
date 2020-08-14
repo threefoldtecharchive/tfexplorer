@@ -32,7 +32,7 @@
     }
   ],
   "tags": [
-        {
+    {
       "name": "farms",
       "description": "Everything about Threefold farms",
       "externalDocs": {
@@ -159,7 +159,7 @@
         "tags": [
           "farms"
         ],
-       "summary": "Create a farm",
+        "summary": "Create a farm",
         "description": "Create a new farm",
         "operationId": "createFarm",
         "requestBody": {
@@ -1188,16 +1188,26 @@
                   "type": "array",
                   "items": {
                     "oneOf": [
-                      "$ref": "#/components/schemas/ContainerWorkload",
-                      "$ref": "#/components/schemas/GatewayProxyWorkload",
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload",
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload",
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload",
-                      "$ref": "#/components/schemas/Gateway4To6Workload",
-                      "$ref": "#/components/schemas/K8SWorkload",
-                      "$ref": "#/components/schemas/NetworkResourceWorkload",
-                      "$ref": "#/components/schemas/VolumeWorkload",
-                      "$ref": "#/components/schemas/ZdbWorkload"
+                      "$ref",
+                      "#components/schemas/ContainerWorkload",
+                      "$ref",
+                      "#components/schemas/GatewayProxyWorkload",
+                      "$ref",
+                      "#components/schemas/GatewayReverseProxyWorkload",
+                      "$ref",
+                      "#components/schemas/GatewaySubdomainWorkload",
+                      "$ref",
+                      "#components/schemas/GatewayDelegateWorkload",
+                      "$ref",
+                      "#components/schemas/Gateway4To6Workload",
+                      "$ref",
+                      "#components/schemas/K8SWorkload",
+                      "$ref",
+                      "#components/schemas/NetworkResourceWorkload",
+                      "$ref",
+                      "#components/schemas/VolumeWorkload",
+                      "$ref",
+                      "#components/schemas/ZdbWorkload"
                     ],
                     "discriminator": {
                       "propertyName": "workload_type"
@@ -1221,16 +1231,36 @@
             "application/json": {
               "schema": {
                 "oneOf": [
-                  "$ref": "#/components/schemas/ContainerWorkload",
-                  "$ref": "#/components/schemas/GatewayProxyWorkload",
-                  "$ref": "#/components/schemas/GatewayReverseProxyWorkload",
-                  "$ref": "#/components/schemas/GatewaySubdomainWorkload",
-                  "$ref": "#/components/schemas/GatewayDelegateWorkload",
-                  "$ref": "#/components/schemas/Gateway4To6Workload",
-                  "$ref": "#/components/schemas/K8SWorkload",
-                  "$ref": "#/components/schemas/NetworkResourceWorkload",
-                  "$ref": "#/components/schemas/VolumeWorkload",
-                  "$ref": "#/components/schemas/ZdbWorkload"
+                  {
+                    "$ref": "#/components/schemas/ContainerWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GatewayProxyWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Gateway4To6Workload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/K8SWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/NetworkResourceWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/VolumeWorkload"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ZdbWorkload"
+                  }
                 ],
                 "discriminator": {
                   "propertyName": "workload_type"
@@ -1285,16 +1315,36 @@
               "application/json": {
                 "schema": {
                   "oneOf": [
-                    "$ref": "#/components/schemas/ContainerWorkload",
-                    "$ref": "#/components/schemas/GatewayProxyWorkload",
-                    "$ref": "#/components/schemas/GatewayReverseProxyWorkload",
-                    "$ref": "#/components/schemas/GatewaySubdomainWorkload",
-                    "$ref": "#/components/schemas/GatewayDelegateWorkload",
-                    "$ref": "#/components/schemas/Gateway4To6Workload",
-                    "$ref": "#/components/schemas/K8SWorkload",
-                    "$ref": "#/components/schemas/NetworkResourceWorkload",
-                    "$ref": "#/components/schemas/VolumeWorkload",
-                    "$ref": "#/components/schemas/ZdbWorkload"
+                    {
+                      "$ref": "#/components/schemas/ContainerWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewayProxyWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Gateway4To6Workload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/K8SWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/NetworkResourceWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/VolumeWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ZdbWorkload"
+                    }
                   ],
                   "discriminator": {
                     "propertyName": "workload_type"
@@ -1343,7 +1393,7 @@
         "responses": {
           "201": {
             "description": "ok"
-          },
+          }
         }
       }
     },
@@ -1381,7 +1431,7 @@
         "responses": {
           "201": {
             "description": "ok"
-          },
+          }
         }
       }
     },
@@ -1402,16 +1452,36 @@
                   "type": "array",
                   "items": {
                     "oneOf": [
-                      "$ref": "#/components/schemas/ContainerWorkload",
-                      "$ref": "#/components/schemas/GatewayProxyWorkload",
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload",
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload",
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload",
-                      "$ref": "#/components/schemas/Gateway4To6Workload",
-                      "$ref": "#/components/schemas/K8SWorkload",
-                      "$ref": "#/components/schemas/NetworkResourceWorkload",
-                      "$ref": "#/components/schemas/VolumeWorkload",
-                      "$ref": "#/components/schemas/ZdbWorkload"
+                      {
+                        "$ref": "#/components/schemas/ContainerWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/GatewayProxyWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Gateway4To6Workload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/K8SWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/NetworkResourceWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/VolumeWorkload"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ZdbWorkload"
+                      }
                     ],
                     "discriminator": {
                       "propertyName": "workload_type"
@@ -1436,16 +1506,36 @@
                 "type": "array",
                 "items": {
                   "oneOf": [
-                    "$ref": "#/components/schemas/ContainerWorkload",
-                    "$ref": "#/components/schemas/GatewayProxyWorkload",
-                    "$ref": "#/components/schemas/GatewayReverseProxyWorkload",
-                    "$ref": "#/components/schemas/GatewaySubdomainWorkload",
-                    "$ref": "#/components/schemas/GatewayDelegateWorkload",
-                    "$ref": "#/components/schemas/Gateway4To6Workload",
-                    "$ref": "#/components/schemas/K8SWorkload",
-                    "$ref": "#/components/schemas/NetworkResourceWorkload",
-                    "$ref": "#/components/schemas/VolumeWorkload",
-                    "$ref": "#/components/schemas/ZdbWorkload"
+                    {
+                      "$ref": "#/components/schemas/ContainerWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewayProxyWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Gateway4To6Workload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/K8SWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/NetworkResourceWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/VolumeWorkload"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ZdbWorkload"
+                    }
                   ],
                   "discriminator": {
                     "propertyName": "workload_type"
@@ -1459,9 +1549,9 @@
         "responses": {
           "200": {
             "description": "ok"
-          },
+          }
         }
-      },
+      }
     }
   },
   "components": {
@@ -2636,7 +2726,7 @@
           "currencies": {
             "type": "array",
             "items": {
-              "type":"string"
+              "type": "string"
             }
           }
         }
@@ -2704,7 +2794,7 @@
             "items": {
               "type": "integer"
             }
-          },
+          }
         }
       },
       "WorkloadBase": {
@@ -2741,7 +2831,7 @@
             }
           },
           "signature_farmer": {
-              "$ref": "#/components/schemas/SigningSignature"
+            "$ref": "#/components/schemas/SigningSignature"
           },
           "signatures_delete": {
             "type": "array",
@@ -2765,103 +2855,119 @@
       },
       "ContainerWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "flist": {
-              "type": "string"
-            },
-            "hub_url": {
-              "type": "string"
-            },
-            "environment": {
-              "$ref": "#/components/schemas/Container_environment"
-            },
-            "secret_environment": {
-              "$ref": "#/components/schemas/Container_environment"
-            },
-            "entrypoint": {
-              "type": "string"
-            },
-            "interactive": {
-              "type": "boolean"
-            },
-            "volumes": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ContainerMout"
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "flist": {
+                "type": "string"
+              },
+              "hub_url": {
+                "type": "string"
+              },
+              "environment": {
+                "$ref": "#/components/schemas/Container_environment"
+              },
+              "secret_environment": {
+                "$ref": "#/components/schemas/Container_environment"
+              },
+              "entrypoint": {
+                "type": "string"
+              },
+              "interactive": {
+                "type": "boolean"
+              },
+              "volumes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ContainerMout"
+                }
+              },
+              "network_connection": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NetworkConnection"
+                }
+              },
+              "stats_aggregator": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StatsAggregator"
+                }
+              },
+              "logs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Logs"
+                }
+              },
+              "capacity": {
+                "$ref": "#/components/schemas/Capacity"
               }
-            },
-            "network_connection": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/NetworkConnection"
-              }
-            },
-            "stats_aggregator": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/StatsAggregator"
-              }
-            },
-            "logs": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Logs"
-              }
-            },
-            "capacity": {
-              "$ref": "#/components/schemas/Capacity"
             }
           }
         ]
       },
       "GatewayProxyWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "domain": {
-              "type": "string"
-            },
-            "addr": {
-              "type": "string"
-            },
-            "port": {
-              "type": "integer"
-            },
-            "port_tls": {
-              "type": "integer"
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "addr": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer"
+              },
+              "port_tls": {
+                "type": "integer"
+              }
             }
           }
         ]
       },
       "GatewayReverseProxyWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "domain": {
-              "type": "string"
-            },
-            "secret": {
-              "type": "string"
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "secret": {
+                "type": "string"
+              }
             }
           }
         ]
       },
       "GatewaySubdomainWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "domain": {
-              "type": "string"
-            },
-            "ips": {
-              "type": "array",
-              "items": {
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "domain": {
                 "type": "string"
+              },
+              "ips": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -2869,97 +2975,113 @@
       },
       "GatewayDelegateWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "domain": {
-              "type": "string"
-            },
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              }
+            }
           }
         ]
       },
       "Gateway4To6Workload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "public_key": {
-              "type": "string"
-            },
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "public_key": {
+                "type": "string"
+              }
+            }
           }
         ]
       },
       "K8SWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "size": {
-              "type": "integer"
-            },
-            "cluster_secret": {
-              "type": "string"
-            },
-            "network_id": {
-              "type": "integer"
-            },
-            "ipaddress": {
-              "type": "string"
-            },
-            "master_ips": {
-              "type": "array",
-              "items": {
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "size": {
+                "type": "integer"
+              },
+              "cluster_secret": {
                 "type": "string"
-              }
-            },
-            "ssh_keys": {
-              "type": "array",
-              "items": {
+              },
+              "network_id": {
+                "type": "integer"
+              },
+              "ipaddress": {
                 "type": "string"
-              }
-            },
-            "stats_aggregator": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/StatsAggregator"
+              },
+              "master_ips": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ssh_keys": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "stats_aggregator": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StatsAggregator"
+                }
               }
             }
-          } 
+          }
         ]
       },
       "NetworkResourceWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "network_iprange ": {
-              "type": "string"
-            },
-            "wireguard_private_key_encrypted": {
-              "type": "string"
-            },
-            "wireguard_public_key": {
-              "type": "string"
-            },
-             "wireguard_listen_port": {
-              "type": "integer"
-            },
-            "iprange ": {
-              "type": "string"
-            },
-            "peers": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/WireguardPeer"
-              }
-            },
-            "stats_aggregator": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/StatsAggregator"
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "network_iprange ": {
+                "type": "string"
+              },
+              "wireguard_private_key_encrypted": {
+                "type": "string"
+              },
+              "wireguard_public_key": {
+                "type": "string"
+              },
+              "wireguard_listen_port": {
+                "type": "integer"
+              },
+              "iprange ": {
+                "type": "string"
+              },
+              "peers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WireguardPeer"
+                }
+              },
+              "stats_aggregator": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StatsAggregator"
+                }
               }
             }
           }
@@ -2967,42 +3089,50 @@
       },
       "VolumeWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "size": {
-              "type": "integer"
-            },
-            "type": {
-              "type": "integer"
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "size": {
+                "type": "integer"
+              },
+              "type": {
+                "type": "integer"
+              }
             }
           }
         ]
       },
       "ZdbWorkload": {
         "allOf": [
-          "$ref": "#/components/schemas/WorkloadBase",
-          "type": "object",
-          "properties": {
-            "size": {
-              "type": "integer"
-            },
-            "mode": {
-              "type": "integer"
-            },
-            "password": {
-              "type": "string"
-            },
-            "disk_type": {
-              "type": "integer"
-            },
-            "public": {
-              "type": "boolean"
-            },
-            "stats_aggregator": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/StatsAggregator"
+          {
+            "$ref": "#/components/schemas/WorkloadBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "size": {
+                "type": "integer"
+              },
+              "mode": {
+                "type": "integer"
+              },
+              "password": {
+                "type": "string"
+              },
+              "disk_type": {
+                "type": "integer"
+              },
+              "public": {
+                "type": "boolean"
+              },
+              "stats_aggregator": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StatsAggregator"
+                }
               }
             }
           }
@@ -3011,4 +3141,3 @@
     }
   }
 }
- 
