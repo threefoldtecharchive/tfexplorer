@@ -1,18 +1,20 @@
-# Explorer ![Tests and Build](https://github.com/threefoldtech/tfexplorer/workflows/Tests%20and%20Build/badge.svg)
+# Explorer
+
+![Tests and Build](https://github.com/threefoldtech/tfexplorer/workflows/Tests%20and%20Build/badge.svg)
 
 The explorer is the component that is responsible to host all the public information about the nodes running 0-OS, the farms, the users identity and the capacity reservations.
 
 The explorer exposes both a web UI and a REST API.
 
-- The web UI allows users to discover all the nodes and farms in the grid.
-- The API is used by nodes and users.
+* The web UI allows users to discover all the nodes and farms in the grid.
+* The API is used by nodes and users.
 
 ## Prerequisites
 
 Following commands can be passed to the explorer:
 
 | Command | Description
-| --- | --- 
+| --- | ---
 | `-listen` | listen address, default :8080
 | `-dbConf` | connection string to mongo database, default mongodb://localhost:27017
 | `-name` | database name, default explorer
@@ -22,6 +24,7 @@ Following commands can be passed to the explorer:
 | `-backupsigners` | Repeatable flag, expects a valid Stellar address. If 3 are provided, multisig on the escrow accounts will be enabled. This is needed if one wishes to recover funds on the escrow accounts.
 | `-foundation-address` | Sets the "foundation address", this address will receive the payout of a reservation that is destined for the foundation, if any. If not set, the public address of the seed will be used.
 | `-threebot-connect` | URL of the 3bot connect API users endpoints. If specified, when creating a new user in the phonebook, the explorer will ensure there is no conflicting record in 3bot connect DB before accepting the new user. URL for production is `https://login.threefold.me/api/users/`
+| `pprof` | Enable the debug pprof tool and serve them at `/debug/pprof` .
 
 > If a seed is passed to the explorer, payments for reservation will be enabled.
 
@@ -39,7 +42,7 @@ which are acceptable for the reservation, the escrow then checks if all farms su
 this currency. When a match is found, this currency, is set as currency to pay
 the reservation with. At all times **only** 1 currency will be used for a single reservation.
 The chosen currency is eventually communicated back to the client at the end of the
-reservation create flow, in the `asset` field, in the form `<CODE>:<ISSUER>`. If there is no match for any
+reservation create flow, in the `asset` field, in the form `<CODE>:<ISSUER>` . If there is no match for any
 currency, then there will be no escrow setup, and the reservation will not be completed.
 
 ## currency management
