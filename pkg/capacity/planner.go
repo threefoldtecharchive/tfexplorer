@@ -146,6 +146,7 @@ func (p *NaivePlanner) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			log.Info().Msg("context is done, stopping planner")
+			return
 		case <-p.timer.C:
 			log.Info().Msg("capacity planner timer fired, pool should be expired")
 			if err := p.handlePoolExpiration(true); err != nil {
@@ -382,7 +383,7 @@ func (p *NaivePlanner) poolByID(id int64) (types.Pool, error) {
 func (p *NaivePlanner) poolsForOwner(owner int64) ([]types.Pool, error) {
 	pools, err := types.GetPoolsByOwner(p.ctx, p.db, owner)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not fetch pools for woner")
+		return nil, errors.Wrap(err, "could not fetch pools for owner")
 	}
 
 	for i := range pools {
