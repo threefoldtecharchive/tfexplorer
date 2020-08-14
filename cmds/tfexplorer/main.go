@@ -40,35 +40,38 @@ import (
 	"github.com/threefoldtech/zos/pkg/version"
 )
 
+type flags struct {
+	listen             string
+	dbConf             string
+	dbName             string
+	seed               string
+	foundationAddress  string
+	threebotConnectURL string
+	ver                bool
+	flushEscrows       bool
+	backupSigners      stellar.Signers
+	enablePProf        bool
+}
+
 func main() {
 	app.Initialize()
 
-	var (
-		listen             string
-		dbConf             string
-		dbName             string
-		seed               string
-		foundationAddress  string
-		threebotConnectURL string
-		ver                bool
-		flushEscrows       bool
-		backupSigners      stellar.Signers
-	)
-
-	flag.StringVar(&listen, "listen", ":8080", "listen address, default :8080")
-	flag.StringVar(&dbConf, "mongo", "mongodb://localhost:27017", "connection string to mongo database")
-	flag.StringVar(&dbName, "name", "explorer", "database name")
-	flag.StringVar(&seed, "seed", "", "wallet seed")
+	f := flags{}
+	flag.StringVar(&f.listen, "listen", ":8080", "listen address, default :8080")
+	flag.StringVar(&f.dbConf, "mongo", "mongodb://localhost:27017", "connection string to mongo database")
+	flag.StringVar(&f.dbName, "name", "explorer", "database name")
+	flag.StringVar(&f.seed, "seed", "", "wallet seed")
 	flag.StringVar(&config.Config.Network, "network", "", "tfchain network")
-	flag.StringVar(&foundationAddress, "foundation-address", "", "foundation address for the escrow foundation payment cut, if not set and the foundation should receive a cut from a resersvation payment, the wallet seed will receive the payment instead")
-	flag.StringVar(&threebotConnectURL, "threebot-connect", "", "URL to the 3bot Connect app API. if specified, new user will be check against it and ensure public key are the same")
-	flag.BoolVar(&ver, "v", false, "show version and exit")
-	flag.Var(&backupSigners, "backupsigner", "reusable flag which adds a signer to the escrow accounts, we need atleast 5 signers to activate multisig")
-	flag.BoolVar(&flushEscrows, "flush-escrows", false, "flush all escrows in the database, including currently active ones, and their associated addressses")
+	flag.StringVar(&f.foundationAddress, "foundation-address", "", "foundation address for the escrow foundation payment cut, if not set and the foundation should receive a cut from a resersvation payment, the wallet seed will receive the payment instead")
+	flag.StringVar(&f.threebotConnectURL, "threebot-connect", "", "URL to the 3bot Connect app API. if specified, new user will be check against it and ensure public key are the same")
+	flag.BoolVar(&f.ver, "v", false, "show version and exit")
+	flag.Var(&f.backupSigners, "backupsigner", "reusable flag which adds a signer to the escrow accounts, we need atleast 5 signers to activate multisig")
+	flag.BoolVar(&f.flushEscrows, "flush-escrows", false, "flush all escrows in the database, including currently active ones, and their associated addressses")
+	flag.BoolVar(&f.enablePProf, "pprof", false, "enable pprof")
 
 	flag.Parse()
 
-	if ver {
+	if f.ver {
 		version.ShowAndExit(false)
 	}
 
@@ -78,22 +81,22 @@ func main() {
 
 	dropEscrow := false
 
-	if flushEscrows {
+	if f.flushEscrows {
 		dropEscrow = userInputYesNo("Are you sure you want to drop all escrows and related addresses?") &&
 			userInputYesNo("Are you REALLY sure you want to drop all escrows and related addresses?")
 	}
 
-	if flushEscrows && !dropEscrow {
+	if f.flushEscrows && !dropEscrow {
 		log.Fatal().Msg("user indicated he does not want to remove existing escrow information - please restart the explorer without the \"flush-escrows\" flag")
 	}
 
 	ctx := context.Background()
-	client, err := connectDB(ctx, dbConf)
+	client, err := connectDB(ctx, f.dbConf)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to connect to database")
 	}
 
-	s, err := createServer(listen, dbName, client, seed, foundationAddress, dropEscrow, backupSigners, threebotConnectURL)
+	s, err := createServer(f, client, dropEscrow)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to create HTTP server")
 	}
@@ -126,8 +129,8 @@ func connectDB(ctx context.Context, connectionURI string) (*mongo.Client, error)
 	return client, nil
 }
 
-func createServer(listen, dbName string, client *mongo.Client, seed string, foundationAddress string, dropEscrowData bool, backupSigners stellar.Signers, threebotConnectURL string) (*http.Server, error) {
-	db, err := mw.NewDatabaseMiddleware(dbName, client)
+func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Server, error) {
+	db, err := mw.NewDatabaseMiddleware(f.dbName, client)
 	if err != nil {
 		return nil, err
 	}
@@ -166,18 +169,18 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	}
 
 	var e escrow.Escrow
-	if seed != "" {
+	if f.seed != "" {
 		log.Info().Msgf("escrow enabled on %s", config.Config.Network)
 		if err := escrowdb.Setup(context.Background(), db.Database()); err != nil {
 			log.Fatal().Err(err).Msg("failed to create escrow database indexes")
 		}
 
-		wallet, err := stellar.New(seed, config.Config.Network, backupSigners)
+		wallet, err := stellar.New(f.seed, config.Config.Network, f.backupSigners)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to create stellar wallet")
 		}
 
-		e = escrow.NewStellar(wallet, db.Database(), foundationAddress)
+		e = escrow.NewStellar(wallet, db.Database(), f.foundationAddress)
 
 	} else {
 		log.Info().Msg("escrow disabled")
@@ -186,13 +189,15 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 
 	go e.Run(context.Background())
 
-	router.PathPrefix("/debug/").Handler(http.DefaultServeMux)
+	if f.enablePProf {
+		router.PathPrefix("/debug/").Handler(http.DefaultServeMux)
+	}
 
 	if err := directory.Setup(router, db.Database()); err != nil {
 		log.Fatal().Err(err).Msg("failed to register directory package")
 	}
 
-	if err := phonebook.Setup(router, db.Database(), threebotConnectURL); err != nil {
+	if err := phonebook.Setup(router, db.Database(), f.threebotConnectURL); err != nil {
 		log.Fatal().Err(err).Msg("failed to register phonebook package")
 	}
 
@@ -206,7 +211,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 		log.Error().Err(err).Msg("failed to register workloads package")
 	}
 
-	log.Printf("start on %s\n", listen)
+	log.Printf("start on %s\n", f.listen)
 	r := handlers.LoggingHandler(os.Stderr, router)
 	r = handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
@@ -215,7 +220,7 @@ func createServer(listen, dbName string, client *mongo.Client, seed string, foun
 	)(r)
 
 	return &http.Server{
-		Addr:    listen,
+		Addr:    f.listen,
 		Handler: r,
 	}, nil
 }
