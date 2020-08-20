@@ -106,15 +106,18 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 	}
 
 	return &Stellar{
-		wallet:                     wallet,
-		db:                         db,
-		foundationAddress:          addr,
-		nodeAPI:                    &directory.NodeAPI{},
-		farmAPI:                    &directory.FarmAPI{},
-		reservationChannel:         make(chan reservationRegisterJob),
-		deployedChannel:            make(chan schema.ID),
-		cancelledChannel:           make(chan schema.ID),
-		paidCapacityInfoChannel:    make(chan schema.ID),
+		wallet:             wallet,
+		db:                 db,
+		foundationAddress:  addr,
+		nodeAPI:            &directory.NodeAPI{},
+		farmAPI:            &directory.FarmAPI{},
+		reservationChannel: make(chan reservationRegisterJob),
+		deployedChannel:    make(chan schema.ID),
+		cancelledChannel:   make(chan schema.ID),
+		// paidCapacityInfoChannel is buffered since it is used to communicate
+		// with other workers, which might also try to communicate with this
+		// worker
+		paidCapacityInfoChannel:    make(chan schema.ID, 100),
 		capacityReservationChannel: make(chan capacityReservationRegisterJob),
 	}
 }
