@@ -179,9 +179,10 @@ func (c ContainerMount) SigingEncode(w io.Writer) error {
 }
 
 type NetworkConnection struct {
-	NetworkId string `bson:"network_id" json:"network_id"`
-	Ipaddress net.IP `bson:"ipaddress" json:"ipaddress"`
-	PublicIp6 bool   `bson:"public_ip6" json:"public_ip6"`
+	NetworkId   string `bson:"network_id" json:"network_id"`
+	Ipaddress   net.IP `bson:"ipaddress" json:"ipaddress"`
+	PublicIp6   bool   `bson:"public_ip6" json:"public_ip6"`
+	YggdrasilIP bool   `bson:"yggdrasil_ip" json:"yggdrasil_ip"`
 }
 
 func (n NetworkConnection) SigingEncode(w io.Writer) error {
@@ -192,6 +193,9 @@ func (n NetworkConnection) SigingEncode(w io.Writer) error {
 		return err
 	}
 	if _, err := fmt.Fprintf(w, "%t", n.PublicIp6); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%t", n.YggdrasilIP); err != nil {
 		return err
 	}
 	return nil
