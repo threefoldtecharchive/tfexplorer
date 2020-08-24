@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
 
 	"net/http"
@@ -190,6 +191,7 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 	go e.Run(context.Background())
 
 	if f.enablePProf {
+		runtime.SetBlockProfileRate(1)
 		router.PathPrefix("/debug/").Handler(http.DefaultServeMux)
 	}
 
