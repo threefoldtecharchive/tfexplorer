@@ -1,8 +1,6 @@
 package phonebook
 
 import (
-	"encoding/json"
-
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -13,14 +11,6 @@ type User struct {
 	Pubkey      string    `bson:"pubkey" json:"pubkey"`
 	Host        string    `bson:"host" json:"host"`
 	Description string    `bson:"description" json:"description"`
-	Signature   string    `bson:"-" json:"signature,omitempty"`
-}
 
-func NewUser() (User, error) {
-	const value = "{}"
-	var object User
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
+	AutomaticUpgradAgreement bool `bson:"automatic_upgrade_agreement" json:"automatic_upgrade_agreement"`
 }

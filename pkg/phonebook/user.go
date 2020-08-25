@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/mw"
+	dtypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -108,6 +109,13 @@ func (u *UserAPI) register(r *http.Request) (interface{}, mw.Response) {
 			return nil, mw.BadRequest(err)
 		}
 		return nil, mw.Error(err)
+	}
+
+	// when the AutomaticUpgradAgreement is signed, enable auto upgrade on all the farms owned by the user being updated
+	if payload.User.AutomaticUpgradAgreement == true {
+		if err := dtypes.FarmEnableAutoUpgrade(r.Context(), db, int64(id)); err != nil {
+			return nil, mw.Error(err)
+		}
 	}
 
 	return nil, nil
