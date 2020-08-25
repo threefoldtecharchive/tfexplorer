@@ -196,3 +196,11 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 	_, err := col.UpdateOne(ctx, f, bson.M{"$set": farm})
 	return err
 }
+
+// FarmEnableAutoUpgrade enable auto upgrade on all the farms owned by farmerID
+func FarmEnableAutoUpgrade(ctx context.Context, db *mongo.Database, farmerID int64) error {
+	f := FarmFilter{}.WithOwner(farmerID)
+	col := db.Collection(FarmCollection)
+	_, err := col.UpdateMany(ctx, f, bson.M{"$set": bson.M{"automatic_upgrades": true}})
+	return err
+}

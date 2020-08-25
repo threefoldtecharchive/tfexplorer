@@ -231,6 +231,11 @@ func UserUpdate(ctx context.Context, db *mongo.Database, id schema.ID, signature
 		current.Host = update.Host
 	}
 
+	// AutomaticUpgradAgreement can only be switch to true and never switched back
+	if !current.AutomaticUpgradAgreement && update.AutomaticUpgradAgreement {
+		current.AutomaticUpgradAgreement = true
+	}
+
 	// actually update the user with final data
 	if _, err := db.Collection(UserCollection).UpdateOne(ctx, filter, bson.M{"$set": current}); err != nil {
 		return err

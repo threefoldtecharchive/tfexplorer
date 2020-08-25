@@ -9,15 +9,16 @@ import (
 )
 
 type Farm struct {
-	ID              schema.ID           `bson:"_id" json:"id"`
-	ThreebotId      int64               `bson:"threebot_id" json:"threebot_id"`
-	IyoOrganization string              `bson:"iyo_organization" json:"iyo_organization"`
-	Name            string              `bson:"name" json:"name"`
-	WalletAddresses []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
-	Location        Location            `bson:"location" json:"location"`
-	Email           schema.Email        `bson:"email" json:"email"`
-	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
-	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	ID                schema.ID           `bson:"_id" json:"id"`
+	ThreebotId        int64               `bson:"threebot_id" json:"threebot_id"`
+	IyoOrganization   string              `bson:"iyo_organization" json:"iyo_organization"`
+	Name              string              `bson:"name" json:"name"`
+	WalletAddresses   []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
+	Location          Location            `bson:"location" json:"location"`
+	Email             schema.Email        `bson:"email" json:"email"`
+	ResourcePrices    []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
+	PrefixZero        schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	AutomaticUpgrades bool                `bson:"automatic_upgrades" json:"automatic_upgrades"`
 }
 
 func NewFarm() (Farm, error) {
