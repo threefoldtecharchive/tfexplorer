@@ -361,6 +361,9 @@ func loadNetworks(res []types.Reservation) ([]workloads.Workloader, error) {
 				workload.SetEpoch(r.Epoch)
 				workload.SetMetadata(r.Metadata)
 				workload.SetReference(fmt.Sprintf("%d-%d", r.ID, network.WorkloadID()))
+				workload.SetDescription(r.DataReservation.Description)
+				workload.SetSigningRequestDelete(r.DataReservation.SigningRequestDelete)
+				workload.SetSigningRequestProvision(r.DataReservation.SigningRequestProvision)
 				workloaders = append(workloaders, workload)
 				for _, result := range r.Results {
 					if result.NodeId == workload.GetNodeID() {
