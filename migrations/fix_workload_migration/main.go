@@ -25,7 +25,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/zos/pkg/app"
 	"go.mongodb.org/mongo-driver/bson"

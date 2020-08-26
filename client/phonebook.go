@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/threefoldtech/tfexplorer/models/generated/phonebook"
+	"github.com/threefoldtech/tfexplorer/models/phonebook"
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 

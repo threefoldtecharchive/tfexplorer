@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/rs/zerolog/log"
-	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	generated "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
 // WorkloadPipeline changes WorkloaderType W as defined by the workload pipeline

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	generated "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
 // Pipeline changes Reservation R as defined by the reservation pipeline

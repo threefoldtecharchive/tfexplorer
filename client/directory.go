@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/tfexplorer/models/generated/directory"
+	"github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/capacity"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"

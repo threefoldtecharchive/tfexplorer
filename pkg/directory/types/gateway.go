@@ -9,7 +9,7 @@ import (
 	"github.com/jbenet/go-base58"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
+	generated "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

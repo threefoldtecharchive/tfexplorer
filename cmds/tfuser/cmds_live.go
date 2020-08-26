@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog/log"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"gopkg.in/yaml.v2"
 
 	"github.com/threefoldtech/tfexplorer/schema"

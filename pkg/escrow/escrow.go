@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	workloadstypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"

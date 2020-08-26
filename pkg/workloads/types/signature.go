@@ -1,7 +1,7 @@
 package types
 
 import (
-	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	generated "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
 func countSignatures(signatures []generated.SigningSignature, req generated.SigningRequest) int {

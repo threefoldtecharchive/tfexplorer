@@ -15,7 +15,7 @@ import (
 	"github.com/emicklei/dot"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/client"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg"
 	"github.com/threefoldtech/zos/pkg/crypto"

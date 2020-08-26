@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
+	generated "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/app"

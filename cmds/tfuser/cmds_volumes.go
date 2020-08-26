@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/provision/builders"
 
 	"github.com/urfave/cli"

@@ -3,7 +3,7 @@ package capacity
 import (
 	"math"
 
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
 // CloudUnitsFromResourceUnits converts an amount of RSU to the Cloud unit representation

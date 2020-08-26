@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 
 	"github.com/threefoldtech/tfexplorer/provision"

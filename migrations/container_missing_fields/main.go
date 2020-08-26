@@ -9,7 +9,7 @@ import (
 	"flag"
 	"reflect"
 
-	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	generated "github.com/threefoldtech/tfexplorer/models/workloads"
 
 	"github.com/rs/zerolog/log"
 

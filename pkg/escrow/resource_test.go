@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/schema"

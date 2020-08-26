@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/stellar/go/support/errors"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
 	wrkldstypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
