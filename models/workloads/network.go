@@ -26,9 +26,9 @@ func (n Network) ToNetworkResources() []NetworkResource {
 	for i := range n.NetworkResources {
 		nr := NetworkResource{
 			contract: Contract{
-				WorkloadId:   n.WorkloadID(),
+				WorkloadID:   n.WorkloadID(),
 				WorkloadType: WorkloadTypeNetworkResource,
-				NodeId:       n.NetworkResources[i].NodeId,
+				NodeID:       n.NetworkResources[i].NodeId,
 			},
 			Name:                         n.Name,
 			NetworkIprange:               n.Iprange,

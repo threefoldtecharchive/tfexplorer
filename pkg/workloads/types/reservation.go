@@ -195,10 +195,10 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.Gateway4To6s)
 
 	// all workloads are supposed to implement this interface
-	type workloader interface{ WorkloadID() int64 }
+	// type workloader interface{ WorkloadID() int64 }
 
 	ids := make(map[int64]struct{}, totalWl)
-	workloaders := make([]workloader, 0, totalWl)
+	workloaders := make([]workloads.Workloader, 0, totalWl)
 
 	// seems go doesn't allow : workloaders=append(workloaders, r.DataReservation.Containers)
 	// so we have to loop
@@ -237,10 +237,11 @@ func (r *Reservation) Validate() error {
 	}
 
 	for _, w := range workloaders {
-		if _, ok := ids[w.WorkloadID()]; ok {
-			return fmt.Errorf("conflicting workload ID '%d'", w.WorkloadID())
+		workloadID := w.Contract().WorkloadID
+		if _, ok := ids[workloadID]; ok {
+			return fmt.Errorf("conflicting workload ID '%d'", workloadID)
 		}
-		ids[w.WorkloadID()] = struct{}{}
+		ids[workloadID] = struct{}{}
 	}
 
 	return nil
@@ -306,163 +307,163 @@ func (r *Reservation) ResultOf(id string) *Result {
 	return nil
 }
 
-// AllDeleted checks of all workloads has been marked
-func (r *Reservation) AllDeleted() bool {
-	// check if all workloads have been deleted.
-	for _, wl := range r.Workloads("") {
-		result := r.ResultOf(wl.UniqueWorkloadID())
-		if result == nil ||
-			result.State != generated.ResultStateDeleted {
-			return false
-		}
-	}
+// // AllDeleted checks of all workloads has been marked
+// func (r *Reservation) AllDeleted() bool {
+// 	// check if all workloads have been deleted.
+// 	for _, wl := range r.Workloads("") {
+// 		result := r.ResultOf(wl.Contract().UniqueWorkloadID())
+// 		if result == nil ||
+// 			result.State != generated.ResultStateDeleted {
+// 			return false
+// 		}
+// 	}
 
-	return true
-}
+// 	return true
+// }
 
 // Workloads returns all reservation workloads (filter by nodeID)
 // if nodeID is empty, return all workloads
-func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
+// func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 
-	data := &r.DataReservation
+// 	data := &r.DataReservation
 
-	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) WorkloaderType {
-		workload := WorkloaderType{Workloader: w}
-		workload.SetCustomerTid(r.CustomerTid)
-		workload.SetNextAction(r.NextAction)
-		workload.SetDescription(r.DataReservation.Description)
-		workload.SetEpoch(r.Epoch)
-		workload.SetID(r.ID)
-		workload.SetMetadata(r.Metadata)
-		result := r.ResultOf(fmt.Sprintf("%d-%d", r.ID, workloadID))
-		if result != nil {
-			workload.SetResult(workloads.Result(*result))
-		}
-		workload.SetSigningRequestProvision(r.DataReservation.SigningRequestProvision)
-		workload.SetSigningRequestDelete(r.DataReservation.SigningRequestDelete)
-		return workload
-	}
+// 	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) WorkloaderType {
+// 		workload := WorkloaderType{Workloader: w}
+// 		workload.SetCustomerTid(r.CustomerTid)
+// 		workload.SetNextAction(r.NextAction)
+// 		workload.SetDescription(r.DataReservation.Description)
+// 		workload.SetEpoch(r.Epoch)
+// 		workload.SetID(r.ID)
+// 		workload.SetMetadata(r.Metadata)
+// 		result := r.ResultOf(fmt.Sprintf("%d-%d", r.ID, workloadID))
+// 		if result != nil {
+// 			workload.SetResult(workloads.Result(*result))
+// 		}
+// 		workload.SetSigningRequestProvision(r.DataReservation.SigningRequestProvision)
+// 		workload.SetSigningRequestDelete(r.DataReservation.SigningRequestDelete)
+// 		return workload
+// 	}
 
-	var wrklds []WorkloaderType
-	for i := range data.Containers {
-		wl := data.Containers[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeContainer
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
+// 	var wrklds []WorkloaderType
+// 	for i := range data.Containers {
+// 		wl := data.Containers[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeContainer
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
 
-	for i := range data.Volumes {
-		wl := data.Volumes[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeVolume
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.Zdbs {
-		wl := data.Zdbs[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeZDB
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.Kubernetes {
-		wl := data.Kubernetes[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeKubernetes
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.Proxies {
-		wl := data.Proxies[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeProxy
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.ReverseProxy {
-		wl := data.ReverseProxy[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeReverseProxy
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.Subdomains {
-		wl := data.Subdomains[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeSubDomain
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.DomainDelegates {
-		wl := data.DomainDelegates[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeDomainDelegate
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.Gateway4To6s {
-		wl := data.Gateway4To6s[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeGateway4To6
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
-	for i := range data.Networks {
-		wl := data.Networks[i]
-		networkResources := wl.ToNetworkResources()
-		for i := range networkResources {
-			nr := networkResources[i]
-			if len(nodeID) > 0 && nr.NodeId != nodeID {
-				continue
-			}
+// 	for i := range data.Volumes {
+// 		wl := data.Volumes[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeVolume
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.Zdbs {
+// 		wl := data.Zdbs[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeZDB
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.Kubernetes {
+// 		wl := data.Kubernetes[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeKubernetes
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.Proxies {
+// 		wl := data.Proxies[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeProxy
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.ReverseProxy {
+// 		wl := data.ReverseProxy[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeReverseProxy
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.Subdomains {
+// 		wl := data.Subdomains[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeSubDomain
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.DomainDelegates {
+// 		wl := data.DomainDelegates[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeDomainDelegate
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.Gateway4To6s {
+// 		wl := data.Gateway4To6s[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeGateway4To6
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
+// 	for i := range data.Networks {
+// 		wl := data.Networks[i]
+// 		networkResources := wl.ToNetworkResources()
+// 		for i := range networkResources {
+// 			nr := networkResources[i]
+// 			if len(nodeID) > 0 && nr.NodeId != nodeID {
+// 				continue
+// 			}
 
-			nr.WorkloadType = generated.WorkloadTypeNetworkResource
-			wrklds = append(wrklds, newWrkl(&nr, wl.WorkloadId, r))
-		}
-	}
-	for i := range data.NetworkResources {
-		wl := data.NetworkResources[i]
-		if len(nodeID) > 0 && wl.NodeId != nodeID {
-			continue
-		}
-		wl.WorkloadType = generated.WorkloadTypeNetworkResource
-		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-	}
+// 			nr.WorkloadType = generated.WorkloadTypeNetworkResource
+// 			wrklds = append(wrklds, newWrkl(&nr, wl.WorkloadId, r))
+// 		}
+// 	}
+// 	for i := range data.NetworkResources {
+// 		wl := data.NetworkResources[i]
+// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
+// 			continue
+// 		}
+// 		wl.WorkloadType = generated.WorkloadTypeNetworkResource
+// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+// 	}
 
-	return wrklds
-}
+// 	return wrklds
+// }
 
 // IsSuccessfullyDeployed check if all the workloads defined in the reservation
 // have sent a positive result
-func (r *Reservation) IsSuccessfullyDeployed() bool {
-	succeeded := false
-	if len(r.Results) >= len(r.Workloads("")) {
-		succeeded = true
-		for _, result := range r.Results {
-			if result.State != generated.ResultStateOK {
-				succeeded = false
-				break
-			}
-		}
-	}
-	return succeeded
-}
+// func (r *Reservation) IsSuccessfullyDeployed() bool {
+// 	succeeded := false
+// 	if len(r.Results) >= len(r.Workloads("")) {
+// 		succeeded = true
+// 		for _, result := range r.Results {
+// 			if result.State != generated.ResultStateOK {
+// 				succeeded = false
+// 				break
+// 			}
+// 		}
+// 	}
+// 	return succeeded
+// }
 
 // NodeIDs used by this reservation
 func (r *Reservation) NodeIDs() []string {
 	ids := make(map[string]struct{})
 	for _, w := range r.DataReservation.Containers {
-		ids[w.NodeId] = struct{}{}
+		ids[w.Contract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Networks {
@@ -472,19 +473,19 @@ func (r *Reservation) NodeIDs() []string {
 	}
 
 	for _, w := range r.DataReservation.NetworkResources {
-		ids[w.NodeId] = struct{}{}
+		ids[w.Contract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Zdbs {
-		ids[w.NodeId] = struct{}{}
+		ids[w.Contract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Volumes {
-		ids[w.NodeId] = struct{}{}
+		ids[w.Contract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Kubernetes {
-		ids[w.NodeId] = struct{}{}
+		ids[w.Contract().NodeID] = struct{}{}
 	}
 
 	nodeIDs := make([]string, 0, len(ids))
@@ -499,23 +500,23 @@ func (r *Reservation) GatewayIDs() []string {
 	ids := make(map[string]struct{})
 
 	for _, p := range r.DataReservation.Proxies {
-		ids[p.NodeId] = struct{}{}
+		ids[p.Contract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.ReverseProxy {
-		ids[p.NodeId] = struct{}{}
+		ids[p.Contract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.Subdomains {
-		ids[p.NodeId] = struct{}{}
+		ids[p.Contract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.DomainDelegates {
-		ids[p.NodeId] = struct{}{}
+		ids[p.Contract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.Gateway4To6s {
-		ids[p.NodeId] = struct{}{}
+		ids[p.Contract().NodeID] = struct{}{}
 	}
 
 	gwIDs := make([]string, 0, len(ids))
@@ -566,19 +567,19 @@ func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema
 
 // ReservationToDeploy marks a reservation to deploy and schedule the workloads for the nodes
 // it's a short cut to SetNextAction then PushWorkloads
-func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *Reservation) error {
-	// update reservation
-	if err := ReservationSetNextAction(ctx, db, reservation.ID, Deploy); err != nil {
-		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
-	}
+// func ReservationToDeploy(ctx context.Context, db *mongo.Database, reservation *Reservation) error {
+// 	// update reservation
+// 	if err := ReservationSetNextAction(ctx, db, reservation.ID, Deploy); err != nil {
+// 		return errors.Wrap(err, "failed to set reservation to DEPLOY state")
+// 	}
 
-	//queue for processing
-	if err := WorkloadPush(ctx, db, reservation.Workloads("")...); err != nil {
-		return errors.Wrap(err, "failed to schedule reservation for deploying")
-	}
+// 	//queue for processing
+// 	if err := WorkloadPush(ctx, db, reservation.Workloads("")...); err != nil {
+// 		return errors.Wrap(err, "failed to schedule reservation for deploying")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // SignatureMode type
 type SignatureMode string
@@ -632,7 +633,7 @@ func WorkloadPush(ctx context.Context, db *mongo.Database, w ...WorkloaderType) 
 	col := db.Collection(queueCollection)
 
 	for _, wl := range w {
-		_, err := col.UpdateOne(ctx, bson.M{"_id": wl.GetID()}, bson.M{"$set": wl}, options.Update().SetUpsert(true))
+		_, err := col.UpdateOne(ctx, bson.M{"_id": wl.Contract().ID}, bson.M{"$set": wl}, options.Update().SetUpsert(true))
 		if err != nil {
 			return errors.Wrap(err, "could not upsert workload")
 		}

@@ -228,7 +228,13 @@ func (w *WorkloaderType) Verify(pk string, sig []byte) error {
 		return errors.Wrap(err, "invalid verification key")
 	}
 
-	b, err := w.SignatureChallenge()
+	signer, ok := w.Workloader.(workloads.Signer)
+	if !ok {
+		// TODO
+		panic("workload doesn't implement signer interface")
+	}
+
+	b, err := signer.SignatureChallenge()
 	if err != nil {
 		return err
 	}
@@ -240,23 +246,23 @@ func (w *WorkloaderType) Verify(pk string, sig []byte) error {
 
 // SignatureVerify is similar to Verify but the verification is done
 // against `str(WorkloaderType.ID) + WorkloaderType.JSON`
-func (w *WorkloaderType) SignatureVerify(pk string, sig []byte) error {
-	key, err := crypto.KeyFromHex(pk)
-	if err != nil {
-		return errors.Wrap(err, "invalid verification key")
-	}
+// func (w *WorkloaderType) SignatureVerify(pk string, sig []byte) error {
+// 	key, err := crypto.KeyFromHex(pk)
+// 	if err != nil {
+// 		return errors.Wrap(err, "invalid verification key")
+// 	}
 
-	var buf bytes.Buffer
-	if _, err := buf.WriteString(fmt.Sprint(int64(w.GetID()))); err != nil {
-		return errors.Wrap(err, "failed to write id to buffer")
-	}
+// 	var buf bytes.Buffer
+// 	if _, err := buf.WriteString(fmt.Sprint(int64(w.Contract().ID))); err != nil {
+// 		return errors.Wrap(err, "failed to write id to buffer")
+// 	}
 
-	if _, err := buf.WriteString(w.GetJson()); err != nil {
-		return errors.Wrap(err, "failed to write json to buffer")
-	}
+// 	if _, err := buf.WriteString(w.GetJson()); err != nil {
+// 		return errors.Wrap(err, "failed to write json to buffer")
+// 	}
 
-	return crypto.Verify(key, buf.Bytes(), sig)
-}
+// 	return crypto.Verify(key, buf.Bytes(), sig)
+// }
 
 // SignatureDeleteRequestVerify verify the signature from a signature request
 // this is used for workload delete
@@ -267,7 +273,13 @@ func (w *WorkloaderType) SignatureDeleteRequestVerify(pk string, sig generated.S
 		return errors.Wrap(err, "invalid verification key")
 	}
 
-	b, err := w.SignatureChallenge()
+	signer, ok := w.Workloader.(workloads.Signer)
+	if !ok {
+		// TODO
+		panic("workload doesn't implement signer interface")
+	}
+
+	b, err := signer.SignatureChallenge()
 	if err != nil {
 		return err
 	}
@@ -298,7 +310,13 @@ func (w *WorkloaderType) SignatureProvisionRequestVerify(pk string, sig generate
 		return errors.Wrap(err, "invalid verification key")
 	}
 
-	b, err := w.SignatureChallenge()
+	signer, ok := w.Workloader.(workloads.Signer)
+	if !ok {
+		// TODO
+		panic("workload doesn't implement signer interface")
+	}
+
+	b, err := signer.SignatureChallenge()
 	if err != nil {
 		return err
 	}
@@ -323,7 +341,7 @@ func (w *WorkloaderType) SignatureProvisionRequestVerify(pk string, sig generate
 // IsAny checks if the workload status is any of the given status
 func (w *WorkloaderType) IsAny(status ...generated.NextActionEnum) bool {
 	for _, s := range status {
-		if w.GetNextAction() == s {
+		if w.State().NextAction == s {
 			return true
 		}
 	}
@@ -333,8 +351,8 @@ func (w *WorkloaderType) IsAny(status ...generated.NextActionEnum) bool {
 
 //ResultOf return result of a workload ID
 func (w *WorkloaderType) ResultOf(id string) *Result {
-	if w.GetResult().WorkloadId == id {
-		r := Result(w.GetResult())
+	if w.State().Result.WorkloadId == id {
+		r := Result(w.State().Result)
 		return &r
 	}
 
@@ -343,14 +361,14 @@ func (w *WorkloaderType) ResultOf(id string) *Result {
 
 // AllDeleted checks of all workloads has been marked
 func (w *WorkloaderType) AllDeleted() bool {
-	return w.GetResult().State == generated.ResultStateDeleted
+	return w.State().Result.State == generated.ResultStateDeleted
 }
 
 // IsSuccessfullyDeployed check if all the workloads defined in the reservation
 // have sent a positive result
 func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 	succeeded := false
-	if w.GetResult().State != generated.ResultStateOK {
+	if w.State().Result.State != generated.ResultStateOK {
 		succeeded = false
 	}
 	return succeeded
@@ -361,21 +379,8 @@ func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
 // no validation is done here, this is just a CRUD operation
 func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
 	id := models.MustID(ctx, db, ReservationCollection)
-	w.SetID(id)
-
-	// ensure the signers array are never nill cause it would cause issue
-	// in mongo when trying to push signature later on
-	reqDel := w.GetSigningRequestDelete()
-	if reqDel.Signers == nil {
-		reqDel.Signers = make([]int64, 0)
-		w.SetSigningRequestDelete(reqDel)
-	}
-
-	reqPro := w.GetSigningRequestProvision()
-	if reqPro.Signers == nil {
-		reqDel.Signers = make([]int64, 0)
-		w.SetSigningRequestProvision(reqPro)
-	}
+	// TODO:
+	// w.SetID(id)
 
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
 	if err != nil {
@@ -413,7 +418,7 @@ func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID
 // it's a short cut to SetNextAction then PushWorkloads
 func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType) error {
 	// update workload
-	if err := WorkloadSetNextAction(ctx, db, w.GetID(), Deploy); err != nil {
+	if err := WorkloadSetNextAction(ctx, db, w.Contract().ID, Deploy); err != nil {
 		return errors.Wrap(err, "failed to set workload to DEPLOY state")
 	}
 
@@ -478,24 +483,34 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 
 // Validate that the reservation is valid
 func (w *WorkloaderType) Validate() error {
-	if w.GetCustomerTid() == 0 {
+	if w.Contract().CustomerTid == 0 {
 		return fmt.Errorf("customer_tid is required")
 	}
 
-	if len(w.GetCustomerSignature()) == 0 {
+	if len(w.State().CustomerSignature) == 0 {
 		return fmt.Errorf("customer_signature is required")
 	}
 
-	if len(w.GetMetadata()) > 1024 {
+	if len(w.Contract().Metadata) > 1024 {
 		return fmt.Errorf("metadata can not be bigger than 1024 bytes")
 	}
 
-	if w.GetPoolID() == 0 {
+	if w.Contract().PoolID == 0 {
 		return errors.New("pool is required")
 	}
 
-	if w.GetReference() != "" {
+	if w.Contract().Reference != "" {
 		return errors.New("reference is illegal for new workloads")
+	}
+
+	// ensure the signers array are never nill cause it would cause issue
+	// in mongo when trying to push signature later on
+	if w.Contract().SigningRequestDelete.Signers == nil {
+		return errors.New("signing_request_delete.signers field cannot be null")
+	}
+
+	if w.Contract().SigningRequestProvision.Signers == nil {
+		return errors.New("signing_request_provision.signers field cannot be null")
 	}
 
 	return nil
@@ -505,15 +520,15 @@ func (w *WorkloaderType) Validate() error {
 func (w *WorkloaderType) Workload() Workload {
 	return Workload{
 		ReservationWorkload: generated.ReservationWorkload{
-			WorkloadId: fmt.Sprintf("%d-%d", w.GetID(), w.WorkloadID()),
-			PoolID:     w.GetPoolID(),
-			User:       fmt.Sprint(w.GetCustomerTid()),
-			Type:       w.GetWorkloadType(),
+			WorkloadId: fmt.Sprintf("%d-%d", w.Contract().ID, w.Contract().WorkloadID),
+			PoolID:     w.Contract().PoolID,
+			User:       fmt.Sprint(w.Contract().CustomerTid),
+			Type:       w.Contract().WorkloadType,
 			Duration:   math.MaxInt64,
-			Created:    w.GetEpoch(),
-			ToDelete:   w.GetNextAction() == Delete || w.GetNextAction() == Deleted,
+			Created:    w.Contract().Epoch,
+			ToDelete:   w.State().NextAction == Delete || w.State().NextAction == Deleted,
 			Content:    w,
 		},
-		NodeID: w.GetNodeID(),
+		NodeID: w.Contract().NodeID,
 	}
 }

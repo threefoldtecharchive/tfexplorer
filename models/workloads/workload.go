@@ -22,6 +22,10 @@ type (
 		GetRSU() RSU
 	}
 
+	Signer interface {
+		SignatureChallenge() ([]byte, error)
+	}
+
 	RSU struct {
 		CRU int64
 		SRU float64
@@ -154,9 +158,9 @@ func UnmarshalBSON(buffer []byte) (Workloader, error) {
 
 type Contract struct {
 	ID                      schema.ID        `bson:"_id" json:"id"`
-	WorkloadId              int64            `bson:"workload_id" json:"workload_id"`
-	NodeId                  string           `bson:"node_id" json:"node_id"`
-	PoolId                  int64            `bson:"pool_id" json:"pool_id"`
+	WorkloadID              int64            `bson:"workload_id" json:"workload_id"`
+	NodeID                  string           `bson:"node_id" json:"node_id"`
+	PoolID                  int64            `bson:"pool_id" json:"pool_id"`
 	SigningRequestProvision SigningRequest   `bson:"signing_request_provision" json:"signing_request_provision"`
 	SigningRequestDelete    SigningRequest   `bson:"signing_request_delete" json:"signing_request_delete"`
 	CustomerTid             int64            `bson:"customer_tid" json:"customer_tid"`
@@ -167,6 +171,10 @@ type Contract struct {
 
 	// Referene to an old reservation, used in conversion
 	Reference string `bson:"reference" json:"reference"`
+}
+
+func (c Contract) UniqueWorkloadID() string {
+	return fmt.Sprintf("%d-%d", c.ID, c.WorkloadID)
 }
 
 type State struct {
@@ -183,13 +191,13 @@ type State struct {
 func (c *Contract) SignatureChallenge() ([]byte, error) { //TODO: name of this is shit
 	b := &bytes.Buffer{}
 
-	if _, err := fmt.Fprintf(b, "%d", c.WorkloadId); err != nil {
+	if _, err := fmt.Fprintf(b, "%d", c.WorkloadID); err != nil {
 		return nil, err
 	}
-	if _, err := fmt.Fprintf(b, "%s", c.NodeId); err != nil {
+	if _, err := fmt.Fprintf(b, "%s", c.NodeID); err != nil {
 		return nil, err
 	}
-	if _, err := fmt.Fprintf(b, "%d", c.PoolId); err != nil {
+	if _, err := fmt.Fprintf(b, "%d", c.PoolID); err != nil {
 		return nil, err
 	}
 	if _, err := fmt.Fprintf(b, "%s", c.Reference); err != nil {

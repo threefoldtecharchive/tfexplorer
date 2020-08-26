@@ -24,13 +24,13 @@ func (p *WorkloadPipeline) checkProvisionSignatures() bool {
 	// signature add operation. Here we just make sure the
 	// required quorum has been reached
 
-	request := p.w.GetSigningRequestProvision()
+	request := p.w.Contract().SigningRequestProvision
 	log.Debug().Msgf("%+v", request)
 	if request.QuorumMin == 0 {
 		return true
 	}
 
-	signers := countSignatures(p.w.GetSignaturesProvision(), request)
+	signers := countSignatures(p.w.State().SignaturesProvision, request)
 	return int64(signers) >= request.QuorumMin
 }
 
@@ -39,25 +39,25 @@ func (p *WorkloadPipeline) checkDeleteSignatures() bool {
 	// Note: signatures validatation already done in the
 	// signature add operation. Here we just make sure the
 	// required quorum has been reached
-	request := p.w.GetSigningRequestDelete()
+	request := p.w.Contract().SigningRequestDelete
 	if request.QuorumMin == 0 {
 		// if min quorum is zero, then there is no way
 		// you can trigger deleting of this reservation
 		return false
 	}
 
-	signers := countSignatures(p.w.GetSignaturesDelete(), request)
+	signers := countSignatures(p.w.State().SignaturesDelete, request)
 	return int64(signers) >= request.QuorumMin
 }
 
 // Next gets new modified reservation, and true if the reservation has changed from the input
 func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
-	if p.w.GetNextAction() == generated.NextActionDelete ||
-		p.w.GetNextAction() == generated.NextActionDeleted {
+	if p.w.State().NextAction == generated.NextActionDelete ||
+		p.w.State().NextAction == generated.NextActionDeleted {
 		return p.w, false
 	}
 
-	slog := log.With().Str("func", "pipeline.Next").Int64("id", int64(p.w.GetID())).Logger()
+	slog := log.With().Str("func", "pipeline.Next").Int64("id", int64(p.w.Contract().ID)).Logger()
 
 	// reseration expiration time must be checked, once expiration time is exceeded
 	// the reservation must be deleted
@@ -65,22 +65,22 @@ func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
 		// reservation has expired
 		// set its status (next action) to delete
 		slog.Debug().Msg("expired or to be deleted")
-		p.w.SetNextAction(generated.NextActionDelete)
+		p.w.State().NextAction = generated.NextActionDelete
 		return p.w, true
 	}
 
-	current := p.w.GetNextAction()
+	current := p.w.State().NextAction
 	modified := false
 	for {
-		switch p.w.GetNextAction() {
+		switch p.w.State().NextAction {
 		case generated.NextActionCreate:
 			slog.Debug().Msg("ready to sign")
-			p.w.SetNextAction(generated.NextActionSign)
+			p.w.State().NextAction = generated.NextActionSign
 		case generated.NextActionSign:
 			// this stage will not change unless all
 			if p.checkProvisionSignatures() {
 				slog.Debug().Msg("ready to pay")
-				p.w.SetNextAction(generated.NextActionPay)
+				p.w.State().NextAction = generated.NextActionPay
 			}
 		case generated.NextActionPay:
 			// NOTE: validation of the pools is static, and must happen when the
@@ -91,12 +91,12 @@ func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
 			slog.Debug().Msg("let's deploy")
 		}
 
-		if current == p.w.GetNextAction() {
+		if current == p.w.State().NextAction {
 			// no more changes in stage
 			break
 		}
 
-		current = p.w.GetNextAction()
+		current = p.w.State().NextAction
 		modified = true
 	}
 
