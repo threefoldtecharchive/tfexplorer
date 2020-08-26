@@ -9,12 +9,20 @@ var _ Workloader = (*Volume)(nil)
 var _ Capaciter = (*Volume)(nil)
 
 type Volume struct {
-	ReservationInfo `bson:",inline"`
+	contract Contract
+	state    State
 
 	Size int64          `bson:"size" json:"size"`
 	Type VolumeTypeEnum `bson:"type" json:"type"`
 }
 
+// Contract implements the Workloader interface
+func (v *Volume) Contract() Contract { return v.contract }
+
+// State implements the Workloader interface
+func (v *Volume) State() *State { return &v.state }
+
+// GetRSU implements the Capaciter interface
 func (v *Volume) GetRSU() RSU {
 	switch v.Type {
 	case VolumeTypeHDD:
@@ -30,7 +38,7 @@ func (v *Volume) GetRSU() RSU {
 }
 
 func (v *Volume) SignatureChallenge() ([]byte, error) {
-	ric, err := v.ReservationInfo.SignatureChallenge()
+	ric, err := v.contract.SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,8 @@ var _ Workloader = (*K8S)(nil)
 var _ Capaciter = (*K8S)(nil)
 
 type NetworkResource struct {
-	ReservationInfo `bson:",inline"`
+	contract Contract
+	state    State
 
 	Name                         string            `bson:"name" json:"name"`
 	NetworkIprange               schema.IPRange    `bson:"network_iprange" json:"network_iprange"`
@@ -23,12 +24,19 @@ type NetworkResource struct {
 	StatsAggregator              []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 }
 
+// Contract implements the Workloader interface
+func (n *NetworkResource) Contract() Contract { return n.contract }
+
+// State implements the Workloader interface
+func (n *NetworkResource) State() *State { return &n.state }
+
+// GetRSU implements the Capaciter interface
 func (n *NetworkResource) GetRSU() RSU {
 	return RSU{}
 }
 
 func (n *NetworkResource) SignatureChallenge() ([]byte, error) {
-	ric, err := n.ReservationInfo.SignatureChallenge()
+	ric, err := n.contract.SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}

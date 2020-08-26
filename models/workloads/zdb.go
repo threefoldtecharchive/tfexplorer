@@ -9,7 +9,8 @@ var _ Workloader = (*ZDB)(nil)
 var _ Capaciter = (*ZDB)(nil)
 
 type ZDB struct {
-	ReservationInfo `bson:",inline"`
+	contract Contract
+	state    State
 
 	Size            int64             `bson:"size" json:"size"`
 	Mode            ZDBModeEnum       `bson:"mode" json:"mode"`
@@ -19,6 +20,13 @@ type ZDB struct {
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 }
 
+// Contract implements the Workloader interface
+func (z *ZDB) Contract() Contract { return z.contract }
+
+// State implements the Workloader interface
+func (z *ZDB) State() *State { return &z.state }
+
+// GetRSU implements the Capaciter interface
 func (z *ZDB) GetRSU() RSU {
 	switch z.DiskType {
 	case DiskTypeHDD:
@@ -34,7 +42,7 @@ func (z *ZDB) GetRSU() RSU {
 }
 
 func (z *ZDB) SignatureChallenge() ([]byte, error) {
-	ric, err := z.ReservationInfo.SignatureChallenge()
+	ric, err := z.contract.SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}
