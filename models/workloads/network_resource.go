@@ -25,7 +25,7 @@ type NetworkResource struct {
 }
 
 // Contract implements the Workloader interface
-func (n *NetworkResource) Contract() Contract { return n.contract }
+func (n *NetworkResource) Contract() *Contract { return &n.contract }
 
 // State implements the Workloader interface
 func (n *NetworkResource) State() *State { return &n.state }

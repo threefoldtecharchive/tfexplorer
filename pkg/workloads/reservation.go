@@ -72,11 +72,12 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
 	// in later stages
-	workload.SetSignaturesProvision(make([]generated.SigningSignature, 0))
-	workload.SetSignaturesDelete(make([]generated.SigningSignature, 0))
-	workload.SetSignatureFarmer(generated.SigningSignature{})
-	workload.SetResult(generated.Result{})
-	workload.SetID(schema.ID(0))
+	*(workload.State()) = workloads.NewState()
+	// workload.Contract().SignaturesProvision = make([]generated.SigningSignature, 0)
+	// workload.Contract().SignaturesDelete = make([]generated.SigningSignature, 0)
+	// workload.Contract().SignatureFarmer = generated.SigningSignature{}
+	// workload.Contract().Result = generated.Result{}
+	workload.Contract().ID = schema.ID(0)
 
 	if err := workload.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
@@ -90,19 +91,19 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if workload.IsAny(types.Invalid, types.Delete) {
-		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.GetNextAction().String()))
+		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.State().NextAction.String()))
 	}
 
 	db := mw.Database(r)
 
 	var filter phonebook.UserFilter
-	filter = filter.WithID(schema.ID(workload.GetCustomerTid()))
+	filter = filter.WithID(schema.ID(workload.Contract().CustomerTid))
 	user, err := filter.Get(r.Context(), db)
 	if err != nil {
-		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", workload.GetCustomerTid()))
+		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", workload.Contract().CustomerTid))
 	}
 
-	signature, err := hex.DecodeString(workload.GetCustomerSignature())
+	signature, err := hex.DecodeString(workload.State().CustomerSignature)
 	if err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature format, expecting hex encoded string"))
 	}
@@ -111,7 +112,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
 	}
 
-	workload.SetEpoch(schema.Date{Time: time.Now()})
+	workload.Contract().Epoch = schema.Date{Time: time.Now()}
 
 	allowed, err := a.capacityPlanner.IsAllowed(workload)
 	if err != nil {
@@ -141,7 +142,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	allowed, err = a.capacityPlanner.HasCapacity(workload, minCapacitySeconds)
 	if err != nil {
 		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
-			log.Error().Err(err).Int64("poolID", workload.GetPoolID()).Msg("pool disappeared")
+			log.Error().Err(err).Int64("poolID", workload.Contract().PoolID).Msg("pool disappeared")
 			return nil, mw.Error(errors.New("pool does not exist"))
 		}
 		log.Error().Err(err).Msg("failed to load workload capacity pool")
@@ -427,7 +428,7 @@ func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
 
 		workload, err := a.workloadpipeline(workload, nil)
 		if err != nil {
-			log.Error().Err(err).Int64("id", int64(workload.GetID())).Msg("failed to process reservation")
+			log.Error().Err(err).Int64("id", int64(workload.Contract().ID)).Msg("failed to process reservation")
 			continue
 		}
 
@@ -520,12 +521,12 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 
 		workloader, err = a.workloadpipeline(workloader, nil)
 		if err != nil {
-			log.Error().Err(err).Int64("id", int64(workloader.GetID())).Msg("failed to process workload")
+			log.Error().Err(err).Int64("id", int64(workloader.Contract().ID)).Msg("failed to process workload")
 			continue
 		}
 
-		if workloader.GetNextAction() == types.Delete {
-			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.GetID(), generated.NextActionDelete); err != nil {
+		if workloader.State().NextAction == types.Delete {
+			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.Contract().ID, generated.NextActionDelete); err != nil {
 				return nil, mw.Error(err)
 			}
 		}
@@ -611,7 +612,7 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	var workload types.WorkloaderType
 	var found bool
 	for _, wl := range workloads {
-		if wl.UniqueWorkloadID() == gwid {
+		if wl.Contract().UniqueWorkloadID() == gwid {
 			workload = wl
 			found = true
 			break
@@ -628,7 +629,7 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	}
 	result.WorkloaderType = workload
 	for _, rs := range reservation.Results {
-		if rs.WorkloadId == workload.UniqueWorkloadID() {
+		if rs.WorkloadId == workload.Contract().UniqueWorkloadID() {
 			t := types.Result(rs)
 			result.Result = t
 			break
@@ -655,7 +656,7 @@ func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	if workload.UniqueWorkloadID() != gwid {
+	if workload.Contract().UniqueWorkloadID() != gwid {
 		return nil, mw.NotFound(fmt.Errorf("workload not found"))
 	}
 
@@ -664,7 +665,7 @@ func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
 		Result types.Result `json:"result"`
 	}
 	result.WorkloaderType = workload
-	result.Result = types.Result(workload.GetResult())
+	result.Result = types.Result(workload.State().Result)
 
 	return result, nil
 }
@@ -706,7 +707,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 
 	var found bool
 	for _, wl := range workloads {
-		if wl.UniqueWorkloadID() == gwid {
+		if wl.Contract().UniqueWorkloadID() == gwid {
 			found = true
 			break
 		}
@@ -821,7 +822,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 
 	var found bool
 	for _, wl := range workloads {
-		if wl.UniqueWorkloadID() == gwid {
+		if wl.Contract().UniqueWorkloadID() == gwid {
 			found = true
 			break
 		}
@@ -912,7 +913,7 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadSetNextAction(ctx, db, workload.GetID(), generated.NextActionDeleted); err != nil {
+	if err := types.WorkloadSetNextAction(ctx, db, workload.Contract().ID, generated.NextActionDeleted); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -1008,11 +1009,11 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	if workload.GetNextAction() != generated.NextActionSign {
+	if workload.State().NextAction != generated.NextActionSign {
 		return nil, mw.UnAuthorized(fmt.Errorf("workload not expecting signatures"))
 	}
 
-	if httpErr := userCanSign(signature.Tid, workload.GetSigningRequestProvision(), workload.GetSignaturesProvision()); httpErr != nil {
+	if httpErr := userCanSign(signature.Tid, workload.Contract().SigningRequestProvision, workload.State().SignaturesProvision); httpErr != nil {
 		return nil, httpErr
 	}
 
@@ -1035,7 +1036,7 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if workload.GetNextAction() == generated.NextActionDeploy {
+	if workload.State().NextAction == generated.NextActionDeploy {
 		if err = types.WorkloadPush(r.Context(), db, workload); err != nil {
 			return nil, mw.Error(err)
 		}
@@ -1137,7 +1138,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	if httpErr := userCanSign(signature.Tid, workload.GetSigningRequestDelete(), workload.GetSignaturesDelete()); httpErr != nil {
+	if httpErr := userCanSign(signature.Tid, workload.Contract().SigningRequestDelete, workload.State().SignaturesDelete); httpErr != nil {
 		return nil, httpErr
 	}
 
@@ -1160,7 +1161,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if workload.GetNextAction() != generated.NextActionDelete {
+	if workload.State().NextAction != generated.NextActionDelete {
 		return nil, mw.Created()
 	}
 
@@ -1183,9 +1184,9 @@ func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id 
 }
 
 func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types.WorkloaderType) (types.WorkloaderType, error) {
-	w.SetNextAction(types.Delete)
+	w.State().NextAction = types.Delete
 
-	if err := types.ReservationSetNextAction(ctx, db, w.GetID(), types.Delete); err != nil {
+	if err := types.ReservationSetNextAction(ctx, db, w.Contract().ID, types.Delete); err != nil {
 		return w, errors.Wrap(err, "could not update workload to delete state")
 	}
 

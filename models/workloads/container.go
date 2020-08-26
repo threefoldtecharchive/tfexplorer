@@ -30,7 +30,7 @@ type Container struct {
 }
 
 // Contract implements the Workloader interface
-func (c *Container) Contract() Contract { return c.contract }
+func (c *Container) Contract() *Contract { return &c.contract }
 
 // State implements the Workloader interface
 func (c *Container) State() *State { return &c.state }

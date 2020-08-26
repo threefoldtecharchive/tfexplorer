@@ -19,7 +19,7 @@ type GatewayProxy struct {
 }
 
 // Contract implements the Workloader interface
-func (g *GatewayProxy) Contract() Contract { return g.contract }
+func (g *GatewayProxy) Contract() *Contract { return &g.contract }
 
 // State implements the Workloader interface
 func (g *GatewayProxy) State() *State { return &g.state }
@@ -64,7 +64,7 @@ type GatewayReverseProxy struct {
 }
 
 // Contract implements the Workloader interface
-func (g *GatewayReverseProxy) Contract() Contract { return g.contract }
+func (g *GatewayReverseProxy) Contract() *Contract { return &g.contract }
 
 // State implements the Workloader interface
 func (g *GatewayReverseProxy) State() *State { return &g.state }
@@ -103,7 +103,7 @@ type GatewaySubdomain struct {
 }
 
 // Contract implements the Workloader interface
-func (g *GatewaySubdomain) Contract() Contract { return g.contract }
+func (g *GatewaySubdomain) Contract() *Contract { return &g.contract }
 
 // State implements the Workloader interface
 func (g *GatewaySubdomain) State() *State { return &g.state }
@@ -143,7 +143,7 @@ type GatewayDelegate struct {
 }
 
 // Contract implements the Workloader interface
-func (g *GatewayDelegate) Contract() Contract { return g.contract }
+func (g *GatewayDelegate) Contract() *Contract { return &g.contract }
 
 // State implements the Workloader interface
 func (g *GatewayDelegate) State() *State { return &g.state }
@@ -178,7 +178,7 @@ type Gateway4To6 struct {
 }
 
 // Contract implements the Workloader interface
-func (g *Gateway4To6) Contract() Contract { return g.contract }
+func (g *Gateway4To6) Contract() *Contract { return &g.contract }
 
 // State implements the Workloader interface
 func (g *Gateway4To6) State() *State { return &g.state }

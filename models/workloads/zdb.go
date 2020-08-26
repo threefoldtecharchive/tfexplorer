@@ -21,7 +21,7 @@ type ZDB struct {
 }
 
 // Contract implements the Workloader interface
-func (z *ZDB) Contract() Contract { return z.contract }
+func (z *ZDB) Contract() *Contract { return &z.contract }
 
 // State implements the Workloader interface
 func (z *ZDB) State() *State { return &z.state }

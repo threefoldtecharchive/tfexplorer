@@ -347,24 +347,29 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 // isAllowed checks if the pool with the given id is owned by the user with
 // the given id, and is allowed to deploy on the given nodeID
 func (p *NaivePlanner) isAllowed(w workloads.Workloader) (bool, error) {
-	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetPoolID()))
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.Contract().PoolID))
 	if err != nil {
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	return pool.CustomerTid == w.GetCustomerTid() && pool.AllowedInPool(w.GetNodeID()), nil
+	return pool.CustomerTid == w.Contract().CustomerTid && pool.AllowedInPool(w.Contract().NodeID), nil
 }
 
 // hasCapacity checks if the pool set on the workload has enough capacity to support
 // the workload for the given amount of time
 func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, error) {
-	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetPoolID()))
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.Contract().PoolID))
 	if err != nil {
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
-	pool.AddWorkload(w.GetID(), cu, su)
+	capaciter, ok := w.(workloads.Capaciter)
+	if !ok {
+		panic("workload doesn't implement Capaciter interface")
+	}
+
+	cu, su := CloudUnitsFromResourceUnits(capaciter.GetRSU())
+	pool.AddWorkload(w.Contract().ID, cu, su)
 
 	return time.Now().Add(time.Second*time.Duration(seconds)).Unix() < pool.EmptyAt, nil
 }
@@ -433,16 +438,21 @@ func (p *NaivePlanner) addCapacity(id schema.ID) error {
 }
 
 func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) error {
-	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.GetPoolID()))
+	pool, err := types.GetPool(p.ctx, p.db, schema.ID(w.Contract().PoolID))
 	if err != nil {
 		return errors.Wrap(err, "could not load pool")
 	}
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
+	capaciter, ok := w.(workloads.Capaciter)
+	if !ok {
+		panic("workload doesn't implement Capaciter interface")
+	}
+
+	cu, su := CloudUnitsFromResourceUnits(capaciter.GetRSU())
 	if used {
-		pool.AddWorkload(w.GetID(), cu, su)
+		pool.AddWorkload(w.Contract().ID, cu, su)
 	} else {
-		pool.RemoveWorkload(w.GetID(), cu, su)
+		pool.RemoveWorkload(w.Contract().ID, cu, su)
 	}
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
@@ -487,9 +497,10 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 				return errors.Wrap(err, "could not load workloads to expire")
 			}
 			for j := range workloads {
-				log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Int64("Workload", int64(workloads[j].GetID())).Msg("expire workload")
-				workloads[j].SetNextAction(workloadtypes.Delete)
-				if err = workloadtypes.WorkloadSetNextAction(p.ctx, p.db, workloads[j].GetID(), workloadtypes.Delete); err != nil {
+				wID := workloads[j].Contract().ID
+				log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Int64("Workload", int64(wID)).Msg("expire workload")
+				workloads[j].State().NextAction = workloadtypes.Delete
+				if err = workloadtypes.WorkloadSetNextAction(p.ctx, p.db, wID, workloadtypes.Delete); err != nil {
 					return errors.Wrap(err, "could not set workload to delete state")
 				}
 				if err = workloadtypes.WorkloadPush(p.ctx, p.db, workloads[j]); err != nil {

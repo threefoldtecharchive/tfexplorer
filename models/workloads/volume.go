@@ -17,7 +17,7 @@ type Volume struct {
 }
 
 // Contract implements the Workloader interface
-func (v *Volume) Contract() Contract { return v.contract }
+func (v *Volume) Contract() *Contract { return &v.contract }
 
 // State implements the Workloader interface
 func (v *Volume) State() *State { return &v.state }

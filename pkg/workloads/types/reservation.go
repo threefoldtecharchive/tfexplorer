@@ -307,157 +307,158 @@ func (r *Reservation) ResultOf(id string) *Result {
 	return nil
 }
 
-// // AllDeleted checks of all workloads has been marked
-// func (r *Reservation) AllDeleted() bool {
-// 	// check if all workloads have been deleted.
-// 	for _, wl := range r.Workloads("") {
-// 		result := r.ResultOf(wl.Contract().UniqueWorkloadID())
-// 		if result == nil ||
-// 			result.State != generated.ResultStateDeleted {
-// 			return false
-// 		}
-// 	}
+// AllDeleted checks of all workloads has been marked
+func (r *Reservation) AllDeleted() bool {
 
-// 	return true
-// }
+	// check if all workloads have been deleted.
+	for _, wl := range r.Workloads("") {
+		result := r.ResultOf(wl.Contract().UniqueWorkloadID())
+		if result == nil ||
+			result.State != generated.ResultStateDeleted {
+			return false
+		}
+	}
+
+	return true
+}
 
 // Workloads returns all reservation workloads (filter by nodeID)
 // if nodeID is empty, return all workloads
-// func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
+func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 
-// 	data := &r.DataReservation
+	data := &r.DataReservation
 
-// 	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) WorkloaderType {
-// 		workload := WorkloaderType{Workloader: w}
-// 		workload.SetCustomerTid(r.CustomerTid)
-// 		workload.SetNextAction(r.NextAction)
-// 		workload.SetDescription(r.DataReservation.Description)
-// 		workload.SetEpoch(r.Epoch)
-// 		workload.SetID(r.ID)
-// 		workload.SetMetadata(r.Metadata)
-// 		result := r.ResultOf(fmt.Sprintf("%d-%d", r.ID, workloadID))
-// 		if result != nil {
-// 			workload.SetResult(workloads.Result(*result))
-// 		}
-// 		workload.SetSigningRequestProvision(r.DataReservation.SigningRequestProvision)
-// 		workload.SetSigningRequestDelete(r.DataReservation.SigningRequestDelete)
-// 		return workload
-// 	}
+	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) WorkloaderType {
+		workload := WorkloaderType{Workloader: w}
+		workload.Contract().CustomerTid = r.CustomerTid
+		workload.State().NextAction = r.NextAction
+		workload.Contract().Description = r.DataReservation.Description
+		workload.Contract().Epoch = r.Epoch
+		workload.Contract().ID = r.ID
+		workload.Contract().Metadata = r.Metadata
+		result := r.ResultOf(fmt.Sprintf("%d-%d", r.ID, workloadID))
+		if result != nil {
+			workload.State().Result = workloads.Result(*result)
+		}
+		workload.Contract().SigningRequestProvision = r.DataReservation.SigningRequestProvision
+		workload.Contract().SigningRequestDelete = r.DataReservation.SigningRequestDelete
+		return workload
+	}
 
-// 	var wrklds []WorkloaderType
-// 	for i := range data.Containers {
-// 		wl := data.Containers[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeContainer
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
+	var wrklds []WorkloaderType
+	for i := range data.Containers {
+		wl := data.Containers[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeContainer
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
 
-// 	for i := range data.Volumes {
-// 		wl := data.Volumes[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeVolume
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.Zdbs {
-// 		wl := data.Zdbs[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeZDB
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.Kubernetes {
-// 		wl := data.Kubernetes[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeKubernetes
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.Proxies {
-// 		wl := data.Proxies[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeProxy
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.ReverseProxy {
-// 		wl := data.ReverseProxy[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeReverseProxy
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.Subdomains {
-// 		wl := data.Subdomains[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeSubDomain
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.DomainDelegates {
-// 		wl := data.DomainDelegates[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeDomainDelegate
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.Gateway4To6s {
-// 		wl := data.Gateway4To6s[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeGateway4To6
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
-// 	for i := range data.Networks {
-// 		wl := data.Networks[i]
-// 		networkResources := wl.ToNetworkResources()
-// 		for i := range networkResources {
-// 			nr := networkResources[i]
-// 			if len(nodeID) > 0 && nr.NodeId != nodeID {
-// 				continue
-// 			}
+	for i := range data.Volumes {
+		wl := data.Volumes[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeVolume
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.Zdbs {
+		wl := data.Zdbs[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeZDB
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.Kubernetes {
+		wl := data.Kubernetes[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeKubernetes
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.Proxies {
+		wl := data.Proxies[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeProxy
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.ReverseProxy {
+		wl := data.ReverseProxy[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeReverseProxy
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.Subdomains {
+		wl := data.Subdomains[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeSubDomain
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.DomainDelegates {
+		wl := data.DomainDelegates[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeDomainDelegate
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.Gateway4To6s {
+		wl := data.Gateway4To6s[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeGateway4To6
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
+	for i := range data.Networks {
+		wl := data.Networks[i]
+		networkResources := wl.ToNetworkResources()
+		for i := range networkResources {
+			nr := networkResources[i]
+			if len(nodeID) > 0 && nr.Contract().NodeID != nodeID {
+				continue
+			}
 
-// 			nr.WorkloadType = generated.WorkloadTypeNetworkResource
-// 			wrklds = append(wrklds, newWrkl(&nr, wl.WorkloadId, r))
-// 		}
-// 	}
-// 	for i := range data.NetworkResources {
-// 		wl := data.NetworkResources[i]
-// 		if len(nodeID) > 0 && wl.NodeId != nodeID {
-// 			continue
-// 		}
-// 		wl.WorkloadType = generated.WorkloadTypeNetworkResource
-// 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
-// 	}
+			nr.Contract().WorkloadType = generated.WorkloadTypeNetworkResource
+			wrklds = append(wrklds, newWrkl(&nr, wl.WorkloadId, r))
+		}
+	}
+	for i := range data.NetworkResources {
+		wl := data.NetworkResources[i]
+		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+			continue
+		}
+		wl.Contract().WorkloadType = generated.WorkloadTypeNetworkResource
+		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+	}
 
-// 	return wrklds
-// }
+	return wrklds
+}
 
 // IsSuccessfullyDeployed check if all the workloads defined in the reservation
 // have sent a positive result
-// func (r *Reservation) IsSuccessfullyDeployed() bool {
-// 	succeeded := false
-// 	if len(r.Results) >= len(r.Workloads("")) {
-// 		succeeded = true
-// 		for _, result := range r.Results {
-// 			if result.State != generated.ResultStateOK {
-// 				succeeded = false
-// 				break
-// 			}
-// 		}
-// 	}
-// 	return succeeded
-// }
+func (r *Reservation) IsSuccessfullyDeployed() bool {
+	succeeded := false
+	if len(r.Results) >= len(r.Workloads("")) {
+		succeeded = true
+		for _, result := range r.Results {
+			if result.State != generated.ResultStateOK {
+				succeeded = false
+				break
+			}
+		}
+	}
+	return succeeded
+}
 
 // NodeIDs used by this reservation
 func (r *Reservation) NodeIDs() []string {

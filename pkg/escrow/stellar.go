@@ -16,7 +16,6 @@ import (
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
-	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -136,10 +135,12 @@ func (e *Stellar) Run(ctx context.Context) error {
 			return nil
 
 		case <-ticker.C:
-			log.Info().Msg("scanning active escrow accounts balance")
-			if err := e.checkReservations(); err != nil {
-				log.Error().Err(err).Msgf("failed to check reservations")
-			}
+			// TODO: @lee we can remove this right ? since we do now accept new reservations
+
+			// log.Info().Msg("scanning active escrow accounts balance")
+			// if err := e.checkReservations(); err != nil {
+			// 	log.Error().Err(err).Msgf("failed to check reservations")
+			// }
 
 			log.Info().Msg("scanning active capacity escrow accounts balance")
 			if err := e.checkCapacityReservations(); err != nil {
@@ -248,25 +249,25 @@ func (e *Stellar) refundExpiredCapacityReservations() error {
 // checkReservations checks all the active reservations and marks those who are funded.
 // if a reservation is funded then it will mark this reservation as to DEPLOY.
 // if its underfunded it will throw an error.
-func (e *Stellar) checkReservations() error {
-	// load active escrows
-	reservationEscrows, err := types.GetAllActiveReservationPaymentInfos(e.ctx, e.db)
-	if err != nil {
-		return errors.Wrap(err, "failed to load active reservations from escrow")
-	}
+// func (e *Stellar) checkReservations() error {
+// 	// load active escrows
+// 	reservationEscrows, err := types.GetAllActiveReservationPaymentInfos(e.ctx, e.db)
+// 	if err != nil {
+// 		return errors.Wrap(err, "failed to load active reservations from escrow")
+// 	}
 
-	for _, escrowInfo := range reservationEscrows {
-		if err := e.checkReservationPaid(escrowInfo); err != nil {
-			log.Error().
-				Str("address", escrowInfo.Address).
-				Int64("reservation_id", int64(escrowInfo.ReservationID)).
-				Err(err).
-				Msg("failed to check reservation escrow funding status")
-			continue
-		}
-	}
-	return nil
-}
+// 	for _, escrowInfo := range reservationEscrows {
+// 		if err := e.checkReservationPaid(escrowInfo); err != nil {
+// 			log.Error().
+// 				Str("address", escrowInfo.Address).
+// 				Int64("reservation_id", int64(escrowInfo.ReservationID)).
+// 				Err(err).
+// 				Msg("failed to check reservation escrow funding status")
+// 			continue
+// 		}
+// 	}
+// 	return nil
+// }
 
 // checkCapacityReservations checks all the active capacity reservations and marks
 // those who are funded.
@@ -295,73 +296,73 @@ func (e *Stellar) checkCapacityReservations() error {
 // to the deploy state, and the escrow state will be updated to indicate that this
 // escrow has indeed been paid for this reservation, so it is not checked anymore
 // in the future.
-func (e *Stellar) checkReservationPaid(escrowInfo types.ReservationPaymentInformation) error {
-	slog := log.With().
-		Str("address", escrowInfo.Address).
-		Int64("reservation_id", int64(escrowInfo.ReservationID)).
-		Logger()
+// func (e *Stellar) checkReservationPaid(escrowInfo types.ReservationPaymentInformation) error {
+// 	slog := log.With().
+// 		Str("address", escrowInfo.Address).
+// 		Int64("reservation_id", int64(escrowInfo.ReservationID)).
+// 		Logger()
 
-	// calculate total amount needed for reservation
-	requiredValue := xdr.Int64(0)
-	for _, escrowAccount := range escrowInfo.Infos {
-		requiredValue += escrowAccount.TotalAmount
-	}
+// 	// calculate total amount needed for reservation
+// 	requiredValue := xdr.Int64(0)
+// 	for _, escrowAccount := range escrowInfo.Infos {
+// 		requiredValue += escrowAccount.TotalAmount
+// 	}
 
-	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset)
-	if err != nil {
-		return errors.Wrap(err, "failed to verify escrow account balance")
-	}
+// 	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset)
+// 	if err != nil {
+// 		return errors.Wrap(err, "failed to verify escrow account balance")
+// 	}
 
-	if balance < requiredValue {
-		slog.Debug().Msgf("required balance %d not reached yet (%d)", requiredValue, balance)
-		return nil
-	}
+// 	if balance < requiredValue {
+// 		slog.Debug().Msgf("required balance %d not reached yet (%d)", requiredValue, balance)
+// 		return nil
+// 	}
 
-	slog.Debug().Msgf("required balance %d funded (%d), continue reservation", requiredValue, balance)
+// 	slog.Debug().Msgf("required balance %d funded (%d), continue reservation", requiredValue, balance)
 
-	reservation, err := workloadtypes.ReservationFilter{}.WithID(escrowInfo.ReservationID).Get(e.ctx, e.db)
-	if err != nil {
-		return errors.Wrap(err, "failed to load reservation")
-	}
+// 	reservation, err := workloadtypes.ReservationFilter{}.WithID(escrowInfo.ReservationID).Get(e.ctx, e.db)
+// 	if err != nil {
+// 		return errors.Wrap(err, "failed to load reservation")
+// 	}
 
-	pl, err := workloadtypes.NewPipeline(reservation)
-	if err != nil {
-		return errors.Wrap(err, "failed to process reservation pipeline")
-	}
+// 	pl, err := workloadtypes.NewPipeline(reservation)
+// 	if err != nil {
+// 		return errors.Wrap(err, "failed to process reservation pipeline")
+// 	}
 
-	reservation, _ = pl.Next()
-	if !reservation.IsAny(workloadtypes.Pay) {
-		// Do not continue, but also take no action to drive the reservation
-		// as much as possible from the main explorer part.
-		slog.Warn().Msg("reservation is paid, but no longer in pay state")
-		// We warn because this is an unusual state to be in, yet there are
-		// situations where this could happen. For example, we load the escrow,
-		// the explorer then invalidates the actual reservation (e.g. user cancels),
-		// we then load the updated reservation, which is no longer in pay state,
-		// but the explorer is still cancelling the escrow, so we get here. As stated
-		// above, we drive the escrow as much as possible from the workloads, with the
-		// timeouts coming from the escrow itself, so this situation should always
-		// resole itself. If we notice this log is coming back periodically, it thus means
-		// there is a bug somewhere else in the code.
-		// As a result, this state is therefore not considered an error.
-		return nil
-	}
+// 	reservation, _ = pl.Next()
+// 	if !reservation.IsAny(workloadtypes.Pay) {
+// 		// Do not continue, but also take no action to drive the reservation
+// 		// as much as possible from the main explorer part.
+// 		slog.Warn().Msg("reservation is paid, but no longer in pay state")
+// 		// We warn because this is an unusual state to be in, yet there are
+// 		// situations where this could happen. For example, we load the escrow,
+// 		// the explorer then invalidates the actual reservation (e.g. user cancels),
+// 		// we then load the updated reservation, which is no longer in pay state,
+// 		// but the explorer is still cancelling the escrow, so we get here. As stated
+// 		// above, we drive the escrow as much as possible from the workloads, with the
+// 		// timeouts coming from the escrow itself, so this situation should always
+// 		// resole itself. If we notice this log is coming back periodically, it thus means
+// 		// there is a bug somewhere else in the code.
+// 		// As a result, this state is therefore not considered an error.
+// 		return nil
+// 	}
 
-	slog.Info().Msg("all farmer are paid, trying to move to deploy state")
+// 	slog.Info().Msg("all farmer are paid, trying to move to deploy state")
 
-	if err := workloadtypes.ReservationToDeploy(e.ctx, e.db, &reservation); err != nil {
-		return errors.Wrap(err, "failed to schedule the reservation to deploy")
-	}
+// 	if err := workloadtypes.ReservationToDeploy(e.ctx, e.db, &reservation); err != nil {
+// 		return errors.Wrap(err, "failed to schedule the reservation to deploy")
+// 	}
 
-	escrowInfo.Paid = true
-	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
-		return errors.Wrap(err, "failed to mark reservation escrow info as paid")
-	}
+// 	escrowInfo.Paid = true
+// 	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
+// 		return errors.Wrap(err, "failed to mark reservation escrow info as paid")
+// 	}
 
-	slog.Debug().Msg("escrow marked as paid")
+// 	slog.Debug().Msg("escrow marked as paid")
 
-	return nil
-}
+// 	return nil
+// }
 
 // CheckCapacityReservationPaid verifies if an escrow account received sufficient balance
 // to pay for a capacity reservation. If this is the case, the escrow state will

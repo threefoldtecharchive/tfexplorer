@@ -15,7 +15,7 @@ import (
 type (
 	Workloader interface {
 		State() *State
-		Contract() Contract
+		Contract() *Contract
 	}
 
 	Capaciter interface {
@@ -184,6 +184,14 @@ type State struct {
 	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
 	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
 	Result              Result             `bson:"result" json:"result"`
+}
+
+func NewState() State {
+	return State{
+		NextAction:          NextActionCreate,
+		SignaturesProvision: make([]SigningSignature, 0),
+		SignaturesDelete:    make([]SigningSignature, 0),
+	}
 }
 
 // SignatureChallenge return a slice of byte containing all the date used to generate the

@@ -23,7 +23,7 @@ type K8S struct {
 }
 
 // Contract implements the Workloader interface
-func (k *K8S) Contract() Contract { return k.contract }
+func (k *K8S) Contract() *Contract { return &k.contract }
 
 // State implements the Workloader interface
 func (k *K8S) State() *State { return &k.state }
