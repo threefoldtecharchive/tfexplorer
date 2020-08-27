@@ -73,10 +73,9 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	*(workload.State()) = workloads.NewState()
 	workload.Contract().ID = schema.ID(0)
 
-	// TODO
-	// if err := workload.Validate(); err != nil {
-	// 	return nil, mw.BadRequest(err)
-	// }
+	if err := validateReservation(workload); err != nil {
+		return nil, mw.BadRequest(err)
+	}
 
 	workload, err = a.workloadpipeline(workload, nil)
 	if err != nil {
@@ -632,11 +631,9 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 		model.Workloader
 		Result model.Result `json:"result"`
 	}
-	// TODO
-	// result.WorkloaderType = workload
+
 	for _, rs := range reservation.Results {
 		if rs.WorkloadId == workload.Contract().UniqueWorkloadID() {
-			// t := types.Result(rs)
 			result.Result = rs
 			break
 		}
@@ -896,15 +893,14 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		return nil, mw.NotFound(errors.New("workload not found"))
 	}
 
-	// TODO:
-	// if workload.State().Result == (model.Result{}) {
-	// 	// no result for this work load
-	// 	// QUESTION: should we still mark the result as deleted?
-	// 	result = &types.Result{
-	// 		WorkloadId: gwid,
-	// 		Epoch:      schema.Date{Time: time.Now()},
-	// 	}
-	// }
+	if workload.State().Result.WorkloadId == "" {
+		// no result for this work load
+		// QUESTION: should we still mark the result as deleted?
+		workload.State().Result = model.Result{
+			WorkloadId: gwid,
+			Epoch:      schema.Date{Time: time.Now()},
+		}
+	}
 
 	workload.State().Result.State = model.ResultStateDeleted
 
