@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/directory"
+	model "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -139,11 +139,11 @@ func (s *NodeAPI) Add(ctx context.Context, db *mongo.Database, node directory.No
 	return directory.NodeCreate(ctx, db, node)
 }
 
-func (s *NodeAPI) updateTotalCapacity(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+func (s *NodeAPI) updateTotalCapacity(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 	return directory.NodeUpdateTotalResources(ctx, db, nodeID, capacity)
 }
 
-func (s *NodeAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+func (s *NodeAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 	return directory.NodeUpdateReservedResources(ctx, db, nodeID, capacity)
 }
 
@@ -155,14 +155,14 @@ func (s *NodeAPI) updateFreeToUse(ctx context.Context, db *mongo.Database, nodeI
 	return directory.NodeUpdateFreeToUse(ctx, db, nodeID, freeToUse)
 }
 
-func (s *NodeAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads generated.WorkloadAmount) error {
+func (s *NodeAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads model.WorkloadAmount) error {
 	return directory.NodeUpdateWorkloadsAmount(ctx, db, nodeID, workloads)
 }
 
 // StoreProof stores node hardware proof
 func (s *NodeAPI) StoreProof(ctx context.Context, db *mongo.Database, nodeID string, dmi dmi.DMI, disks capacity.Disks, hypervisor []string) error {
 	var err error
-	proof := generated.Proof{
+	proof := model.Proof{
 		Created:    schema.Date{Time: time.Now()},
 		Hypervisor: hypervisor,
 	}
@@ -191,12 +191,12 @@ func (s *NodeAPI) StoreProof(ctx context.Context, db *mongo.Database, nodeID str
 }
 
 // SetInterfaces updates node interfaces
-func (s *NodeAPI) SetInterfaces(ctx context.Context, db *mongo.Database, nodeID string, ifaces []generated.Iface) error {
+func (s *NodeAPI) SetInterfaces(ctx context.Context, db *mongo.Database, nodeID string, ifaces []model.Iface) error {
 	return directory.NodeSetInterfaces(ctx, db, nodeID, ifaces)
 }
 
 // SetPublicConfig sets node public config
-func (s *NodeAPI) SetPublicConfig(ctx context.Context, db *mongo.Database, nodeID string, cfg generated.PublicIface) error {
+func (s *NodeAPI) SetPublicConfig(ctx context.Context, db *mongo.Database, nodeID string, cfg model.PublicIface) error {
 	node, err := s.Get(ctx, db, nodeID, false)
 	if err != nil {
 		return err

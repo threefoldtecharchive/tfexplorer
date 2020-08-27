@@ -96,6 +96,28 @@ type Result struct {
 	NodeId     string           `bson:"node_id" json:"node_id"`
 }
 
+// Verify that the signature matches the result data
+func (r *Result) Verify(pk string) error {
+	// TODO: seems we're missing the encode method to be able to execute this code.
+	// Let's see how we need to encode this type to generate the signature message
+	return nil
+	// sig, err := hex.DecodeString(r.Signature)
+	// if err != nil {
+	// 	return errors.Wrap(err, "invalid signature expecting hex encoded")
+	// }
+
+	// key, err := crypto.KeyFromID(pkg.StrIdentifier(pk))
+	// if err != nil {
+	// 	return errors.Wrap(err, "invalid verification key")
+	// }
+
+	// bytes, err := r.encode()
+	// if err != nil {
+	// 	return err
+	// }
+	// return crypto.Verify(key, bytes, sig)
+}
+
 type ResultStateEnum uint8
 
 const (

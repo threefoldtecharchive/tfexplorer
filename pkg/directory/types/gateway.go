@@ -9,7 +9,7 @@ import (
 	"github.com/jbenet/go-base58"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/directory"
+	model "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +22,7 @@ const (
 )
 
 // Gateway model
-type Gateway generated.Gateway
+type Gateway model.Gateway
 
 // Validate node
 func (n *Gateway) Validate() error {
@@ -49,7 +49,7 @@ func (n *Gateway) Validate() error {
 
 	// Unfortunately, jsx schema does not support nil types
 	// so this is the only way to check if values are not set
-	empty := generated.Location{}
+	empty := model.Location{}
 	if n.Location == empty {
 		return fmt.Errorf("location is required")
 	}
@@ -202,17 +202,17 @@ func gwUpdate(ctx context.Context, db *mongo.Database, nodeID string, value inte
 }
 
 // // gwUpdateTotalResources sets the node total resources
-// func gwUpdateTotalResources(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+// func gwUpdateTotalResources(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 // 	return gwUpdate(ctx, db, nodeID, bson.M{"total_resources": capacity})
 // }
 
 // GatewayUpdateReservedResources sets the node reserved resources
-func GatewayUpdateReservedResources(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+func GatewayUpdateReservedResources(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 	return gwUpdate(ctx, db, nodeID, bson.M{"reserved_resources": capacity})
 }
 
 // GatewayUpdateWorkloadsAmount sets the node reserved resources
-func GatewayUpdateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads generated.WorkloadAmount) error {
+func GatewayUpdateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads model.WorkloadAmount) error {
 	return gwUpdate(ctx, db, nodeID, bson.M{"workloads": workloads})
 }
 

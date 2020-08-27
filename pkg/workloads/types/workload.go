@@ -1,22 +1,15 @@
 package types
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"math"
 	"net/http"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
-	"github.com/threefoldtech/tfexplorer/models/workloads"
-	generated "github.com/threefoldtech/tfexplorer/models/workloads"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
-	"github.com/threefoldtech/zos/pkg/crypto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -43,7 +36,7 @@ func ApplyQueryFilterWorkload(r *http.Request, filter WorkloadFilter) (WorkloadF
 		if err != nil {
 			return nil, errors.Wrap(err, "next_action should be an integer")
 		}
-		filter = filter.WithNextAction(generated.NextActionEnum(nextAction))
+		filter = filter.WithNextAction(model.NextActionEnum(nextAction))
 	}
 	return filter, nil
 }
@@ -64,7 +57,7 @@ func (f WorkloadFilter) WithIDGE(id schema.ID) WorkloadFilter {
 }
 
 // WithNextAction filter workloads with next action
-func (f WorkloadFilter) WithNextAction(action generated.NextActionEnum) WorkloadFilter {
+func (f WorkloadFilter) WithNextAction(action model.NextActionEnum) WorkloadFilter {
 	return append(f, bson.E{
 		Key: "next_action", Value: action,
 	})
@@ -102,11 +95,11 @@ func (f WorkloadFilter) Or(o WorkloadFilter) WorkloadFilter {
 }
 
 // Get gets single workload that matches the filter
-func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (WorkloaderType, error) {
+func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (model.Workloader, error) {
 	if f == nil {
 		f = WorkloadFilter{}
 	}
-	var w WorkloaderType
+	var w workloaderCodec
 
 	result := db.Collection(WorkloadCollection).FindOne(ctx, f)
 	if err := result.Err(); err != nil {
@@ -121,7 +114,7 @@ func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (Workloader
 }
 
 // Find all users workloads matches filter
-func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) ([]WorkloaderType, error) {
+func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) ([]model.Workloader, error) {
 	if f == nil {
 		f = WorkloadFilter{}
 	}
@@ -131,10 +124,10 @@ func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*o
 		return nil, errors.Wrap(err, "failed to get workload cursor")
 	}
 
-	ws := []WorkloaderType{}
+	ws := []model.Workloader{}
 
 	for cursor.Next(ctx) {
-		var w WorkloaderType
+		var w workloaderCodec
 		if err = cursor.Decode(&w); err != nil {
 			return nil, errors.Wrap(err, "could not decode workload type")
 		}
@@ -172,212 +165,10 @@ func (f WorkloadFilter) WithPoolID(poolID int64) WorkloadFilter {
 	})
 }
 
-// WorkloaderType is a wrapper struct around the Workloader interface
-type WorkloaderType struct {
-	generated.Workloader
-}
-
-// MarshalBSON implements bson.Marshaller
-func (w WorkloaderType) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(w.Workloader)
-}
-
-// UnmarshalBSON implements bson.Unmarshaller
-func (w *WorkloaderType) UnmarshalBSON(buf []byte) error {
-	workload, err := workloads.UnmarshalBSON(buf)
-	if err != nil {
-		return err
-	}
-
-	if w == nil {
-		w = &WorkloaderType{}
-	}
-
-	*w = WorkloaderType{Workloader: workload}
-
-	return nil
-}
-
-// MarshalJSON implements JSON.Marshaller
-func (w WorkloaderType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(w.Workloader)
-}
-
-// UnmarshalJSON implements JSON.Unmarshaller
-func (w *WorkloaderType) UnmarshalJSON(buf []byte) error {
-	workload, err := workloads.UnmarshalJSON(buf)
-	if err != nil {
-		return err
-	}
-
-	if w == nil {
-		w = &WorkloaderType{}
-	}
-
-	*w = WorkloaderType{Workloader: workload}
-
-	return nil
-}
-
-// Verify signature against Workload.JSON
-// pk is the public key used as verification key in hex encoded format
-// the signature is the signature to verify (in raw binary format)
-func (w *WorkloaderType) Verify(pk string, sig []byte) error {
-	key, err := crypto.KeyFromHex(pk)
-	if err != nil {
-		return errors.Wrap(err, "invalid verification key")
-	}
-
-	signer, ok := w.Workloader.(workloads.Signer)
-	if !ok {
-		// TODO
-		panic("workload doesn't implement signer interface")
-	}
-
-	b, err := signer.SignatureChallenge()
-	if err != nil {
-		return err
-	}
-
-	msg := sha256.Sum256(b)
-
-	return crypto.Verify(key, msg[:], sig)
-}
-
-// SignatureVerify is similar to Verify but the verification is done
-// against `str(WorkloaderType.ID) + WorkloaderType.JSON`
-// func (w *WorkloaderType) SignatureVerify(pk string, sig []byte) error {
-// 	key, err := crypto.KeyFromHex(pk)
-// 	if err != nil {
-// 		return errors.Wrap(err, "invalid verification key")
-// 	}
-
-// 	var buf bytes.Buffer
-// 	if _, err := buf.WriteString(fmt.Sprint(int64(w.Contract().ID))); err != nil {
-// 		return errors.Wrap(err, "failed to write id to buffer")
-// 	}
-
-// 	if _, err := buf.WriteString(w.GetJson()); err != nil {
-// 		return errors.Wrap(err, "failed to write json to buffer")
-// 	}
-
-// 	return crypto.Verify(key, buf.Bytes(), sig)
-// }
-
-// SignatureDeleteRequestVerify verify the signature from a signature request
-// this is used for workload delete
-// the signature is created from the workload siging challenge + "delete" + customer tid
-func (w *WorkloaderType) SignatureDeleteRequestVerify(pk string, sig generated.SigningSignature) error {
-	key, err := crypto.KeyFromHex(pk)
-	if err != nil {
-		return errors.Wrap(err, "invalid verification key")
-	}
-
-	signer, ok := w.Workloader.(workloads.Signer)
-	if !ok {
-		// TODO
-		panic("workload doesn't implement signer interface")
-	}
-
-	b, err := signer.SignatureChallenge()
-	if err != nil {
-		return err
-	}
-
-	buf := bytes.NewBuffer(b)
-	if _, err := buf.WriteString("delete"); err != nil {
-		return err
-	}
-	if _, err := buf.WriteString(fmt.Sprintf("%d", sig.Tid)); err != nil {
-		return err
-	}
-
-	msg := sha256.Sum256(buf.Bytes())
-	signature, err := hex.DecodeString(sig.Signature)
-	if err != nil {
-		return err
-	}
-
-	return crypto.Verify(key, msg[:], signature)
-}
-
-// SignatureProvisionRequestVerify verify the signature from a signature request
-// this is used for provision
-// the signature is created from the workload siging challenge + "provision" + customer tid
-func (w *WorkloaderType) SignatureProvisionRequestVerify(pk string, sig generated.SigningSignature) error {
-	key, err := crypto.KeyFromHex(pk)
-	if err != nil {
-		return errors.Wrap(err, "invalid verification key")
-	}
-
-	signer, ok := w.Workloader.(workloads.Signer)
-	if !ok {
-		// TODO
-		panic("workload doesn't implement signer interface")
-	}
-
-	b, err := signer.SignatureChallenge()
-	if err != nil {
-		return err
-	}
-
-	buf := bytes.NewBuffer(b)
-	if _, err := buf.WriteString("provision"); err != nil {
-		return err
-	}
-	if _, err := buf.WriteString(fmt.Sprintf("%d", sig.Tid)); err != nil {
-		return err
-	}
-
-	msg := sha256.Sum256(buf.Bytes())
-	signature, err := hex.DecodeString(sig.Signature)
-	if err != nil {
-		return err
-	}
-
-	return crypto.Verify(key, msg[:], signature)
-}
-
-// IsAny checks if the workload status is any of the given status
-func (w *WorkloaderType) IsAny(status ...generated.NextActionEnum) bool {
-	for _, s := range status {
-		if w.State().NextAction == s {
-			return true
-		}
-	}
-
-	return false
-}
-
-//ResultOf return result of a workload ID
-func (w *WorkloaderType) ResultOf(id string) *Result {
-	if w.State().Result.WorkloadId == id {
-		r := Result(w.State().Result)
-		return &r
-	}
-
-	return nil
-}
-
-// AllDeleted checks of all workloads has been marked
-func (w *WorkloaderType) AllDeleted() bool {
-	return w.State().Result.State == generated.ResultStateDeleted
-}
-
-// IsSuccessfullyDeployed check if all the workloads defined in the reservation
-// have sent a positive result
-func (w *WorkloaderType) IsSuccessfullyDeployed() bool {
-	succeeded := false
-	if w.State().Result.State != generated.ResultStateOK {
-		succeeded = false
-	}
-	return succeeded
-}
-
 // WorkloadCreate save new workload to database.
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
-func WorkloadCreate(ctx context.Context, db *mongo.Database, w WorkloaderType) (schema.ID, error) {
+func WorkloadCreate(ctx context.Context, db *mongo.Database, w model.Workloader) (schema.ID, error) {
 	id := models.MustID(ctx, db, ReservationCollection)
 	w.Contract().ID = id
 
@@ -395,7 +186,7 @@ func WorkloadsLastID(ctx context.Context, db *mongo.Database) (schema.ID, error)
 }
 
 // WorkloadSetNextAction update the workload next action in db
-func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action generated.NextActionEnum) error {
+func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action model.NextActionEnum) error {
 	var filter WorkloadFilter
 	filter = filter.WithID(id)
 
@@ -415,7 +206,7 @@ func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID
 
 // WorkloadToDeploy marks a workload to deploy and schedule it for the nodes
 // it's a short cut to SetNextAction then PushWorkloads
-func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType) error {
+func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w model.Workloader) error {
 	// update workload
 	if err := WorkloadSetNextAction(ctx, db, w.Contract().ID, Deploy); err != nil {
 		return errors.Wrap(err, "failed to set workload to DEPLOY state")
@@ -430,7 +221,7 @@ func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w WorkloaderType)
 }
 
 //WorkloadPushSignature push signature to workload
-func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature generated.SigningSignature) error {
+func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature model.SigningSignature) error {
 	// this function just push the signature to the reservation array
 	// there are not other checks involved here. So before calling this function
 	// we need to ensure the signature has the rights to be pushed
@@ -447,7 +238,7 @@ func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID
 }
 
 // WorkloadTypePush pushes a workload to the queue
-func WorkloadTypePush(ctx context.Context, db *mongo.Database, w WorkloaderType) error {
+func WorkloadTypePush(ctx context.Context, db *mongo.Database, w model.Workloader) error {
 	col := db.Collection(queueCollection)
 	_, err := col.InsertOne(ctx, w)
 
@@ -464,7 +255,7 @@ func WorkloadTypePop(ctx context.Context, db *mongo.Database, id string, nodeID 
 
 // WorkloadResultPush pushes result to a reservation result array.
 // NOTE: this is just a crud operation, no validation is done here
-func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result Result) error {
+func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result model.Result) error {
 	col := db.Collection(WorkloadCollection)
 	var filter WorkloadFilter
 	filter = filter.WithID(id)
@@ -480,54 +271,49 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 	return err
 }
 
-// Validate that the reservation is valid
-func (w *WorkloaderType) Validate() error {
-	if w.Contract().CustomerTid == 0 {
-		return fmt.Errorf("customer_tid is required")
+// workloaderCodec is a struc used to encode/decode model.Workloads
+type workloaderCodec struct {
+	model.Workloader
+}
+
+// MarshalBSON implements bson.Marshaller
+func (w workloaderCodec) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(w.Workloader)
+}
+
+// UnmarshalBSON implements bson.Unmarshaller
+func (w *workloaderCodec) UnmarshalBSON(buf []byte) error {
+	workload, err := model.UnmarshalBSON(buf)
+	if err != nil {
+		return err
 	}
 
-	if len(w.State().CustomerSignature) == 0 {
-		return fmt.Errorf("customer_signature is required")
+	if w == nil {
+		w = &workloaderCodec{}
 	}
 
-	if len(w.Contract().Metadata) > 1024 {
-		return fmt.Errorf("metadata can not be bigger than 1024 bytes")
-	}
-
-	if w.Contract().PoolID == 0 {
-		return errors.New("pool is required")
-	}
-
-	if w.Contract().Reference != "" {
-		return errors.New("reference is illegal for new workloads")
-	}
-
-	// ensure the signers array are never nill cause it would cause issue
-	// in mongo when trying to push signature later on
-	if w.Contract().SigningRequestDelete.Signers == nil {
-		return errors.New("signing_request_delete.signers field cannot be null")
-	}
-
-	if w.Contract().SigningRequestProvision.Signers == nil {
-		return errors.New("signing_request_provision.signers field cannot be null")
-	}
+	*w = workloaderCodec{Workloader: workload}
 
 	return nil
 }
 
-// Workload returns workload
-func (w *WorkloaderType) Workload() Workload {
-	return Workload{
-		ReservationWorkload: generated.ReservationWorkload{
-			WorkloadId: fmt.Sprintf("%d-%d", w.Contract().ID, w.Contract().WorkloadID),
-			PoolID:     w.Contract().PoolID,
-			User:       fmt.Sprint(w.Contract().CustomerTid),
-			Type:       w.Contract().WorkloadType,
-			Duration:   math.MaxInt64,
-			Created:    w.Contract().Epoch,
-			ToDelete:   w.State().NextAction == Delete || w.State().NextAction == Deleted,
-			Content:    w,
-		},
-		NodeID: w.Contract().NodeID,
+// MarshalJSON implements JSON.Marshaller
+func (w workloaderCodec) MarshalJSON() ([]byte, error) {
+	return json.Marshal(w.Workloader)
+}
+
+// UnmarshalJSON implements JSON.Unmarshaller
+func (w *workloaderCodec) UnmarshalJSON(buf []byte) error {
+	workload, err := model.UnmarshalJSON(buf)
+	if err != nil {
+		return err
 	}
+
+	if w == nil {
+		w = &workloaderCodec{}
+	}
+
+	*w = workloaderCodec{Workloader: workload}
+
+	return nil
 }

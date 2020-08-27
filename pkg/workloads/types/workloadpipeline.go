@@ -2,19 +2,19 @@ package types
 
 import (
 	"github.com/rs/zerolog/log"
-	generated "github.com/threefoldtech/tfexplorer/models/workloads"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
-// WorkloadPipeline changes WorkloaderType W as defined by the workload pipeline
+// WorkloadPipeline changes model.Workloader W as defined by the workload pipeline
 // returns new  workload object, and true if the workload has changed
 type WorkloadPipeline struct {
-	w WorkloaderType
+	w model.Workloader
 }
 
 // NewWorkloaderPipeline creates a reservation pipeline, all reservation must be processes
 // through the pipeline before any action is taken. This will always make sure
 // that reservation is in the right state.
-func NewWorkloaderPipeline(W WorkloaderType) (*WorkloadPipeline, error) {
+func NewWorkloaderPipeline(W model.Workloader) (*WorkloadPipeline, error) {
 	return &WorkloadPipeline{W}, nil
 }
 
@@ -51,9 +51,9 @@ func (p *WorkloadPipeline) checkDeleteSignatures() bool {
 }
 
 // Next gets new modified reservation, and true if the reservation has changed from the input
-func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
-	if p.w.State().NextAction == generated.NextActionDelete ||
-		p.w.State().NextAction == generated.NextActionDeleted {
+func (p *WorkloadPipeline) Next() (model.Workloader, bool) {
+	if p.w.State().NextAction == model.NextActionDelete ||
+		p.w.State().NextAction == model.NextActionDeleted {
 		return p.w, false
 	}
 
@@ -65,7 +65,7 @@ func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
 		// reservation has expired
 		// set its status (next action) to delete
 		slog.Debug().Msg("expired or to be deleted")
-		p.w.State().NextAction = generated.NextActionDelete
+		p.w.State().NextAction = model.NextActionDelete
 		return p.w, true
 	}
 
@@ -73,20 +73,20 @@ func (p *WorkloadPipeline) Next() (WorkloaderType, bool) {
 	modified := false
 	for {
 		switch p.w.State().NextAction {
-		case generated.NextActionCreate:
+		case model.NextActionCreate:
 			slog.Debug().Msg("ready to sign")
-			p.w.State().NextAction = generated.NextActionSign
-		case generated.NextActionSign:
+			p.w.State().NextAction = model.NextActionSign
+		case model.NextActionSign:
 			// this stage will not change unless all
 			if p.checkProvisionSignatures() {
 				slog.Debug().Msg("ready to pay")
-				p.w.State().NextAction = generated.NextActionPay
+				p.w.State().NextAction = model.NextActionPay
 			}
-		case generated.NextActionPay:
+		case model.NextActionPay:
 			// NOTE: validation of the pools is static, and must happen when the
 			// explorer receives the reservation.
 			slog.Debug().Msg("reservation workloads attached to capacity pools - block until pool is confirmed to be ready")
-		case generated.NextActionDeploy:
+		case model.NextActionDeploy:
 			//nothing to do
 			slog.Debug().Msg("let's deploy")
 		}

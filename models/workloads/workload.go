@@ -2,9 +2,13 @@ package workloads
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/threefoldtech/zos/pkg/crypto"
 
 	"github.com/pkg/errors"
 
@@ -16,14 +20,13 @@ type (
 	Workloader interface {
 		State() *State
 		Contract() *Contract
+
+		// All workload should be able to generate a challenge used for signature
+		SignatureChallenge() ([]byte, error)
 	}
 
 	Capaciter interface {
 		GetRSU() RSU
-	}
-
-	Signer interface {
-		SignatureChallenge() ([]byte, error)
 	}
 
 	RSU struct {
@@ -36,56 +39,77 @@ type (
 
 // UnmarshalJSON decodes a workload from JSON format
 func UnmarshalJSON(buffer []byte) (Workloader, error) {
-	typeField := struct {
-		WorkloadType WorkloadTypeEnum `json:"workload_type"`
+	base := struct {
+		Contract
+		State
 	}{}
 
-	if err := json.Unmarshal(buffer, &typeField); err != nil {
+	if err := json.Unmarshal(buffer, &base); err != nil {
 		return nil, errors.Wrap(err, "could not decode workload type")
 	}
 
 	var err error
 	var workload Workloader
 
-	switch typeField.WorkloadType {
+	switch base.WorkloadType {
 	case WorkloadTypeContainer:
 		var c Container
+		c.state = base.State
+		c.contract = base.Contract
 		err = json.Unmarshal(buffer, &c)
 		workload = &c
 	case WorkloadTypeDomainDelegate:
 		var g GatewayDelegate
+		g.state = base.State
+		g.contract = base.Contract
 		err = json.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeGateway4To6:
 		var g Gateway4To6
+		g.state = base.State
+		g.contract = base.Contract
 		err = json.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeKubernetes:
 		var k K8S
+		k.state = base.State
+		k.contract = base.Contract
 		err = json.Unmarshal(buffer, &k)
 		workload = &k
 	case WorkloadTypeNetworkResource:
 		var n NetworkResource
+		n.state = base.State
+		n.contract = base.Contract
 		err = json.Unmarshal(buffer, &n)
 		workload = &n
 	case WorkloadTypeProxy:
 		var g GatewayProxy
+		g.state = base.State
+		g.contract = base.Contract
 		err = json.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeReverseProxy:
 		var g GatewayReverseProxy
+		g.state = base.State
+		g.contract = base.Contract
 		err = json.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeSubDomain:
 		var g GatewaySubdomain
+		g.state = base.State
+		g.contract = base.Contract
 		err = json.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeVolume:
 		var v Volume
+		v.state = base.State
+		v.contract = base.Contract
 		err = json.Unmarshal(buffer, &v)
 		workload = &v
 	case WorkloadTypeZDB:
 		var z ZDB
+		z.state = base.State
+		z.contract = base.Contract
 		err = json.Unmarshal(buffer, &z)
 		workload = &z
 	default:
@@ -97,56 +121,78 @@ func UnmarshalJSON(buffer []byte) (Workloader, error) {
 
 // UnmarshalBSON decodes a workload from BSON format
 func UnmarshalBSON(buffer []byte) (Workloader, error) {
-	typeField := struct {
-		WorkloadType WorkloadTypeEnum `bson:"workload_type"`
+	base := struct {
+		Contract `bson:",inline"`
+		State    `bson:",inline"`
 	}{}
 
-	if err := bson.Unmarshal(buffer, &typeField); err != nil {
+	fmt.Printf("%s\n", string(buffer))
+	if err := bson.Unmarshal(buffer, &base); err != nil {
 		return nil, errors.Wrap(err, "could not decode workload type")
 	}
 
 	var err error
 	var workload Workloader
 
-	switch typeField.WorkloadType {
+	switch base.WorkloadType {
 	case WorkloadTypeContainer:
 		var c Container
+		c.contract = base.Contract
+		c.state = base.State
 		err = bson.Unmarshal(buffer, &c)
 		workload = &c
 	case WorkloadTypeDomainDelegate:
 		var g GatewayDelegate
+		g.contract = base.Contract
+		g.state = base.State
 		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeGateway4To6:
 		var g Gateway4To6
+		g.contract = base.Contract
+		g.state = base.State
 		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeKubernetes:
 		var k K8S
+		k.contract = base.Contract
+		k.state = base.State
 		err = bson.Unmarshal(buffer, &k)
 		workload = &k
 	case WorkloadTypeNetworkResource:
 		var n NetworkResource
+		n.contract = base.Contract
+		n.state = base.State
 		err = bson.Unmarshal(buffer, &n)
 		workload = &n
 	case WorkloadTypeProxy:
 		var g GatewayProxy
+		g.contract = base.Contract
+		g.state = base.State
 		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeReverseProxy:
 		var g GatewayReverseProxy
+		g.contract = base.Contract
+		g.state = base.State
 		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeSubDomain:
 		var g GatewaySubdomain
+		g.contract = base.Contract
+		g.state = base.State
 		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeVolume:
 		var v Volume
+		v.contract = base.Contract
+		v.state = base.State
 		err = bson.Unmarshal(buffer, &v)
 		workload = &v
 	case WorkloadTypeZDB:
 		var z ZDB
+		z.contract = base.Contract
+		z.state = base.State
 		err = bson.Unmarshal(buffer, &z)
 		workload = &z
 	default:
@@ -156,6 +202,7 @@ func UnmarshalBSON(buffer []byte) (Workloader, error) {
 	return workload, err
 }
 
+// Contract is the immutable part of an IT contract
 type Contract struct {
 	ID                      schema.ID        `bson:"_id" json:"id"`
 	WorkloadID              int64            `bson:"workload_id" json:"workload_id"`
@@ -175,23 +222,6 @@ type Contract struct {
 
 func (c Contract) UniqueWorkloadID() string {
 	return fmt.Sprintf("%d-%d", c.ID, c.WorkloadID)
-}
-
-type State struct {
-	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
-	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
-	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
-	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
-	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
-	Result              Result             `bson:"result" json:"result"`
-}
-
-func NewState() State {
-	return State{
-		NextAction:          NextActionCreate,
-		SignaturesProvision: make([]SigningSignature, 0),
-		SignaturesDelete:    make([]SigningSignature, 0),
-	}
 }
 
 // SignatureChallenge return a slice of byte containing all the date used to generate the
@@ -228,4 +258,115 @@ func (c *Contract) SignatureChallenge() ([]byte, error) { //TODO: name of this i
 	}
 
 	return b.Bytes(), nil
+}
+
+// State is the mutable part of an IT contract
+type State struct {
+	CustomerSignature   string             `bson:"customer_signature" json:"customer_signature"`
+	NextAction          NextActionEnum     `bson:"next_action" json:"next_action"`
+	SignaturesProvision []SigningSignature `bson:"signatures_provision" json:"signatures_provision"`
+	SignatureFarmer     SigningSignature   `bson:"signature_farmer" json:"signature_farmer"`
+	SignaturesDelete    []SigningSignature `bson:"signatures_delete" json:"signatures_delete"`
+	Result              Result             `bson:"result" json:"result"`
+}
+
+// NewState create a State object with proper default values
+func NewState() State {
+	return State{
+		NextAction:          NextActionCreate,
+		SignaturesProvision: make([]SigningSignature, 0),
+		SignaturesDelete:    make([]SigningSignature, 0),
+	}
+}
+
+// IsAny checks if the state NextAction value is any of the given status
+func (s *State) IsAny(status ...NextActionEnum) bool {
+	for _, x := range status {
+		if s.NextAction == x {
+			return true
+		}
+	}
+
+	return false
+}
+
+// SignatureProvisionRequestVerify verify the signature from a signature request
+// this is used for provision
+// the signature is created from the workload siging challenge + "provision" + customer tid
+func SignatureProvisionRequestVerify(w Workloader, pk string, sig SigningSignature) error {
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
+
+	b, err := w.SignatureChallenge()
+	if err != nil {
+		return err
+	}
+
+	buf := bytes.NewBuffer(b)
+	if _, err := buf.WriteString("provision"); err != nil {
+		return err
+	}
+	if _, err := buf.WriteString(fmt.Sprintf("%d", sig.Tid)); err != nil {
+		return err
+	}
+
+	msg := sha256.Sum256(buf.Bytes())
+	signature, err := hex.DecodeString(sig.Signature)
+	if err != nil {
+		return err
+	}
+
+	return crypto.Verify(key, msg[:], signature)
+}
+
+// SignatureDeleteRequestVerify verify the signature from a signature request
+// this is used for workload delete
+// the signature is created from the workload siging challenge + "delete" + customer tid
+func SignatureDeleteRequestVerify(w Workloader, pk string, sig SigningSignature) error {
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
+
+	b, err := w.SignatureChallenge()
+	if err != nil {
+		return err
+	}
+
+	buf := bytes.NewBuffer(b)
+	if _, err := buf.WriteString("delete"); err != nil {
+		return err
+	}
+	if _, err := buf.WriteString(fmt.Sprintf("%d", sig.Tid)); err != nil {
+		return err
+	}
+
+	msg := sha256.Sum256(buf.Bytes())
+	signature, err := hex.DecodeString(sig.Signature)
+	if err != nil {
+		return err
+	}
+
+	return crypto.Verify(key, msg[:], signature)
+}
+
+// Verify signature
+// pk is the public key used as verification key in hex encoded format
+// the signature is the signature to verify (in raw binary format)
+func Verify(w Workloader, pk string, sig []byte) error {
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
+
+	b, err := w.SignatureChallenge()
+	if err != nil {
+		return err
+	}
+
+	msg := sha256.Sum256(b)
+
+	return crypto.Verify(key, msg[:], sig)
 }

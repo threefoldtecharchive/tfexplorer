@@ -1,10 +1,10 @@
 package types
 
 import (
-	generated "github.com/threefoldtech/tfexplorer/models/workloads"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
-func countSignatures(signatures []generated.SigningSignature, req generated.SigningRequest) int {
+func countSignatures(signatures []model.SigningSignature, req model.SigningRequest) int {
 	in := func(i int64, l []int64) bool {
 		for _, x := range l {
 			if x == i {

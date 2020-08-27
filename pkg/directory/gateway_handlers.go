@@ -9,7 +9,7 @@ import (
 	"github.com/zaibon/httpsig"
 
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/directory"
+	model "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 
@@ -105,8 +105,8 @@ func (s *GatewayAPI) updateReservedResources(r *http.Request) (interface{}, mw.R
 	}
 
 	input := struct {
-		generated.ResourceAmount
-		generated.WorkloadAmount
+		model.ResourceAmount
+		model.WorkloadAmount
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {

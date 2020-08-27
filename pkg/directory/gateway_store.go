@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	generated "github.com/threefoldtech/tfexplorer/models/directory"
+	model "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -91,7 +91,7 @@ func (s *GatewayAPI) Add(ctx context.Context, db *mongo.Database, gw directory.G
 	return directory.GatewayCreate(ctx, db, gw)
 }
 
-func (s *GatewayAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, gwID string, capacity generated.ResourceAmount) error {
+func (s *GatewayAPI) updateReservedCapacity(ctx context.Context, db *mongo.Database, gwID string, capacity model.ResourceAmount) error {
 	return directory.GatewayUpdateReservedResources(ctx, db, gwID, capacity)
 }
 
@@ -99,7 +99,7 @@ func (s *GatewayAPI) updateUptime(ctx context.Context, db *mongo.Database, gwID 
 	return directory.GatewayUpdateUptime(ctx, db, gwID, uptime)
 }
 
-func (s *GatewayAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, gwID string, workloads generated.WorkloadAmount) error {
+func (s *GatewayAPI) updateWorkloadsAmount(ctx context.Context, db *mongo.Database, gwID string, workloads model.WorkloadAmount) error {
 	return directory.GatewayUpdateWorkloadsAmount(ctx, db, gwID, workloads)
 }
 

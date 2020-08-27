@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/phonebook"
+	model "github.com/threefoldtech/tfexplorer/models/phonebook"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +35,7 @@ var (
 )
 
 // User type
-type User generated.User
+type User model.User
 
 // Validate makes the sanity check requires for the user type
 func (u User) Validate() error {

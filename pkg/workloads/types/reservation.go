@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/models/workloads"
-	generated "github.com/threefoldtech/tfexplorer/models/workloads"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
 	"go.mongodb.org/mongo-driver/bson"
@@ -29,19 +29,19 @@ const (
 
 const (
 	// Create action
-	Create = generated.NextActionCreate
+	Create = model.NextActionCreate
 	// Sign action
-	Sign = generated.NextActionSign
+	Sign = model.NextActionSign
 	// Pay action
-	Pay = generated.NextActionPay
+	Pay = model.NextActionPay
 	// Deploy action
-	Deploy = generated.NextActionDeploy
+	Deploy = model.NextActionDeploy
 	// Delete action
-	Delete = generated.NextActionDelete
+	Delete = model.NextActionDelete
 	// Invalid action
-	Invalid = generated.NextActionInvalid
+	Invalid = model.NextActionInvalid
 	// Deleted action
-	Deleted = generated.NextActionDeleted
+	Deleted = model.NextActionDeleted
 )
 
 // ApplyQueryFilter parese the query string
@@ -60,7 +60,7 @@ func ApplyQueryFilter(r *http.Request, filter ReservationFilter) (ReservationFil
 		if err != nil {
 			return nil, errors.Wrap(err, "next_action should be an integer")
 		}
-		filter = filter.WithNextAction(generated.NextActionEnum(nextAction))
+		filter = filter.WithNextAction(model.NextActionEnum(nextAction))
 	}
 	return filter, nil
 }
@@ -81,7 +81,7 @@ func (f ReservationFilter) WithIDGE(id schema.ID) ReservationFilter {
 }
 
 // WithNextAction filter reservations with next action
-func (f ReservationFilter) WithNextAction(action generated.NextActionEnum) ReservationFilter {
+func (f ReservationFilter) WithNextAction(action model.NextActionEnum) ReservationFilter {
 	return append(f, bson.E{
 		Key: "next_action", Value: action,
 	})
@@ -157,7 +157,7 @@ func (f ReservationFilter) Count(ctx context.Context, db *mongo.Database) (int64
 }
 
 // Reservation is a wrapper around generated type
-type Reservation generated.Reservation
+type Reservation model.Reservation
 
 // Validate that the reservation is valid
 func (r *Reservation) Validate() error {
@@ -169,7 +169,7 @@ func (r *Reservation) Validate() error {
 		return fmt.Errorf("customer_signature is required")
 	}
 
-	var data generated.ReservationData
+	var data model.ReservationData
 
 	if err := json.Unmarshal([]byte(r.Json), &data); err != nil {
 		return errors.Wrap(err, "invalid json data on reservation")
@@ -203,13 +203,13 @@ func (r *Reservation) Validate() error {
 	// seems go doesn't allow : workloaders=append(workloaders, r.DataReservation.Containers)
 	// so we have to loop
 	for _, w := range r.DataReservation.Containers {
-		if w.Capacity.DiskType != generated.DiskTypeSSD {
+		if w.Capacity.DiskType != model.DiskTypeSSD {
 			return errors.New("Container disktype is not valid, it should be SSD")
 		}
 		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Volumes {
-		if w.Type != generated.VolumeTypeSSD {
+		if w.Type != model.VolumeTypeSSD {
 			return errors.New("Volume disktype is not valid, it should be SSD")
 		}
 		workloaders = append(workloaders, &w)
@@ -285,7 +285,7 @@ func (r *Reservation) Expired() bool {
 }
 
 // IsAny checks if the reservation status is any of the given status
-func (r *Reservation) IsAny(status ...generated.NextActionEnum) bool {
+func (r *Reservation) IsAny(status ...model.NextActionEnum) bool {
 	for _, s := range status {
 		if r.NextAction == s {
 			return true
@@ -296,11 +296,10 @@ func (r *Reservation) IsAny(status ...generated.NextActionEnum) bool {
 }
 
 //ResultOf return result of a workload ID
-func (r *Reservation) ResultOf(id string) *Result {
+func (r *Reservation) ResultOf(id string) *model.Result {
 	for _, result := range r.Results {
 		if result.WorkloadId == id {
-			r := Result(result)
-			return &r
+			return &result
 		}
 	}
 
@@ -314,7 +313,7 @@ func (r *Reservation) AllDeleted() bool {
 	for _, wl := range r.Workloads("") {
 		result := r.ResultOf(wl.Contract().UniqueWorkloadID())
 		if result == nil ||
-			result.State != generated.ResultStateDeleted {
+			result.State != model.ResultStateDeleted {
 			return false
 		}
 	}
@@ -324,34 +323,33 @@ func (r *Reservation) AllDeleted() bool {
 
 // Workloads returns all reservation workloads (filter by nodeID)
 // if nodeID is empty, return all workloads
-func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
+func (r *Reservation) Workloads(nodeID string) []model.Workloader {
 
 	data := &r.DataReservation
 
-	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) WorkloaderType {
-		workload := WorkloaderType{Workloader: w}
-		workload.Contract().CustomerTid = r.CustomerTid
-		workload.State().NextAction = r.NextAction
-		workload.Contract().Description = r.DataReservation.Description
-		workload.Contract().Epoch = r.Epoch
-		workload.Contract().ID = r.ID
-		workload.Contract().Metadata = r.Metadata
+	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) model.Workloader {
+		w.Contract().CustomerTid = r.CustomerTid
+		w.State().NextAction = r.NextAction
+		w.Contract().Description = r.DataReservation.Description
+		w.Contract().Epoch = r.Epoch
+		w.Contract().ID = r.ID
+		w.Contract().Metadata = r.Metadata
 		result := r.ResultOf(fmt.Sprintf("%d-%d", r.ID, workloadID))
 		if result != nil {
-			workload.State().Result = workloads.Result(*result)
+			w.State().Result = workloads.Result(*result)
 		}
-		workload.Contract().SigningRequestProvision = r.DataReservation.SigningRequestProvision
-		workload.Contract().SigningRequestDelete = r.DataReservation.SigningRequestDelete
-		return workload
+		w.Contract().SigningRequestProvision = r.DataReservation.SigningRequestProvision
+		w.Contract().SigningRequestDelete = r.DataReservation.SigningRequestDelete
+		return w
 	}
 
-	var wrklds []WorkloaderType
+	var wrklds []model.Workloader
 	for i := range data.Containers {
 		wl := data.Containers[i]
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeContainer
+		wl.Contract().WorkloadType = model.WorkloadTypeContainer
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 
@@ -360,7 +358,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeVolume
+		wl.Contract().WorkloadType = model.WorkloadTypeVolume
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.Zdbs {
@@ -368,7 +366,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeZDB
+		wl.Contract().WorkloadType = model.WorkloadTypeZDB
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.Kubernetes {
@@ -376,7 +374,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeKubernetes
+		wl.Contract().WorkloadType = model.WorkloadTypeKubernetes
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.Proxies {
@@ -384,7 +382,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeProxy
+		wl.Contract().WorkloadType = model.WorkloadTypeProxy
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.ReverseProxy {
@@ -392,7 +390,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeReverseProxy
+		wl.Contract().WorkloadType = model.WorkloadTypeReverseProxy
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.Subdomains {
@@ -400,7 +398,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeSubDomain
+		wl.Contract().WorkloadType = model.WorkloadTypeSubDomain
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.DomainDelegates {
@@ -408,7 +406,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeDomainDelegate
+		wl.Contract().WorkloadType = model.WorkloadTypeDomainDelegate
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.Gateway4To6s {
@@ -416,7 +414,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeGateway4To6
+		wl.Contract().WorkloadType = model.WorkloadTypeGateway4To6
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 	for i := range data.Networks {
@@ -428,7 +426,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 				continue
 			}
 
-			nr.Contract().WorkloadType = generated.WorkloadTypeNetworkResource
+			nr.Contract().WorkloadType = model.WorkloadTypeNetworkResource
 			wrklds = append(wrklds, newWrkl(&nr, wl.WorkloadId, r))
 		}
 	}
@@ -437,7 +435,7 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = generated.WorkloadTypeNetworkResource
+		wl.Contract().WorkloadType = model.WorkloadTypeNetworkResource
 		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
 	}
 
@@ -451,7 +449,7 @@ func (r *Reservation) IsSuccessfullyDeployed() bool {
 	if len(r.Results) >= len(r.Workloads("")) {
 		succeeded = true
 		for _, result := range r.Results {
-			if result.State != generated.ResultStateOK {
+			if result.State != model.ResultStateOK {
 				succeeded = false
 				break
 			}
@@ -548,7 +546,7 @@ func ReservationLastID(ctx context.Context, db *mongo.Database) (schema.ID, erro
 }
 
 // ReservationSetNextAction update the reservation next action in db
-func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action generated.NextActionEnum) error {
+func ReservationSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action model.NextActionEnum) error {
 	var filter ReservationFilter
 	filter = filter.WithID(id)
 
@@ -593,7 +591,7 @@ const (
 )
 
 //ReservationPushSignature push signature to reservation
-func ReservationPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature generated.SigningSignature) error {
+func ReservationPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature model.SigningSignature) error {
 	// this function just push the signature to the reservation array
 	// there are not other checks involved here. So before calling this function
 	// we need to ensure the signature has the rights to be pushed
@@ -611,8 +609,8 @@ func ReservationPushSignature(ctx context.Context, db *mongo.Database, id schema
 
 // Workload is a wrapper around generated TfgridWorkloadsReservationWorkload1 type
 type Workload struct {
-	generated.ReservationWorkload `bson:",inline"`
-	NodeID                        string `json:"node_id" bson:"node_id"`
+	model.ReservationWorkload `bson:",inline"`
+	NodeID                    string `json:"node_id" bson:"node_id"`
 }
 
 // QueueFilter for workloads in temporary queue
@@ -630,7 +628,7 @@ func (f QueueFilter) Find(ctx context.Context, db *mongo.Database, opts ...*opti
 }
 
 // WorkloadPush pushes a workload to the queue
-func WorkloadPush(ctx context.Context, db *mongo.Database, w ...WorkloaderType) error {
+func WorkloadPush(ctx context.Context, db *mongo.Database, w ...model.Workloader) error {
 	col := db.Collection(queueCollection)
 
 	for _, wl := range w {
@@ -652,32 +650,32 @@ func WorkloadPop(ctx context.Context, db *mongo.Database, id schema.ID) error {
 }
 
 // Result is a wrapper around TfgridWorkloadsReservationResult1 type
-type Result generated.Result
+// type Result model.Result
 
 // Verify that the signature matches the result data
-func (r *Result) Verify(pk string) error {
-	return nil
-	// sig, err := hex.DecodeString(r.Signature)
-	// if err != nil {
-	// 	return errors.Wrap(err, "invalid signature expecting hex encoded")
-	// }
+// func (r *Result) Verify(pk string) error {
+// 	return nil
+// sig, err := hex.DecodeString(r.Signature)
+// if err != nil {
+// 	return errors.Wrap(err, "invalid signature expecting hex encoded")
+// }
 
-	// key, err := crypto.KeyFromID(pkg.StrIdentifier(pk))
-	// if err != nil {
-	// 	return errors.Wrap(err, "invalid verification key")
-	// }
+// key, err := crypto.KeyFromID(pkg.StrIdentifier(pk))
+// if err != nil {
+// 	return errors.Wrap(err, "invalid verification key")
+// }
 
-	// bytes, err := r.encode()
-	// if err != nil {
-	// 	return err
-	// }
+// bytes, err := r.encode()
+// if err != nil {
+// 	return err
+// }
 
-	// return crypto.Verify(key, bytes, sig)
-}
+// return crypto.Verify(key, bytes, sig)
+// }
 
 // ResultPush pushes result to a reservation result array.
 // NOTE: this is just a crud operation, no validation is done here
-func ResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result Result) error {
+func ResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result model.Result) error {
 	col := db.Collection(ReservationCollection)
 	var filter ReservationFilter
 	filter = filter.WithID(id)

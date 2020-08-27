@@ -5,13 +5,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	generated "github.com/threefoldtech/tfexplorer/models/workloads"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
 func Test_countSignatures(t *testing.T) {
 	type args struct {
-		signatures []generated.SigningSignature
-		req        generated.SigningRequest
+		signatures []model.SigningSignature
+		req        model.SigningRequest
 	}
 	tests := []struct {
 		name string
@@ -21,12 +21,12 @@ func Test_countSignatures(t *testing.T) {
 		{
 			name: "included",
 			args: args{
-				signatures: []generated.SigningSignature{
+				signatures: []model.SigningSignature{
 					{
 						Tid: 1,
 					},
 				},
-				req: generated.SigningRequest{
+				req: model.SigningRequest{
 					Signers: []int64{1},
 				},
 			},
@@ -35,12 +35,12 @@ func Test_countSignatures(t *testing.T) {
 		{
 			name: "not_required",
 			args: args{
-				signatures: []generated.SigningSignature{
+				signatures: []model.SigningSignature{
 					{
 						Tid: 1,
 					},
 				},
-				req: generated.SigningRequest{
+				req: model.SigningRequest{
 					Signers: []int64{2},
 				},
 			},
@@ -49,12 +49,12 @@ func Test_countSignatures(t *testing.T) {
 		{
 			name: "multiple",
 			args: args{
-				signatures: []generated.SigningSignature{
+				signatures: []model.SigningSignature{
 					{Tid: 1},
 					{Tid: 2},
 					{Tid: 3},
 				},
-				req: generated.SigningRequest{
+				req: model.SigningRequest{
 					Signers: []int64{1, 3},
 				},
 			},
@@ -63,8 +63,8 @@ func Test_countSignatures(t *testing.T) {
 		{
 			name: "empty",
 			args: args{
-				signatures: []generated.SigningSignature{},
-				req: generated.SigningRequest{
+				signatures: []model.SigningSignature{},
+				req: model.SigningRequest{
 					Signers: []int64{1},
 				},
 			},

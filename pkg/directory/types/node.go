@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
 	"github.com/threefoldtech/tfexplorer/models/directory"
-	generated "github.com/threefoldtech/tfexplorer/models/directory"
+	model "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,7 +23,7 @@ const (
 )
 
 // Node model
-type Node generated.Node
+type Node model.Node
 
 // Validate node
 func (n *Node) Validate() error {
@@ -54,7 +54,7 @@ func (n *Node) Validate() error {
 
 	// Unfortunately, jsx schema does not support nil types
 	// so this is the only way to check if values are not set
-	empty := generated.Location{}
+	empty := model.Location{}
 	if n.Location == empty {
 		return fmt.Errorf("location is required")
 	}
@@ -219,7 +219,7 @@ func NodeCreate(ctx context.Context, db *mongo.Database, node Node) (schema.ID, 
 
 	node.ID = id
 	if node.Proofs == nil {
-		node.Proofs = make([]generated.Proof, 0)
+		node.Proofs = make([]model.Proof, 0)
 	}
 
 	node.Updated = schema.Date{Time: time.Now()}
@@ -244,22 +244,22 @@ func nodeUpdate(ctx context.Context, db *mongo.Database, nodeID string, value in
 }
 
 // NodeUpdateTotalResources sets the node total resources
-func NodeUpdateTotalResources(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+func NodeUpdateTotalResources(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{"total_resources": capacity})
 }
 
 // NodeUpdateReservedResources sets the node reserved resources
-func NodeUpdateReservedResources(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+func NodeUpdateReservedResources(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{"reserved_resources": capacity})
 }
 
 // NodeUpdateUsedResources sets the node total resources
-func NodeUpdateUsedResources(ctx context.Context, db *mongo.Database, nodeID string, capacity generated.ResourceAmount) error {
+func NodeUpdateUsedResources(ctx context.Context, db *mongo.Database, nodeID string, capacity model.ResourceAmount) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{"used_resources": capacity})
 }
 
 // NodeUpdateWorkloadsAmount sets the node reserved resources
-func NodeUpdateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads generated.WorkloadAmount) error {
+func NodeUpdateWorkloadsAmount(ctx context.Context, db *mongo.Database, nodeID string, workloads model.WorkloadAmount) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{"workloads": workloads})
 }
 
@@ -272,14 +272,14 @@ func NodeUpdateUptime(ctx context.Context, db *mongo.Database, nodeID string, up
 }
 
 // NodeSetInterfaces updates node interfaces
-func NodeSetInterfaces(ctx context.Context, db *mongo.Database, nodeID string, ifaces []generated.Iface) error {
+func NodeSetInterfaces(ctx context.Context, db *mongo.Database, nodeID string, ifaces []model.Iface) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{
 		"ifaces": ifaces,
 	})
 }
 
 // NodeSetPublicConfig sets node public config
-func NodeSetPublicConfig(ctx context.Context, db *mongo.Database, nodeID string, cfg generated.PublicIface) error {
+func NodeSetPublicConfig(ctx context.Context, db *mongo.Database, nodeID string, cfg model.PublicIface) error {
 	return nodeUpdate(ctx, db, nodeID, bson.M{
 		"public_config": cfg,
 	})
@@ -300,7 +300,7 @@ func NodeSetWGPorts(ctx context.Context, db *mongo.Database, nodeID string, port
 }
 
 // NodePushProof push proof to node
-func NodePushProof(ctx context.Context, db *mongo.Database, nodeID string, proof generated.Proof) error {
+func NodePushProof(ctx context.Context, db *mongo.Database, nodeID string, proof model.Proof) error {
 	if nodeID == "" {
 		return fmt.Errorf("invalid node id")
 	}

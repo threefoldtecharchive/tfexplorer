@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/directory"
+	model "github.com/threefoldtech/tfexplorer/models/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
@@ -98,10 +98,10 @@ func (s *NodeAPI) listNodes(r *http.Request) (interface{}, mw.Response) {
 
 func (s *NodeAPI) registerCapacity(r *http.Request) (interface{}, mw.Response) {
 	x := struct {
-		Capacity   generated.ResourceAmount `json:"capacity,omitempty"`
-		DMI        dmi.DMI                  `json:"dmi,omitempty"`
-		Disks      capacity.Disks           `json:"disks,omitempty"`
-		Hypervisor []string                 `json:"hypervisor,omitempty"`
+		Capacity   model.ResourceAmount `json:"capacity,omitempty"`
+		DMI        dmi.DMI              `json:"dmi,omitempty"`
+		Disks      capacity.Disks       `json:"disks,omitempty"`
+		Hypervisor []string             `json:"hypervisor,omitempty"`
 	}{}
 
 	defer r.Body.Close()
@@ -134,7 +134,7 @@ func (s *NodeAPI) registerIfaces(r *http.Request) (interface{}, mw.Response) {
 
 	defer r.Body.Close()
 
-	var input []generated.Iface
+	var input []model.Iface
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -154,7 +154,7 @@ func (s *NodeAPI) registerIfaces(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (s *NodeAPI) configurePublic(r *http.Request) (interface{}, mw.Response) {
-	var iface generated.PublicIface
+	var iface model.PublicIface
 
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&iface); err != nil {
@@ -288,8 +288,8 @@ func (s *NodeAPI) updateReservedResources(r *http.Request) (interface{}, mw.Resp
 	}
 
 	input := struct {
-		generated.ResourceAmount
-		generated.WorkloadAmount
+		model.ResourceAmount
+		model.WorkloadAmount
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {

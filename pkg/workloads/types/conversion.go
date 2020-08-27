@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,14 +21,14 @@ var ErrNoConversion = errors.New("no conversion yet")
 
 // ConversionDoc holds some data about a geenrated conversion for a user
 type ConversionDoc struct {
-	User      schema.ID        `bson:"user"`
-	Workloads []WorkloaderType `bson:"workloads"`
-	Converted bool             `bson:"converted"`
-	Timestamp int64            `bson:"timestamp"`
+	User      schema.ID          `bson:"user"`
+	Workloads []model.Workloader `bson:"workloads"`
+	Converted bool               `bson:"converted"`
+	Timestamp int64              `bson:"timestamp"`
 }
 
 // SaveUserConversion saves a conversion for a user
-func SaveUserConversion(ctx context.Context, db *mongo.Database, user schema.ID, workloads []WorkloaderType) error {
+func SaveUserConversion(ctx context.Context, db *mongo.Database, user schema.ID, workloads []model.Workloader) error {
 	cd := ConversionDoc{
 		User:      user,
 		Workloads: workloads,

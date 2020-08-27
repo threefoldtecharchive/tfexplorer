@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/rs/zerolog/log"
-	generated "github.com/threefoldtech/tfexplorer/models/workloads"
+	model "github.com/threefoldtech/tfexplorer/models/workloads"
 )
 
 // Pipeline changes Reservation R as defined by the reservation pipeline
@@ -52,8 +52,8 @@ func (p *Pipeline) checkDeleteSignatures() bool {
 
 // Next gets new modified reservation, and true if the reservation has changed from the input
 func (p *Pipeline) Next() (Reservation, bool) {
-	if p.r.NextAction == generated.NextActionDelete ||
-		p.r.NextAction == generated.NextActionDeleted {
+	if p.r.NextAction == model.NextActionDelete ||
+		p.r.NextAction == model.NextActionDeleted {
 		return p.r, false
 	}
 
@@ -65,13 +65,13 @@ func (p *Pipeline) Next() (Reservation, bool) {
 		// reservation has expired
 		// set its status (next action) to delete
 		slog.Debug().Msg("expired or to be deleted")
-		p.r.NextAction = generated.NextActionDelete
+		p.r.NextAction = model.NextActionDelete
 		return p.r, true
 	}
 
 	// if p.r.DataReservation.ExpirationProvisioning.Before(time.Now()) && !p.r.IsSuccessfullyDeployed() {
 	// 	log.Debug().Msg("provision expiration reached and not fully provisionned")
-	// 	p.r.NextAction = generated.NextActionDelete
+	// 	p.r.NextAction = model.NextActionDelete
 	// 	return p.r, true
 	// }
 
@@ -79,24 +79,24 @@ func (p *Pipeline) Next() (Reservation, bool) {
 	modified := false
 	for {
 		switch p.r.NextAction {
-		case generated.NextActionCreate:
+		case model.NextActionCreate:
 			slog.Debug().Msg("ready to sign")
-			p.r.NextAction = generated.NextActionSign
-		case generated.NextActionSign:
+			p.r.NextAction = model.NextActionSign
+		case model.NextActionSign:
 			// this stage will not change unless all
 			if p.checkProvisionSignatures() {
 				slog.Debug().Msg("ready to pay")
-				p.r.NextAction = generated.NextActionPay
+				p.r.NextAction = model.NextActionPay
 			}
-		case generated.NextActionPay:
+		case model.NextActionPay:
 			// Pay needs to block, until the escrow moves us past this point, but
 			// only in case we are dealing with a deprecated style reservation.
 			// Reservations who's workloads are attached to pools can deploy immediatly.
 			// NOTE: validation of the pools is static, and must happen when the
 			// explorer receives the reservation.
 			slog.Debug().Msg("reservation workloads attached to capacity pools - continue to deploy step")
-			p.r.NextAction = generated.NextActionDeploy
-		case generated.NextActionDeploy:
+			p.r.NextAction = model.NextActionDeploy
+		case model.NextActionDeploy:
 			//nothing to do
 			slog.Debug().Msg("let's deploy")
 		}

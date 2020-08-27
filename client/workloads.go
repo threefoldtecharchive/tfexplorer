@@ -10,7 +10,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	wrklds "github.com/threefoldtech/tfexplorer/pkg/workloads"
-	wrkldstypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -74,7 +73,7 @@ func (w *httpWorkloads) NodeWorkloads(nodeID string, from uint64) ([]workloads.W
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
-	var list []wrkldstypes.WorkloaderType
+	var list []workloads.Workloader
 
 	u := w.url("reservations", "nodes", nodeID, "workloads")
 	if len(query) > 0 {
@@ -98,12 +97,7 @@ func (w *httpWorkloads) NodeWorkloads(nodeID string, from uint64) ([]workloads.W
 		}
 	}
 
-	output := make([]workloads.Workloader, len(list))
-	for i, w := range list {
-		output[i] = w.Workloader
-	}
-
-	return output, lastID, err
+	return list, lastID, err
 }
 
 func (w *httpWorkloads) NodeWorkloadGet(gwid string) (result workloads.Workloader, err error) {
