@@ -21,6 +21,20 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
+type workload struct {
+	State    model.State      `json:"state"`
+	Contract model.Contract   `json:"contract"`
+	Workload model.Workloader `json:"workload"`
+}
+
+func formatWorkload(w model.Workloader) workload {
+	return workload{
+		State:    *w.State(),
+		Contract: *w.Contract(),
+		Workload: w,
+	}
+}
+
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
@@ -145,11 +159,10 @@ func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	reservations := []model.Workloader{}
-
+	ws := []workload{}
 	for cur.Next(r.Context()) {
-		var workload model.Workloader
-		if err := cur.Decode(&workload); err != nil {
+		var w types.WorkloaderCodec
+		if err := cur.Decode(&w); err != nil {
 			// skip reservations we can not load
 			// this is probably an old reservation
 			currentID := cur.Current.Lookup("_id").Int64()
@@ -157,17 +170,17 @@ func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
 			continue
 		}
 
-		workload, err := a.workloadpipeline(workload, nil)
+		workload, err := a.workloadpipeline(w.Workloader, nil)
 		if err != nil {
 			log.Error().Err(err).Int64("id", int64(workload.Contract().ID)).Msg("failed to process reservation")
 			continue
 		}
 
-		reservations = append(reservations, workload)
+		ws = append(ws, formatWorkload(workload))
 	}
 
 	pages := fmt.Sprintf("%d", models.NrPages(total, *pager.Limit))
-	return reservations, mw.Ok().WithHeader("Pages", pages)
+	return ws, mw.Ok().WithHeader("Pages", pages)
 }
 
 func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
@@ -185,17 +198,7 @@ func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	result := struct {
-		State    model.State      `json:"state"`
-		Contract model.Contract   `json:"contract"`
-		Workload model.Workloader `json:"workload"`
-	}{
-		State:    *workload.State(),
-		Contract: *workload.Contract(),
-		Workload: workload,
-	}
-
-	return result, nil
+	return formatWorkload(workload), nil
 }
 
 func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {

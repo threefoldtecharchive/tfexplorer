@@ -70,12 +70,12 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 	defer cur.Close(r.Context())
 
 	for cur.Next(r.Context()) {
-		var workloader model.Workloader
-		if err := cur.Decode(&workloader); err != nil {
+		var w types.WorkloaderCodec
+		if err := cur.Decode(&w); err != nil {
 			return nil, mw.Error(err)
 		}
 
-		workloader, err = a.workloadpipeline(workloader, nil)
+		workloader, err := a.workloadpipeline(w.Workloader, nil)
 		if err != nil {
 			log.Error().Err(err).Int64("id", int64(workloader.Contract().ID)).Msg("failed to process workload")
 			continue
@@ -100,7 +100,11 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 
 	// if we have sufficient data return
 	if len(workloads) >= maxPageSize {
-		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+		result := make([]workload, len(workloads))
+		for i := range workloads {
+			result[i] = formatWorkload(workloads[i])
+		}
+		return result, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 	}
 
 	rfilter := types.ReservationFilter{}.WithIDGE(from)
@@ -143,7 +147,11 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
-	return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+	result := make([]workload, len(workloads))
+	for i := range workloads {
+		result[i] = formatWorkload(workloads[i])
+	}
+	return result, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 }
 
 func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
@@ -191,7 +199,7 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
-	return result, nil
+	return formatWorkload(result), nil
 }
 
 func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
@@ -215,17 +223,7 @@ func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(fmt.Errorf("workload not found"))
 	}
 
-	result := struct {
-		State    model.State      `json:"state"`
-		Contract model.Contract   `json:"contract"`
-		Workload model.Workloader `json:"workload"`
-	}{
-		State:    *workload.State(),
-		Contract: *workload.Contract(),
-		Workload: workload,
-	}
-
-	return result, nil
+	return formatWorkload(workload), nil
 }
 
 func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {

@@ -126,7 +126,6 @@ func UnmarshalBSON(buffer []byte) (Workloader, error) {
 		State    `bson:",inline"`
 	}{}
 
-	fmt.Printf("%s\n", string(buffer))
 	if err := bson.Unmarshal(buffer, &base); err != nil {
 		return nil, errors.Wrap(err, "could not decode workload type")
 	}

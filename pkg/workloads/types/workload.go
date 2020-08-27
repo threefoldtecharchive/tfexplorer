@@ -99,7 +99,7 @@ func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (model.Work
 	if f == nil {
 		f = WorkloadFilter{}
 	}
-	var w workloaderCodec
+	var w WorkloaderCodec
 
 	result := db.Collection(WorkloadCollection).FindOne(ctx, f)
 	if err := result.Err(); err != nil {
@@ -127,7 +127,7 @@ func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*o
 	ws := []model.Workloader{}
 
 	for cursor.Next(ctx) {
-		var w workloaderCodec
+		var w WorkloaderCodec
 		if err = cursor.Decode(&w); err != nil {
 			return nil, errors.Wrap(err, "could not decode workload type")
 		}
@@ -271,49 +271,49 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 	return err
 }
 
-// workloaderCodec is a struc used to encode/decode model.Workloads
-type workloaderCodec struct {
+// WorkloaderCodec is a struc used to encode/decode model.Workloads
+type WorkloaderCodec struct {
 	model.Workloader
 }
 
 // MarshalBSON implements bson.Marshaller
-func (w workloaderCodec) MarshalBSON() ([]byte, error) {
+func (w WorkloaderCodec) MarshalBSON() ([]byte, error) {
 	return bson.Marshal(w.Workloader)
 }
 
 // UnmarshalBSON implements bson.Unmarshaller
-func (w *workloaderCodec) UnmarshalBSON(buf []byte) error {
+func (w *WorkloaderCodec) UnmarshalBSON(buf []byte) error {
 	workload, err := model.UnmarshalBSON(buf)
 	if err != nil {
 		return err
 	}
 
 	if w == nil {
-		w = &workloaderCodec{}
+		w = &WorkloaderCodec{}
 	}
 
-	*w = workloaderCodec{Workloader: workload}
+	*w = WorkloaderCodec{Workloader: workload}
 
 	return nil
 }
 
 // MarshalJSON implements JSON.Marshaller
-func (w workloaderCodec) MarshalJSON() ([]byte, error) {
+func (w WorkloaderCodec) MarshalJSON() ([]byte, error) {
 	return json.Marshal(w.Workloader)
 }
 
 // UnmarshalJSON implements JSON.Unmarshaller
-func (w *workloaderCodec) UnmarshalJSON(buf []byte) error {
+func (w *WorkloaderCodec) UnmarshalJSON(buf []byte) error {
 	workload, err := model.UnmarshalJSON(buf)
 	if err != nil {
 		return err
 	}
 
 	if w == nil {
-		w = &workloaderCodec{}
+		w = &WorkloaderCodec{}
 	}
 
-	*w = workloaderCodec{Workloader: workload}
+	*w = WorkloaderCodec{Workloader: workload}
 
 	return nil
 }
