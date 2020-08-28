@@ -169,6 +169,8 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 	for i := range workloaders {
 		es := expectedWls[i].GetState()
 		ws := workloaders[i].GetState()
+		ec := expectedWls[i].GetContract()
+		wc := workloaders[i].GetContract()
 
 		// customer signature should be the only change
 		es.CustomerSignature = ws.CustomerSignature
@@ -183,8 +185,8 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		ws.SignatureFarmer = workloads.SigningSignature{}
 
 		// truncate time to account for the lost nanosecond precision during json marshalling
-		workloaders[i].GetContract().Epoch = schema.Date{Time: workloaders[i].GetContract().Epoch.Time.Truncate(time.Second)}
-		expectedWls[i].GetContract().Epoch = schema.Date{Time: expectedWls[i].GetContract().Epoch.Time.Truncate(time.Second)}
+		wc.Epoch = schema.Date{Time: wc.Epoch.Time.Truncate(time.Second)}
+		ec.Epoch = schema.Date{Time: ec.Epoch.Time.Truncate(time.Second)}
 
 		// use string representation cause reflect.DeepEqual was impossible to get right
 		expected := fmt.Sprintf("%+v", expectedWls[i])
@@ -199,7 +201,7 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		}
 
 		if err = workloads.Verify(workloaders[i], user.Pubkey, sig); err != nil {
-			return nil, mw.BadRequest(fmt.Errorf("workload %d (%s) signature verification failed: %w", workloaders[i].GetContract().ID, workloaders[i].GetContract().WorkloadType.String(), err))
+			return nil, mw.BadRequest(fmt.Errorf("workload %d (%s) signature verification failed: %w", wc.ID, wc.WorkloadType.String(), err))
 		}
 
 		// set the result back in place to be added into the db
@@ -210,7 +212,8 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 	poolCU := make(map[int64]float64)
 	poolSU := make(map[int64]float64)
 	for _, wl := range workloaders {
-		ss := strings.Split(wl.GetContract().Reference, "-")
+		wc := wl.GetContract()
+		ss := strings.Split(wc.Reference, "-")
 		reservationID, err := a.parseID(ss[0])
 		if err != nil {
 			return nil, mw.Error(err)
@@ -225,9 +228,9 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		}
 		secondsLeft := math.Floor(time.Until(reservation.DataReservation.ExpirationReservation.Time).Seconds())
 		cu, su := capacity.CloudUnitsFromResourceUnits(wl.GetRSU())
-		poolID := wl.GetContract().PoolID
+		poolID := wc.PoolID
 
-		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wl.GetContract().WorkloadType.String())
+		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wc.WorkloadType.String())
 
 		if cu > 0 {
 			poolCU[poolID] = poolCU[poolID] + cu*secondsLeft
