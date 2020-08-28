@@ -73,7 +73,7 @@ func (w *httpWorkloads) NodeWorkloads(nodeID string, from uint64) ([]workloads.W
 	query := url.Values{}
 	query.Set("from", fmt.Sprint(from))
 
-	var list []workloads.Workloader
+	var list []workloads.Codec
 
 	u := w.url("reservations", "nodes", nodeID, "workloads")
 	if len(query) > 0 {
@@ -97,12 +97,17 @@ func (w *httpWorkloads) NodeWorkloads(nodeID string, from uint64) ([]workloads.W
 		}
 	}
 
-	return list, lastID, err
+	ws := make([]workloads.Workloader, len(list))
+	for i := range list {
+		ws[i] = list[i].Workloader
+	}
+
+	return ws, lastID, err
 }
 
 func (w *httpWorkloads) NodeWorkloadGet(gwid string) (result workloads.Workloader, err error) {
 	// var output intermediateWL
-	var output workloads.Workloader
+	var output workloads.Codec
 	_, err = w.get(w.url("reservations", "nodes", "workloads", gwid), nil, &output, http.StatusOK)
 	if err != nil {
 		return

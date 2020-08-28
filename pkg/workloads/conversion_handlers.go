@@ -17,8 +17,8 @@ import (
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
-	phonebooktypes "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	phonebooktypes "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
@@ -70,7 +70,8 @@ func (a *API) getConversionList(r *http.Request) (interface{}, mw.Response) {
 	workloaders = append(workloaders, networks...)
 
 	for _, w := range workloaders {
-		nodeID := w.Contract().NodeID
+		c := w.GetContract()
+		nodeID := c.NodeID
 		farmID, err := farmForNodeID(r.Context(), db, nodeID)
 		if err != nil {
 			return nil, mw.Error(err)
@@ -78,11 +79,11 @@ func (a *API) getConversionList(r *http.Request) (interface{}, mw.Response) {
 		resPerFarm[farmID] = append(resPerFarm[farmID], w)
 
 		// normalize container volumes
-		if w.Contract().WorkloadType == workloads.WorkloadTypeContainer {
+		if c.WorkloadType == workloads.WorkloadTypeContainer {
 			cont := w.(*workloads.Container)
 			for i, vol := range cont.Volumes {
 				if strings.HasPrefix(vol.VolumeId, "-") {
-					cont.Volumes[i].VolumeId = fmt.Sprintf("%d%s", cont.Contract().ID, vol.VolumeId)
+					cont.Volumes[i].VolumeId = fmt.Sprintf("%d%s", cont.GetContract().ID, vol.VolumeId)
 				}
 			}
 		}
@@ -103,7 +104,7 @@ func (a *API) getConversionList(r *http.Request) (interface{}, mw.Response) {
 		// set pool id on the workloads
 		wls := resPerFarm[farmID]
 		for i := range wls {
-			wls[i].Contract().PoolID = int64(pool.ID)
+			wls[i].GetContract().PoolID = int64(pool.ID)
 		}
 		resPerFarm[farmID] = wls
 	}
@@ -129,7 +130,7 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 
 	// load the user. We just pick the first workload to fetch the customer_tid.
 	// This works as all workloads need to be owned by the same user
-	userTid := workloaders[0].Contract().CustomerTid
+	userTid := workloaders[0].GetContract().CustomerTid
 
 	// make sure user id is the id of the user who signed the request. Later on,
 	// we verify that all workloads have the same user, therefore, if this one
@@ -166,21 +167,24 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 
 	emptyResult := workloads.Result{}
 	for i := range workloaders {
+		es := expectedWls[i].GetState()
+		ws := workloaders[i].GetState()
+
 		// customer signature should be the only change
-		expectedWls[i].State().CustomerSignature = workloaders[i].State().CustomerSignature
+		es.CustomerSignature = ws.CustomerSignature
 
 		// we skip the result object when comparing the expected and received workloads
-		savedResult := workloaders[i].State().Result //we save it though so we can put it back before saving into the DB
-		workloaders[i].State().Result = emptyResult
-		expectedWls[i].State().Result = emptyResult
+		savedResult := ws.Result //we save it though so we can put it back before saving into the DB
+		ws.Result = emptyResult
+		es.Result = emptyResult
 
 		// skip signature farmer, it's always empty anyhow
-		expectedWls[i].State().SignatureFarmer = workloads.SigningSignature{}
-		workloaders[i].State().SignatureFarmer = workloads.SigningSignature{}
+		es.SignatureFarmer = workloads.SigningSignature{}
+		ws.SignatureFarmer = workloads.SigningSignature{}
 
 		// truncate time to account for the lost nanosecond precision during json marshalling
-		workloaders[i].Contract().Epoch = schema.Date{Time: workloaders[i].Contract().Epoch.Time.Truncate(time.Second)}
-		expectedWls[i].Contract().Epoch = schema.Date{Time: expectedWls[i].Contract().Epoch.Time.Truncate(time.Second)}
+		workloaders[i].GetContract().Epoch = schema.Date{Time: workloaders[i].GetContract().Epoch.Time.Truncate(time.Second)}
+		expectedWls[i].GetContract().Epoch = schema.Date{Time: expectedWls[i].GetContract().Epoch.Time.Truncate(time.Second)}
 
 		// use string representation cause reflect.DeepEqual was impossible to get right
 		expected := fmt.Sprintf("%+v", expectedWls[i])
@@ -189,24 +193,24 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 			return nil, mw.BadRequest(errors.New("invalid workload"))
 		}
 
-		sig, err := hex.DecodeString(workloaders[i].State().CustomerSignature)
+		sig, err := hex.DecodeString(ws.CustomerSignature)
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
 
 		if err = workloads.Verify(workloaders[i], user.Pubkey, sig); err != nil {
-			return nil, mw.BadRequest(fmt.Errorf("workload %d (%s) signature verification failed: %w", workloaders[i].Contract().ID, workloaders[i].Contract().WorkloadType.String(), err))
+			return nil, mw.BadRequest(fmt.Errorf("workload %d (%s) signature verification failed: %w", workloaders[i].GetContract().ID, workloaders[i].GetContract().WorkloadType.String(), err))
 		}
 
 		// set the result back in place to be added into the db
-		workloaders[i].State().Result = savedResult
+		ws.Result = savedResult
 	}
 
 	// calculate how much to add per pool
 	poolCU := make(map[int64]float64)
 	poolSU := make(map[int64]float64)
 	for _, wl := range workloaders {
-		ss := strings.Split(wl.Contract().Reference, "-")
+		ss := strings.Split(wl.GetContract().Reference, "-")
 		reservationID, err := a.parseID(ss[0])
 		if err != nil {
 			return nil, mw.Error(err)
@@ -221,9 +225,9 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		}
 		secondsLeft := math.Floor(time.Until(reservation.DataReservation.ExpirationReservation.Time).Seconds())
 		cu, su := capacity.CloudUnitsFromResourceUnits(wl.(workloads.Capaciter).GetRSU())
-		poolID := wl.Contract().PoolID
+		poolID := wl.GetContract().PoolID
 
-		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wl.Contract().WorkloadType.String())
+		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wl.GetContract().WorkloadType.String())
 
 		if cu > 0 {
 			poolCU[poolID] = poolCU[poolID] + cu*secondsLeft
@@ -248,18 +252,18 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 
 	// all reservations are as created and have valid signatures
 	for i := range workloaders {
-		workloaders[i].Contract().ID = 0 //force to create a new workload ID
+		workloaders[i].GetContract().ID = 0 //force to create a new workload ID
 		if _, err = types.WorkloadCreate(r.Context(), db, workloaders[i]); err != nil {
 			return nil, mw.Error(err)
 		}
-		if workloaders[i].State().Result.State == workloads.ResultStateOK {
+		if workloaders[i].GetState().Result.State == workloads.ResultStateOK {
 			if err := a.capacityPlanner.AddUsedCapacity(workloaders[i]); err != nil {
 				return nil, mw.Error(err)
 			}
 		}
 
 		// Marked the migrated reservation as migrated so it is never send to the node anymore
-		ss := strings.Split(workloaders[i].Contract().Reference, "-")
+		ss := strings.Split(workloaders[i].GetContract().Reference, "-")
 		rid, err := strconv.Atoi(ss[0])
 		if err != nil {
 			return nil, mw.Error(err)
@@ -315,15 +319,15 @@ func loadWorkloaders(res []types.Reservation) ([]workloads.Workloader, error) {
 	workloaders := make([]workloads.Workloader, 0, len(res))
 	for _, r := range res {
 		for _, w := range r.Workloads("") {
-			if w.Contract().WorkloadType == workloads.WorkloadTypeNetwork ||
-				w.Contract().WorkloadType == workloads.WorkloadTypeNetworkResource {
+			if w.GetContract().WorkloadType == workloads.WorkloadTypeNetwork ||
+				w.GetContract().WorkloadType == workloads.WorkloadTypeNetworkResource {
 				continue
 			}
 
-			if w.State().Result.State != workloads.ResultStateOK {
+			if w.GetState().Result.State != workloads.ResultStateOK {
 				continue
 			}
-			w.Contract().Reference = fmt.Sprintf("%d-%d", r.ID, w.Contract().WorkloadID)
+			w.GetContract().Reference = fmt.Sprintf("%d-%d", r.ID, w.GetContract().WorkloadID)
 			workloaders = append(workloaders, w)
 		}
 	}
@@ -350,19 +354,22 @@ func loadNetworks(res []types.Reservation) ([]workloads.Workloader, error) {
 			networkResources := network.ToNetworkResources()
 			for i := range networkResources {
 				nr := networkResources[i]
-				nr.Contract().CustomerTid = r.CustomerTid
-				nr.State().NextAction = r.NextAction
-				nr.Contract().ID = r.ID
-				nr.Contract().Epoch = r.Epoch
-				nr.Contract().Metadata = r.Metadata
-				nr.Contract().Reference = fmt.Sprintf("%d-%d", r.ID, network.WorkloadID())
-				nr.Contract().Description = r.DataReservation.Description
-				nr.Contract().SigningRequestDelete = r.DataReservation.SigningRequestDelete
-				nr.Contract().SigningRequestProvision = r.DataReservation.SigningRequestProvision
+				c := nr.GetContract()
+				s := nr.GetState()
+
+				c.CustomerTid = r.CustomerTid
+				s.NextAction = r.NextAction
+				c.ID = r.ID
+				c.Epoch = r.Epoch
+				c.Metadata = r.Metadata
+				c.Reference = fmt.Sprintf("%d-%d", r.ID, network.WorkloadID())
+				c.Description = r.DataReservation.Description
+				c.SigningRequestDelete = r.DataReservation.SigningRequestDelete
+				c.SigningRequestProvision = r.DataReservation.SigningRequestProvision
 				workloaders = append(workloaders, &nr)
 				for _, result := range r.Results {
-					if result.NodeId == nr.Contract().NodeID {
-						nr.State().Result = result
+					if result.NodeId == c.NodeID {
+						s.Result = result
 					}
 				}
 			}

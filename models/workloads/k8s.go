@@ -10,8 +10,7 @@ var _ Workloader = (*K8S)(nil)
 var _ Capaciter = (*K8S)(nil)
 
 type K8S struct {
-	contract Contract
-	state    State
+	ITContract
 
 	Size            int64             `bson:"size" json:"size"`
 	ClusterSecret   string            `bson:"cluster_secret" json:"cluster_secret"`
@@ -21,12 +20,6 @@ type K8S struct {
 	SshKeys         []string          `bson:"ssh_keys" json:"ssh_keys"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 }
-
-// Contract implements the Workloader interface
-func (k *K8S) Contract() *Contract { return &k.contract }
-
-// State implements the Workloader interface
-func (k *K8S) State() *State { return &k.state }
 
 // GetRSU implements the Capaciter interface
 func (k *K8S) GetRSU() RSU {
@@ -48,7 +41,7 @@ func (k *K8S) GetRSU() RSU {
 }
 
 func (k *K8S) SignatureChallenge() ([]byte, error) {
-	ric, err := k.contract.SignatureChallenge()
+	ric, err := k.GetContract().SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}

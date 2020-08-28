@@ -120,7 +120,7 @@ func (n *NetworkBuilder) WithIPRange(ipRange schema.IPRange) *NetworkBuilder {
 // forceHidden will set no public endpoints to the node
 func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceHidden bool) (*NetworkBuilder, error) {
 	for _, nr := range n.NetResources {
-		if nr.NodeId == nodeID {
+		if nr.GetContract().NodeID == nodeID {
 			return nil, fmt.Errorf("node %s is already part of this network", nodeID)
 		}
 	}
@@ -175,8 +175,10 @@ func (n *NetworkBuilder) AddNode(nodeID string, subnet string, port uint, forceH
 
 	nr := NetResource{
 		NetworkResource: workloads.NetworkResource{
-			ReservationInfo: workloads.ReservationInfo{
-				NodeId: nodeID,
+			ITContract: workloads.ITContract{
+				Contract: workloads.Contract{
+					NodeID: nodeID,
+				},
 			},
 			Iprange:                      schema.IPRange{IPNet: ipnet.IPNet},
 			WireguardListenPort:          int64(port),
@@ -205,7 +207,7 @@ func (n *NetworkBuilder) AddAccess(nodeID string, subnet schema.IPRange, wgPubKe
 	var nodeExists bool
 	var node NetResource
 	for _, nr := range n.NetResources {
-		if nr.NodeId == nodeID {
+		if nr.GetContract().NodeID== nodeID {
 			node = nr
 			nodeExists = true
 			break
@@ -278,7 +280,7 @@ func (n *NetworkBuilder) AddAccess(nodeID string, subnet schema.IPRange, wgPubKe
 // RemoveNode removes a node
 func (n *NetworkBuilder) RemoveNode(schema string, nodeID string) error {
 	for i, nr := range n.NetResources {
-		if nr.NodeId == nodeID {
+		if nr.GetContract().NodeID == nodeID {
 			n.NetResources = append(n.NetResources[:i], n.NetResources[i+1:]...)
 			break
 		}
@@ -293,7 +295,7 @@ func (n *NetworkBuilder) RemoveNode(schema string, nodeID string) error {
 
 func (n *NetworkBuilder) setPubEndpoints() error {
 	for i := range n.NetResources {
-		pep, err := n.getEndPointAddrs(pkg.StrIdentifier(n.NetResources[i].NodeId))
+		pep, err := n.getEndPointAddrs(pkg.StrIdentifier(n.NetResources[i].GetContract().NodeID))
 		if err != nil {
 			return err
 		}
@@ -382,7 +384,7 @@ func (n *NetworkBuilder) generatePeers() error {
 	if hasHiddenNodes {
 		for _, nr := range n.NetResources {
 			if hasIPv4(nr) {
-				pubNr = nr.NodeId
+				pubNr = nr.GetContract().NodeID
 				break
 			}
 		}
@@ -401,7 +403,7 @@ func (n *NetworkBuilder) generatePeers() error {
 	// Map the network subnets to their respective node ids first for easy access later
 	internalSubnets := make(map[string]schema.IPRange)
 	for _, nr := range n.NetResources {
-		internalSubnets[nr.NodeId] = nr.Iprange
+		internalSubnets[nr.GetContract().NodeID] = nr.Iprange
 	}
 
 	externalSubnets := make(map[string][]schema.IPRange) // go does not like `types.IPNet` as key
@@ -424,11 +426,11 @@ func (n *NetworkBuilder) generatePeers() error {
 	ipv6OnlySubnets := make(map[string]schema.IPRange)
 	for _, nr := range n.NetResources {
 		if len(nr.PubEndpoints) == 0 {
-			hiddenSubnets[nr.NodeId] = nr.Iprange
+			hiddenSubnets[nr.GetContract().NodeID] = nr.Iprange
 			continue
 		}
 		if !hasIPv4(nr) {
-			ipv6OnlySubnets[nr.NodeId] = nr.Iprange
+			ipv6OnlySubnets[nr.GetContract().NodeID] = nr.Iprange
 		}
 	}
 
@@ -439,7 +441,7 @@ func (n *NetworkBuilder) generatePeers() error {
 		nr := &n.NetResources[i]
 		nr.Peers = []workloads.WireguardPeer{}
 		for _, onr := range n.NetResources {
-			if nr.NodeId == onr.NodeId {
+			if nr.GetContract().NodeID == onr.GetContract().NodeID {
 				continue
 			}
 
@@ -457,10 +459,10 @@ func (n *NetworkBuilder) generatePeers() error {
 				}
 
 				// Also add all other subnets if this is the pub node
-				if onr.NodeId == pubNr {
+				if onr.GetContract().NodeID == pubNr {
 					for owner, subnet := range hiddenSubnets {
 						// Do not add our own subnet
-						if owner == nr.NodeId {
+						if owner == nr.GetContract().NodeID {
 							continue
 						}
 
@@ -497,7 +499,7 @@ func (n *NetworkBuilder) generatePeers() error {
 
 				// if this is the selected pubNr - also need to add allowedIPs
 				// for the hidden nodes
-				if onr.NodeId == pubNr {
+				if onr.GetContract().NodeID == pubNr {
 					for _, subnet := range hiddenSubnets {
 						allowedIPs = append(allowedIPs, subnet)
 						allowedIPs = append(allowedIPs, *wgIP(&schema.IPRange{IPNet: subnet.IPNet}))
@@ -541,7 +543,7 @@ func (n *NetworkBuilder) generatePeers() error {
 		}
 
 		// Add configured external access peers
-		for _, ea := range accessPoints[nr.NodeId] {
+		for _, ea := range accessPoints[nr.GetContract().NodeID] {
 			allowedIPs := make([]schema.IPRange, 2)
 			allowedIPs[0] = schema.IPRange{IPNet: ea.Subnet.IPNet}
 			allowedIPs[1] = *wgIP(&schema.IPRange{IPNet: ea.Subnet.IPNet})
@@ -617,7 +619,7 @@ func (n *NetworkBuilder) NetworkGraph(w io.Writer) error {
 	graph := dot.NewGraph(dot.Directed)
 
 	for _, nr := range n.NetResources {
-		node := graph.Node(strings.Join([]string{nr.NodeId, nr.Iprange.String()}, "\n")).Box()
+		node := graph.Node(strings.Join([]string{nr.GetContract().NodeID, nr.Iprange.String()}, "\n")).Box()
 		// set special style for "hidden" nodes
 		if len(nr.PubEndpoints) == 0 {
 			node.Attr("style", "dashed")
@@ -625,7 +627,7 @@ func (n *NetworkBuilder) NetworkGraph(w io.Writer) error {
 			graph.AddToSameRank("hidden nodes", node)
 		}
 		nodes[nr.WireguardPublicKey] = node
-		nodesByID[nr.NodeId] = node
+		nodesByID[nr.GetContract().NodeID] = node
 	}
 
 	// add external access
@@ -746,7 +748,7 @@ func (n *NetworkBuilder) extractAccessPoints() {
 			if _, exists := actualNodes[peer.PublicKey]; !exists {
 				// peer is not a node so it must be external
 				aps = append(aps, AccessPoint{
-					NodeID:      nr.NodeId,
+					NodeID:      nr.GetContract().NodeID,
 					Subnet:      peer.Iprange,
 					WGPublicKey: peer.PublicKey,
 					// we can't infer if we use IPv6 or IPv4

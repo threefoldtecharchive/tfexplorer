@@ -1,6 +1,7 @@
 package provision
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 
@@ -50,7 +51,7 @@ func (r *ReservationClient) DryRun(workload workloads.Workloader) (workloads.Wor
 		return nil, errors.Wrap(err, "could not load signer")
 	}
 
-	workload.SetCustomerTid(userID)
+	workload.GetContract().CustomerTid = userID
 
 	msg, err := workload.SignatureChallenge()
 	if err != nil {
@@ -62,7 +63,7 @@ func (r *ReservationClient) DryRun(workload workloads.Workloader) (workloads.Wor
 		return nil, errors.Wrap(err, "failed to sign the reservation")
 	}
 
-	workload.SetCustomerSignature(signature)
+	workload.GetState().CustomerSignature = signature
 
 	return workload, nil
 }
@@ -115,9 +116,9 @@ func (r *ReservationClient) DryRunCapacity(reservation types.Reservation, curren
 func (r *ReservationClient) DeleteReservation(resID int64) error {
 	userID := int64(r.userID.ThreebotID)
 
-	reservation, err := r.explorer.Workloads.Get(schema.ID(resID))
+	workload, err := r.explorer.Workloads.Get(schema.ID(resID))
 	if err != nil {
-		return errors.Wrap(err, "failed to get reservation info")
+		return errors.Wrap(err, "failed to get workload info")
 	}
 
 	signer, err := client.NewSigner(r.userID.Key().PrivateKey.Seed())
@@ -125,7 +126,14 @@ func (r *ReservationClient) DeleteReservation(resID int64) error {
 		return errors.Wrapf(err, "failed to load signer")
 	}
 
-	_, signature, err := signer.SignHex(resID, reservation.GetJson())
+	msg, err := workload.SignatureChallenge()
+	if err != nil {
+		return errors.Wrap(err, "failed to encode the workload to generate the signature")
+	}
+
+	hash := sha256.Sum256(msg)
+
+	_, signature, err := signer.SignHex(resID, hash)
 	if err != nil {
 		return errors.Wrap(err, "failed to sign the reservation")
 	}

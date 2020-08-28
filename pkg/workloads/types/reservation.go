@@ -237,7 +237,7 @@ func (r *Reservation) Validate() error {
 	}
 
 	for _, w := range workloaders {
-		workloadID := w.Contract().WorkloadID
+		workloadID := w.GetContract().WorkloadID
 		if _, ok := ids[workloadID]; ok {
 			return fmt.Errorf("conflicting workload ID '%d'", workloadID)
 		}
@@ -311,7 +311,7 @@ func (r *Reservation) AllDeleted() bool {
 
 	// check if all workloads have been deleted.
 	for _, wl := range r.Workloads("") {
-		result := r.ResultOf(wl.Contract().UniqueWorkloadID())
+		result := r.ResultOf(wl.GetContract().UniqueWorkloadID())
 		if result == nil ||
 			result.State != model.ResultStateDeleted {
 			return false
@@ -328,115 +328,127 @@ func (r *Reservation) Workloads(nodeID string) []model.Workloader {
 	data := &r.DataReservation
 
 	newWrkl := func(w workloads.Workloader, workloadID int64, r *Reservation) model.Workloader {
-		w.Contract().CustomerTid = r.CustomerTid
-		w.State().NextAction = r.NextAction
-		w.Contract().Description = r.DataReservation.Description
-		w.Contract().Epoch = r.Epoch
-		w.Contract().ID = r.ID
-		w.Contract().Metadata = r.Metadata
+		c := w.GetContract()
+		s := w.GetState()
+		c.CustomerTid = r.CustomerTid
+		s.NextAction = r.NextAction
+		c.Description = r.DataReservation.Description
+		c.Epoch = r.Epoch
+		c.ID = r.ID
+		c.Metadata = r.Metadata
 		result := r.ResultOf(fmt.Sprintf("%d-%d", r.ID, workloadID))
 		if result != nil {
-			w.State().Result = workloads.Result(*result)
+			s.Result = workloads.Result(*result)
 		}
-		w.Contract().SigningRequestProvision = r.DataReservation.SigningRequestProvision
-		w.Contract().SigningRequestDelete = r.DataReservation.SigningRequestDelete
+		c.SigningRequestProvision = r.DataReservation.SigningRequestProvision
+		c.SigningRequestDelete = r.DataReservation.SigningRequestDelete
 		return w
 	}
 
 	var wrklds []model.Workloader
 	for i := range data.Containers {
 		wl := data.Containers[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeContainer
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeContainer
+		wrklds = append(wrklds, newWrkl(&wl, c.WorkloadID, r))
 	}
 
 	for i := range data.Volumes {
 		wl := data.Volumes[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeVolume
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeVolume
+		wrklds = append(wrklds, newWrkl(&wl, c.WorkloadID, r))
 	}
 	for i := range data.Zdbs {
 		wl := data.Zdbs[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeZDB
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeZDB
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.Kubernetes {
 		wl := data.Kubernetes[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeKubernetes
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeKubernetes
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.Proxies {
 		wl := data.Proxies[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeProxy
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeProxy
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.ReverseProxy {
 		wl := data.ReverseProxy[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeReverseProxy
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeReverseProxy
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.Subdomains {
 		wl := data.Subdomains[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeSubDomain
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeSubDomain
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.DomainDelegates {
 		wl := data.DomainDelegates[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeDomainDelegate
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeDomainDelegate
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.Gateway4To6s {
 		wl := data.Gateway4To6s[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeGateway4To6
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeGateway4To6
+		wrklds = append(wrklds, newWrkl(&wl, wl.GetContract().WorkloadID, r))
 	}
 	for i := range data.Networks {
 		wl := data.Networks[i]
 		networkResources := wl.ToNetworkResources()
 		for i := range networkResources {
 			nr := networkResources[i]
-			if len(nodeID) > 0 && nr.Contract().NodeID != nodeID {
+			if len(nodeID) > 0 && nr.GetContract().NodeID != nodeID {
 				continue
 			}
 
-			nr.Contract().WorkloadType = model.WorkloadTypeNetworkResource
+			nr.GetContract().WorkloadType = model.WorkloadTypeNetworkResource
 			wrklds = append(wrklds, newWrkl(&nr, wl.WorkloadId, r))
 		}
 	}
 	for i := range data.NetworkResources {
 		wl := data.NetworkResources[i]
-		if len(nodeID) > 0 && wl.Contract().NodeID != nodeID {
+		c := wl.GetContract()
+		if len(nodeID) > 0 && c.NodeID != nodeID {
 			continue
 		}
-		wl.Contract().WorkloadType = model.WorkloadTypeNetworkResource
-		wrklds = append(wrklds, newWrkl(&wl, wl.Contract().WorkloadID, r))
+		c.WorkloadType = model.WorkloadTypeNetworkResource
+		wrklds = append(wrklds, newWrkl(&wl, c.WorkloadID, r))
 	}
 
 	return wrklds
@@ -462,7 +474,7 @@ func (r *Reservation) IsSuccessfullyDeployed() bool {
 func (r *Reservation) NodeIDs() []string {
 	ids := make(map[string]struct{})
 	for _, w := range r.DataReservation.Containers {
-		ids[w.Contract().NodeID] = struct{}{}
+		ids[w.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Networks {
@@ -472,19 +484,19 @@ func (r *Reservation) NodeIDs() []string {
 	}
 
 	for _, w := range r.DataReservation.NetworkResources {
-		ids[w.Contract().NodeID] = struct{}{}
+		ids[w.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Zdbs {
-		ids[w.Contract().NodeID] = struct{}{}
+		ids[w.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Volumes {
-		ids[w.Contract().NodeID] = struct{}{}
+		ids[w.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, w := range r.DataReservation.Kubernetes {
-		ids[w.Contract().NodeID] = struct{}{}
+		ids[w.GetContract().NodeID] = struct{}{}
 	}
 
 	nodeIDs := make([]string, 0, len(ids))
@@ -499,23 +511,23 @@ func (r *Reservation) GatewayIDs() []string {
 	ids := make(map[string]struct{})
 
 	for _, p := range r.DataReservation.Proxies {
-		ids[p.Contract().NodeID] = struct{}{}
+		ids[p.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.ReverseProxy {
-		ids[p.Contract().NodeID] = struct{}{}
+		ids[p.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.Subdomains {
-		ids[p.Contract().NodeID] = struct{}{}
+		ids[p.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.DomainDelegates {
-		ids[p.Contract().NodeID] = struct{}{}
+		ids[p.GetContract().NodeID] = struct{}{}
 	}
 
 	for _, p := range r.DataReservation.Gateway4To6s {
-		ids[p.Contract().NodeID] = struct{}{}
+		ids[p.GetContract().NodeID] = struct{}{}
 	}
 
 	gwIDs := make([]string, 0, len(ids))
@@ -632,7 +644,7 @@ func WorkloadPush(ctx context.Context, db *mongo.Database, w ...model.Workloader
 	col := db.Collection(queueCollection)
 
 	for _, wl := range w {
-		_, err := col.UpdateOne(ctx, bson.M{"_id": wl.Contract().ID}, bson.M{"$set": wl}, options.Update().SetUpsert(true))
+		_, err := col.UpdateOne(ctx, bson.M{"_id": wl.GetContract().ID}, bson.M{"$set": wl}, options.Update().SetUpsert(true))
 		if err != nil {
 			return errors.Wrap(err, "could not upsert workload")
 		}

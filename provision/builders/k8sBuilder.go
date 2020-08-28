@@ -19,10 +19,12 @@ type K8sBuilder struct {
 func NewK8sBuilder(nodeID, networkID, secret string, size int64, IP net.IP) *K8sBuilder {
 	return &K8sBuilder{
 		K8S: workloads.K8S{
-			ReservationInfo: workloads.ReservationInfo{
-				WorkloadId:   1,
-				NodeId:       nodeID,
-				WorkloadType: workloads.WorkloadTypeKubernetes,
+			ITContract: workloads.ITContract{
+				Contract: workloads.Contract{
+					WorkloadID:   1,
+					NodeID:       nodeID,
+					WorkloadType: workloads.WorkloadTypeKubernetes,
+				},
 			},
 			NetworkId:     networkID,
 			Ipaddress:     IP,
@@ -55,13 +57,13 @@ func (k8s *K8sBuilder) Save(writer io.Writer) error {
 
 // Build returns the kubernetes
 func (k8s *K8sBuilder) Build() workloads.K8S {
-	k8s.Epoch = schema.Date{Time: time.Now()}
+	k8s.GetContract().Epoch = schema.Date{Time: time.Now()}
 	return k8s.K8S
 }
 
 // WithNodeID sets the node ID to the K8S
 func (k8s *K8sBuilder) WithNodeID(nodeID string) *K8sBuilder {
-	k8s.K8S.NodeId = nodeID
+	k8s.K8S.GetContract().NodeID = nodeID
 	return k8s
 }
 
@@ -109,6 +111,6 @@ func (k8s *K8sBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregat
 
 // WithPoolID sets the poolID to the k8s
 func (k8s *K8sBuilder) WithPoolID(poolID int64) *K8sBuilder {
-	k8s.PoolId = poolID
+	k8s.GetContract().PoolID = poolID
 	return k8s
 }

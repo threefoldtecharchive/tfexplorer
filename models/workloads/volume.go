@@ -9,18 +9,11 @@ var _ Workloader = (*Volume)(nil)
 var _ Capaciter = (*Volume)(nil)
 
 type Volume struct {
-	contract Contract
-	state    State
+	ITContract
 
 	Size int64          `bson:"size" json:"size"`
 	Type VolumeTypeEnum `bson:"type" json:"type"`
 }
-
-// Contract implements the Workloader interface
-func (v *Volume) Contract() *Contract { return &v.contract }
-
-// State implements the Workloader interface
-func (v *Volume) State() *State { return &v.state }
 
 // GetRSU implements the Capaciter interface
 func (v *Volume) GetRSU() RSU {
@@ -38,7 +31,7 @@ func (v *Volume) GetRSU() RSU {
 }
 
 func (v *Volume) SignatureChallenge() ([]byte, error) {
-	ric, err := v.contract.SignatureChallenge()
+	ric, err := v.GetContract().SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}

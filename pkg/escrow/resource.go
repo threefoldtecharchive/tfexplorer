@@ -129,19 +129,19 @@ func (e Stellar) calculateCapacityReservationCost(CUs, SUs uint64, farmID int64)
 func (e Stellar) processReservationResources(resData workloads.ReservationData) (rsuPerFarmer, error) {
 	rsuPerNodeMap := make(rsuPerNode)
 	for _, cont := range resData.Containers {
-		nodeID := cont.Contract().NodeID
+		nodeID := cont.GetContract().NodeID
 		rsuPerNodeMap[nodeID] = rsuPerNodeMap[nodeID].add(processContainer(cont))
 	}
 	for _, vol := range resData.Volumes {
-		nodeID := vol.Contract().NodeID
+		nodeID := vol.GetContract().NodeID
 		rsuPerNodeMap[nodeID] = rsuPerNodeMap[nodeID].add(processVolume(vol))
 	}
 	for _, zdb := range resData.Zdbs {
-		nodeID := zdb.Contract().NodeID
+		nodeID := zdb.GetContract().NodeID
 		rsuPerNodeMap[nodeID] = rsuPerNodeMap[nodeID].add(processZdb(zdb))
 	}
 	for _, k8s := range resData.Kubernetes {
-		nodeID := k8s.Contract().NodeID
+		nodeID := k8s.GetContract().NodeID
 		rsuPerNodeMap[nodeID] = rsuPerNodeMap[nodeID].add(processKubernetes(k8s))
 	}
 	rsuPerFarmerMap := make(rsuPerFarmer)

@@ -9,23 +9,25 @@ import (
 
 //validateReservation that the workload reservation is valid
 func validateReservation(w workloads.Workloader) error {
-	if w.Contract().CustomerTid == 0 {
+	c := w.GetContract()
+	s := w.GetState()
+	if c.CustomerTid == 0 {
 		return fmt.Errorf("customer_tid is required")
 	}
 
-	if len(w.State().CustomerSignature) == 0 {
+	if len(s.CustomerSignature) == 0 {
 		return fmt.Errorf("customer_signature is required")
 	}
 
-	if len(w.Contract().Metadata) > 1024 {
+	if len(c.Metadata) > 1024 {
 		return fmt.Errorf("metadata can not be bigger than 1024 bytes")
 	}
 
-	if w.Contract().PoolID == 0 {
+	if c.PoolID == 0 {
 		return errors.New("pool is required")
 	}
 
-	if w.Contract().Reference != "" {
+	if c.Reference != "" {
 		return errors.New("reference is illegal for new workloads")
 	}
 

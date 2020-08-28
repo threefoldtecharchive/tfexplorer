@@ -90,9 +90,9 @@ func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id 
 }
 
 func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w workloads.Workloader) (workloads.Workloader, error) {
-	w.State().NextAction = types.Delete
+	w.GetState().NextAction = types.Delete
 
-	if err := types.ReservationSetNextAction(ctx, db, w.Contract().ID, types.Delete); err != nil {
+	if err := types.ReservationSetNextAction(ctx, db, w.GetContract().ID, types.Delete); err != nil {
 		return w, errors.Wrap(err, "could not update workload to delete state")
 	}
 

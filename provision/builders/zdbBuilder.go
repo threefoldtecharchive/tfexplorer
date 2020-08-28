@@ -21,10 +21,12 @@ type ZDBBuilder struct {
 func NewZdbBuilder(nodeID string, size int64, mode workloads.ZDBModeEnum, diskType workloads.DiskTypeEnum) *ZDBBuilder {
 	return &ZDBBuilder{
 		ZDB: workloads.ZDB{
-			ReservationInfo: workloads.ReservationInfo{
-				WorkloadId:   1,
-				NodeId:       nodeID,
-				WorkloadType: workloads.WorkloadTypeZDB,
+			ITContract: workloads.ITContract{
+				Contract: workloads.Contract{
+					WorkloadID:   1,
+					NodeID:       nodeID,
+					WorkloadType: workloads.WorkloadTypeZDB,
+				},
 			},
 			Size:     size,
 			Mode:     mode,
@@ -56,20 +58,20 @@ func (z *ZDBBuilder) Save(writer io.Writer) error {
 
 // Build validates and encrypts the zdb secret
 func (z *ZDBBuilder) Build() (workloads.ZDB, error) {
-	encrypted, err := encryptSecret(z.ZDB.Password, z.ZDB.NodeId)
+	encrypted, err := encryptSecret(z.ZDB.Password, z.ZDB.GetContract().NodeID)
 	if err != nil {
 		return workloads.ZDB{}, err
 	}
 
 	z.ZDB.Password = encrypted
-	z.Epoch = schema.Date{Time: time.Now()}
+	z.GetContract().Epoch = schema.Date{Time: time.Now()}
 
 	return z.ZDB, nil
 }
 
 // WithNodeID sets the node ID to the zdb
 func (z *ZDBBuilder) WithNodeID(nodeID string) *ZDBBuilder {
-	z.ZDB.NodeId = nodeID
+	z.ZDB.GetContract().NodeID = nodeID
 	return z
 }
 
@@ -111,7 +113,7 @@ func (z *ZDBBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator
 
 // WithPoolID sets the poolID to the zdb
 func (z *ZDBBuilder) WithPoolID(poolID int64) *ZDBBuilder {
-	z.ZDB.PoolId = poolID
+	z.ZDB.GetContract().PoolID = poolID
 	return z
 }
 

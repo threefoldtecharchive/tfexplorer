@@ -13,8 +13,7 @@ var _ Workloader = (*Container)(nil)
 var _ Capaciter = (*Container)(nil)
 
 type Container struct {
-	contract Contract
-	state    State
+	ITContract
 
 	Flist             string              `bson:"flist" json:"flist"`
 	HubUrl            string              `bson:"hub_url" json:"hub_url"`
@@ -29,19 +28,13 @@ type Container struct {
 	Capacity          ContainerCapacity   `bson:"capcity" json:"capacity"`
 }
 
-// Contract implements the Workloader interface
-func (c *Container) Contract() *Contract { return &c.contract }
-
-// State implements the Workloader interface
-func (c *Container) State() *State { return &c.state }
-
 // GetRSU implements the Capaciter interface
 func (c *Container) GetRSU() RSU {
 	return c.Capacity.GetRSU()
 }
 
 func (c *Container) SignatureChallenge() ([]byte, error) {
-	ric, err := c.contract.SignatureChallenge()
+	ric, err := c.GetContract().SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}

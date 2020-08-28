@@ -18,10 +18,12 @@ type VolumeBuilder struct {
 func NewVolumeBuilder(nodeID string, size int64, volumeType workloads.VolumeTypeEnum) *VolumeBuilder {
 	return &VolumeBuilder{
 		Volume: workloads.Volume{
-			ReservationInfo: workloads.ReservationInfo{
-				WorkloadId:   1,
-				NodeId:       nodeID,
-				WorkloadType: workloads.WorkloadTypeVolume,
+			ITContract: workloads.ITContract{
+				Contract: workloads.Contract{
+					WorkloadID:   1,
+					NodeID:       nodeID,
+					WorkloadType: workloads.WorkloadTypeVolume,
+				},
 			},
 			Size: size,
 			Type: volumeType,
@@ -52,13 +54,13 @@ func (v *VolumeBuilder) Save(writer io.Writer) error {
 
 // Build returns the volume
 func (v *VolumeBuilder) Build() workloads.Volume {
-	v.Epoch = schema.Date{Time: time.Now()}
+	v.GetContract().Epoch = schema.Date{Time: time.Now()}
 	return v.Volume
 }
 
 // WithNodeID sets the node ID to the volume
 func (v *VolumeBuilder) WithNodeID(nodeID string) *VolumeBuilder {
-	v.Volume.NodeId = nodeID
+	v.Volume.GetContract().NodeID = nodeID
 	return v
 }
 
@@ -76,6 +78,6 @@ func (v *VolumeBuilder) WithType(diskType workloads.VolumeTypeEnum) *VolumeBuild
 
 // WithPoolID sets the poolID to the volume
 func (v *VolumeBuilder) WithPoolID(poolID int64) *VolumeBuilder {
-	v.Volume.PoolId = poolID
+	v.Volume.GetContract().PoolID = poolID
 	return v
 }

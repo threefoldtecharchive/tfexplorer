@@ -2,13 +2,12 @@ package types
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
-	model "github.com/threefoldtech/tfexplorer/models/workloads"
+	"github.com/threefoldtech/tfexplorer/models/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -36,7 +35,7 @@ func ApplyQueryFilterWorkload(r *http.Request, filter WorkloadFilter) (WorkloadF
 		if err != nil {
 			return nil, errors.Wrap(err, "next_action should be an integer")
 		}
-		filter = filter.WithNextAction(model.NextActionEnum(nextAction))
+		filter = filter.WithNextAction(workloads.NextActionEnum(nextAction))
 	}
 	return filter, nil
 }
@@ -57,7 +56,7 @@ func (f WorkloadFilter) WithIDGE(id schema.ID) WorkloadFilter {
 }
 
 // WithNextAction filter workloads with next action
-func (f WorkloadFilter) WithNextAction(action model.NextActionEnum) WorkloadFilter {
+func (f WorkloadFilter) WithNextAction(action workloads.NextActionEnum) WorkloadFilter {
 	return append(f, bson.E{
 		Key: "next_action", Value: action,
 	})
@@ -95,11 +94,11 @@ func (f WorkloadFilter) Or(o WorkloadFilter) WorkloadFilter {
 }
 
 // Get gets single workload that matches the filter
-func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (model.Workloader, error) {
+func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (workloads.Workloader, error) {
 	if f == nil {
 		f = WorkloadFilter{}
 	}
-	var w WorkloaderCodec
+	var w workloads.Codec
 
 	result := db.Collection(WorkloadCollection).FindOne(ctx, f)
 	if err := result.Err(); err != nil {
@@ -114,7 +113,7 @@ func (f WorkloadFilter) Get(ctx context.Context, db *mongo.Database) (model.Work
 }
 
 // Find all users workloads matches filter
-func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) ([]model.Workloader, error) {
+func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) ([]workloads.Workloader, error) {
 	if f == nil {
 		f = WorkloadFilter{}
 	}
@@ -124,10 +123,10 @@ func (f WorkloadFilter) Find(ctx context.Context, db *mongo.Database, opts ...*o
 		return nil, errors.Wrap(err, "failed to get workload cursor")
 	}
 
-	ws := []model.Workloader{}
+	ws := []workloads.Workloader{}
 
 	for cursor.Next(ctx) {
-		var w WorkloaderCodec
+		var w workloads.Codec
 		if err = cursor.Decode(&w); err != nil {
 			return nil, errors.Wrap(err, "could not decode workload type")
 		}
@@ -168,9 +167,9 @@ func (f WorkloadFilter) WithPoolID(poolID int64) WorkloadFilter {
 // WorkloadCreate save new workload to database.
 // NOTE: use reservations only that are returned from calling Pipeline.Next()
 // no validation is done here, this is just a CRUD operation
-func WorkloadCreate(ctx context.Context, db *mongo.Database, w model.Workloader) (schema.ID, error) {
+func WorkloadCreate(ctx context.Context, db *mongo.Database, w workloads.Workloader) (schema.ID, error) {
 	id := models.MustID(ctx, db, ReservationCollection)
-	w.Contract().ID = id
+	w.GetContract().ID = id
 
 	_, err := db.Collection(WorkloadCollection).InsertOne(ctx, w)
 	if err != nil {
@@ -186,7 +185,7 @@ func WorkloadsLastID(ctx context.Context, db *mongo.Database) (schema.ID, error)
 }
 
 // WorkloadSetNextAction update the workload next action in db
-func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action model.NextActionEnum) error {
+func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID, action workloads.NextActionEnum) error {
 	var filter WorkloadFilter
 	filter = filter.WithID(id)
 
@@ -206,9 +205,9 @@ func WorkloadSetNextAction(ctx context.Context, db *mongo.Database, id schema.ID
 
 // WorkloadToDeploy marks a workload to deploy and schedule it for the nodes
 // it's a short cut to SetNextAction then PushWorkloads
-func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w model.Workloader) error {
+func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w workloads.Workloader) error {
 	// update workload
-	if err := WorkloadSetNextAction(ctx, db, w.Contract().ID, Deploy); err != nil {
+	if err := WorkloadSetNextAction(ctx, db, w.GetContract().ID, Deploy); err != nil {
 		return errors.Wrap(err, "failed to set workload to DEPLOY state")
 	}
 
@@ -221,7 +220,7 @@ func WorkloadToDeploy(ctx context.Context, db *mongo.Database, w model.Workloade
 }
 
 //WorkloadPushSignature push signature to workload
-func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature model.SigningSignature) error {
+func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID, mode SignatureMode, signature workloads.SigningSignature) error {
 	// this function just push the signature to the reservation array
 	// there are not other checks involved here. So before calling this function
 	// we need to ensure the signature has the rights to be pushed
@@ -238,7 +237,7 @@ func WorkloadPushSignature(ctx context.Context, db *mongo.Database, id schema.ID
 }
 
 // WorkloadTypePush pushes a workload to the queue
-func WorkloadTypePush(ctx context.Context, db *mongo.Database, w model.Workloader) error {
+func WorkloadTypePush(ctx context.Context, db *mongo.Database, w workloads.Workloader) error {
 	col := db.Collection(queueCollection)
 	_, err := col.InsertOne(ctx, w)
 
@@ -255,7 +254,7 @@ func WorkloadTypePop(ctx context.Context, db *mongo.Database, id string, nodeID 
 
 // WorkloadResultPush pushes result to a reservation result array.
 // NOTE: this is just a crud operation, no validation is done here
-func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result model.Result) error {
+func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, result workloads.Result) error {
 	col := db.Collection(WorkloadCollection)
 	var filter WorkloadFilter
 	filter = filter.WithID(id)
@@ -269,51 +268,4 @@ func WorkloadResultPush(ctx context.Context, db *mongo.Database, id schema.ID, r
 	)
 
 	return err
-}
-
-// WorkloaderCodec is a struc used to encode/decode model.Workloads
-type WorkloaderCodec struct {
-	model.Workloader
-}
-
-// MarshalBSON implements bson.Marshaller
-func (w WorkloaderCodec) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(w.Workloader)
-}
-
-// UnmarshalBSON implements bson.Unmarshaller
-func (w *WorkloaderCodec) UnmarshalBSON(buf []byte) error {
-	workload, err := model.UnmarshalBSON(buf)
-	if err != nil {
-		return err
-	}
-
-	if w == nil {
-		w = &WorkloaderCodec{}
-	}
-
-	*w = WorkloaderCodec{Workloader: workload}
-
-	return nil
-}
-
-// MarshalJSON implements JSON.Marshaller
-func (w WorkloaderCodec) MarshalJSON() ([]byte, error) {
-	return json.Marshal(w.Workloader)
-}
-
-// UnmarshalJSON implements JSON.Unmarshaller
-func (w *WorkloaderCodec) UnmarshalJSON(buf []byte) error {
-	workload, err := model.UnmarshalJSON(buf)
-	if err != nil {
-		return err
-	}
-
-	if w == nil {
-		w = &WorkloaderCodec{}
-	}
-
-	*w = WorkloaderCodec{Workloader: workload}
-
-	return nil
 }

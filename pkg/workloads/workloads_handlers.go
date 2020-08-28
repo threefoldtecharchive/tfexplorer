@@ -21,20 +21,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/schema"
 )
 
-type workload struct {
-	State    model.State      `json:"state"`
-	Contract model.Contract   `json:"contract"`
-	Workload model.Workloader `json:"workload"`
-}
-
-func formatWorkload(w model.Workloader) workload {
-	return workload{
-		State:    *w.State(),
-		Contract: *w.Contract(),
-		Workload: w,
-	}
-}
-
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
@@ -48,8 +34,10 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
 	// in later stages
-	*(workload.State()) = model.NewState()
-	workload.Contract().ID = schema.ID(0)
+	contract := workload.GetContract()
+	state := workload.GetState()
+	*state = model.NewState()
+	contract.ID = schema.ID(0)
 
 	if err := validateReservation(workload); err != nil {
 		return nil, mw.BadRequest(err)
@@ -62,20 +50,20 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	if workload.State().IsAny(types.Invalid, types.Delete) {
-		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.State().NextAction.String()))
+	if state.IsAny(types.Invalid, types.Delete) {
+		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", state.NextAction.String()))
 	}
 
 	db := mw.Database(r)
 
 	var filter phonebook.UserFilter
-	filter = filter.WithID(schema.ID(workload.Contract().CustomerTid))
+	filter = filter.WithID(schema.ID(contract.CustomerTid))
 	user, err := filter.Get(r.Context(), db)
 	if err != nil {
-		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", workload.Contract().CustomerTid))
+		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find user with id '%d'", contract.CustomerTid))
 	}
 
-	signature, err := hex.DecodeString(workload.State().CustomerSignature)
+	signature, err := hex.DecodeString(state.CustomerSignature)
 	if err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "invalid signature format, expecting hex encoded string"))
 	}
@@ -84,7 +72,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
 	}
 
-	workload.Contract().Epoch = schema.Date{Time: time.Now()}
+	contract.Epoch = schema.Date{Time: time.Now()}
 
 	allowed, err := a.capacityPlanner.IsAllowed(workload)
 	if err != nil {
@@ -114,7 +102,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	allowed, err = a.capacityPlanner.HasCapacity(workload, minCapacitySeconds)
 	if err != nil {
 		if errors.Is(err, capacitytypes.ErrPoolNotFound) {
-			log.Error().Err(err).Int64("poolID", workload.Contract().PoolID).Msg("pool disappeared")
+			log.Error().Err(err).Int64("poolID", contract.PoolID).Msg("pool disappeared")
 			return nil, mw.Error(errors.New("pool does not exist"))
 		}
 		log.Error().Err(err).Msg("failed to load workload capacity pool")
@@ -159,9 +147,9 @@ func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	ws := []workload{}
+	ws := []model.Workloader{}
 	for cur.Next(r.Context()) {
-		var w types.WorkloaderCodec
+		var w model.Codec
 		if err := cur.Decode(&w); err != nil {
 			// skip reservations we can not load
 			// this is probably an old reservation
@@ -172,11 +160,11 @@ func (a *API) listWorkload(r *http.Request) (interface{}, mw.Response) {
 
 		workload, err := a.workloadpipeline(w.Workloader, nil)
 		if err != nil {
-			log.Error().Err(err).Int64("id", int64(workload.Contract().ID)).Msg("failed to process reservation")
+			log.Error().Err(err).Int64("id", int64(workload.GetContract().ID)).Msg("failed to process reservation")
 			continue
 		}
 
-		ws = append(ws, formatWorkload(workload))
+		ws = append(ws, workload)
 	}
 
 	pages := fmt.Sprintf("%d", models.NrPages(total, *pager.Limit))
@@ -198,7 +186,7 @@ func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	return formatWorkload(workload), nil
+	return workload, nil
 }
 
 func (a *API) signProvision(r *http.Request) (interface{}, mw.Response) {
@@ -290,11 +278,14 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	if workload.State().NextAction != model.NextActionSign {
+	s := workload.GetState()
+	c := workload.GetContract()
+
+	if s.NextAction != model.NextActionSign {
 		return nil, mw.UnAuthorized(fmt.Errorf("workload not expecting signatures"))
 	}
 
-	if httpErr := userCanSign(signature.Tid, workload.Contract().SigningRequestProvision, workload.State().SignaturesProvision); httpErr != nil {
+	if httpErr := userCanSign(signature.Tid, c.SigningRequestProvision, s.SignaturesProvision); httpErr != nil {
 		return nil, httpErr
 	}
 
@@ -317,7 +308,7 @@ func (a *API) newSignProvision(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if workload.State().NextAction == model.NextActionDeploy {
+	if s.NextAction == model.NextActionDeploy {
 		if err = types.WorkloadPush(r.Context(), db, workload); err != nil {
 			return nil, mw.Error(err)
 		}
@@ -419,7 +410,9 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	if httpErr := userCanSign(signature.Tid, workload.Contract().SigningRequestDelete, workload.State().SignaturesDelete); httpErr != nil {
+	c := workload.GetContract()
+
+	if httpErr := userCanSign(signature.Tid, c.SigningRequestDelete, workload.GetState().SignaturesDelete); httpErr != nil {
 		return nil, httpErr
 	}
 
@@ -442,7 +435,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if workload.State().NextAction != model.NextActionDelete {
+	if workload.GetState().NextAction != model.NextActionDelete {
 		return nil, mw.Created()
 	}
 

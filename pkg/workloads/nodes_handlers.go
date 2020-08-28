@@ -70,24 +70,25 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 	defer cur.Close(r.Context())
 
 	for cur.Next(r.Context()) {
-		var w types.WorkloaderCodec
+		var w model.Codec
 		if err := cur.Decode(&w); err != nil {
 			return nil, mw.Error(err)
 		}
 
 		workloader, err := a.workloadpipeline(w.Workloader, nil)
 		if err != nil {
-			log.Error().Err(err).Int64("id", int64(workloader.Contract().ID)).Msg("failed to process workload")
+			log.Error().Err(err).Int64("id", int64(workloader.GetContract().ID)).Msg("failed to process workload")
 			continue
 		}
 
-		if workloader.State().NextAction == types.Delete {
-			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.Contract().ID, model.NextActionDelete); err != nil {
+		s := workloader.GetState()
+		if s.NextAction == types.Delete {
+			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.GetContract().ID, model.NextActionDelete); err != nil {
 				return nil, mw.Error(err)
 			}
 		}
 
-		if !workloader.State().IsAny(types.Deploy, types.Delete) {
+		if !s.IsAny(types.Deploy, types.Delete) {
 			continue
 		}
 
@@ -100,11 +101,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 
 	// if we have sufficient data return
 	if len(workloads) >= maxPageSize {
-		result := make([]workload, len(workloads))
-		for i := range workloads {
-			result[i] = formatWorkload(workloads[i])
-		}
-		return result, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 	}
 
 	rfilter := types.ReservationFilter{}.WithIDGE(from)
@@ -147,11 +144,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
-	result := make([]workload, len(workloads))
-	for i := range workloads {
-		result[i] = formatWorkload(workloads[i])
-	}
-	return result, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+	return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 }
 
 func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
@@ -176,7 +169,7 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	var workload model.Workloader
 	var found bool
 	for _, wl := range workloads {
-		if wl.Contract().UniqueWorkloadID() == gwid {
+		if wl.GetContract().UniqueWorkloadID() == gwid {
 			workload = wl
 			found = true
 			break
@@ -193,13 +186,13 @@ func (a *API) workloadGet(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	for _, rs := range reservation.Results {
-		if rs.WorkloadId == workload.Contract().UniqueWorkloadID() {
+		if rs.WorkloadId == workload.GetContract().UniqueWorkloadID() {
 			result.Result = rs
 			break
 		}
 	}
 
-	return formatWorkload(result), nil
+	return result, nil
 }
 
 func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
@@ -219,11 +212,11 @@ func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.NotFound(err)
 	}
 
-	if workload.Contract().UniqueWorkloadID() != gwid {
+	if workload.GetContract().UniqueWorkloadID() != gwid {
 		return nil, mw.NotFound(fmt.Errorf("workload not found"))
 	}
 
-	return formatWorkload(workload), nil
+	return workload, nil
 }
 
 func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
@@ -263,7 +256,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 
 	var found bool
 	for _, wl := range workloads {
-		if wl.Contract().UniqueWorkloadID() == gwid {
+		if wl.GetContract().UniqueWorkloadID() == gwid {
 			found = true
 			break
 		}
@@ -315,7 +308,7 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 		return nil, mw.NotFound(err)
 	}
 
-	if workload.Contract().UniqueWorkloadID() != gwid {
+	if workload.GetContract().UniqueWorkloadID() != gwid {
 		return nil, mw.NotFound(errors.New("workload id does not exist"))
 	}
 
@@ -378,7 +371,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 
 	var found bool
 	for _, wl := range workloads {
-		if wl.Contract().UniqueWorkloadID() == gwid {
+		if wl.GetContract().UniqueWorkloadID() == gwid {
 			found = true
 			break
 		}
@@ -439,20 +432,23 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		return nil, mw.NotFound(err)
 	}
 
-	if workload.Contract().UniqueWorkloadID() != gwid {
+	c := workload.GetContract()
+	s := workload.GetState()
+
+	if c.UniqueWorkloadID() != gwid {
 		return nil, mw.NotFound(errors.New("workload not found"))
 	}
 
-	if workload.State().Result.WorkloadId == "" {
+	if s.Result.WorkloadId == "" {
 		// no result for this work load
 		// QUESTION: should we still mark the result as deleted?
-		workload.State().Result = model.Result{
+		s.Result = model.Result{
 			WorkloadId: gwid,
 			Epoch:      schema.Date{Time: time.Now()},
 		}
 	}
 
-	workload.State().Result.State = model.ResultStateDeleted
+	s.Result.State = model.ResultStateDeleted
 
 	// remove capacity from pool
 	if err := a.capacityPlanner.RemoveUsedCapacity(workload); err != nil {
@@ -460,7 +456,7 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadResultPush(ctx, db, wid, workload.State().Result); err != nil {
+	if err := types.WorkloadResultPush(ctx, db, wid, s.Result); err != nil {
 		return nil, mw.Error(err)
 	}
 
@@ -468,7 +464,7 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 		return nil, mw.Error(err)
 	}
 
-	if err := types.WorkloadSetNextAction(ctx, db, workload.Contract().ID, model.NextActionDeleted); err != nil {
+	if err := types.WorkloadSetNextAction(ctx, db, c.ID, model.NextActionDeleted); err != nil {
 		return nil, mw.Error(err)
 	}
 

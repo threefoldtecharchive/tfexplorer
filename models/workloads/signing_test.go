@@ -19,16 +19,18 @@ func TestVolumeSigningChalenge(t *testing.T) {
 	require.NoError(t, err)
 
 	v := &Volume{
-		ReservationInfo: ReservationInfo{
-			CustomerTid:  1,
-			ID:           1,
-			WorkloadId:   1,
-			PoolId:       1,
-			Description:  "this is a volume",
-			Metadata:     "this is metadata",
-			Epoch:        schema.Date{Time: time.Now()},
-			WorkloadType: WorkloadTypeVolume,
-			NodeId:       "node1",
+		ITContract: ITContract{
+			Contract: Contract{
+				CustomerTid:  1,
+				ID:           1,
+				WorkloadID:   1,
+				PoolID:       1,
+				Description:  "this is a volume",
+				Metadata:     "this is metadata",
+				Epoch:        schema.Date{Time: time.Now()},
+				WorkloadType: WorkloadTypeVolume,
+				NodeID:       "node1",
+			},
 		},
 		Size: 1,
 		Type: VolumeTypeSSD,
@@ -44,7 +46,7 @@ func TestVolumeSigningChalenge(t *testing.T) {
 	err = crypto.Verify(kp.PublicKey, msg[:], signature)
 	assert.NoError(t, err)
 
-	v.NodeId = "node2"
+	v.ITContract.Contract.NodeID = "node2"
 	sc, err = v.SignatureChallenge()
 	require.NoError(t, err)
 
@@ -59,16 +61,18 @@ func TestContainerSigningChalenge(t *testing.T) {
 	require.NoError(t, err)
 
 	v := &Container{
-		ReservationInfo: ReservationInfo{
-			CustomerTid:  1,
-			ID:           1,
-			WorkloadId:   1,
-			PoolId:       1,
-			Description:  "this is a volume",
-			Metadata:     "this is metadata",
-			Epoch:        schema.Date{Time: time.Now()},
-			WorkloadType: WorkloadTypeVolume,
-			NodeId:       "node1",
+		ITContract: ITContract{
+			Contract: Contract{
+				CustomerTid:  1,
+				ID:           1,
+				WorkloadID:   1,
+				PoolID:       1,
+				Description:  "this is a volume",
+				Metadata:     "this is metadata",
+				Epoch:        schema.Date{Time: time.Now()},
+				WorkloadType: WorkloadTypeVolume,
+				NodeID:       "node1",
+			},
 		},
 		Flist:      "https://flist.com",
 		Entrypoint: "/sbin/my_init",
@@ -106,7 +110,7 @@ func TestContainerSigningChalenge(t *testing.T) {
 	err = crypto.Verify(kp.PublicKey, msg[:], signature)
 	assert.NoError(t, err)
 
-	v.NodeId = "node2"
+	v.ITContract.Contract.NodeID = "node2"
 	sc, err = v.SignatureChallenge()
 	require.NoError(t, err)
 	msg = sha256.Sum256(sc)

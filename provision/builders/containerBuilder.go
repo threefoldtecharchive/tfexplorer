@@ -20,10 +20,12 @@ type ContainerBuilder struct {
 func NewContainerBuilder(nodeID, flist string, network []workloads.NetworkConnection) *ContainerBuilder {
 	return &ContainerBuilder{
 		Container: workloads.Container{
-			ReservationInfo: workloads.ReservationInfo{
-				WorkloadId:   1,
-				NodeId:       nodeID,
-				WorkloadType: workloads.WorkloadTypeContainer,
+			ITContract: workloads.ITContract{
+				Contract: workloads.Contract{
+					WorkloadID:   1,
+					NodeID:       nodeID,
+					WorkloadType: workloads.WorkloadTypeContainer,
+				},
 			},
 			Flist:             flist,
 			HubUrl:            "zdb://hub.grid.tf:9900",
@@ -68,21 +70,21 @@ func (c *ContainerBuilder) Build() (workloads.Container, error) {
 	}
 
 	for k, value := range c.Container.Environment {
-		secret, err := encryptSecret(value, c.Container.NodeId)
+		secret, err := encryptSecret(value, c.Container.GetContract().NodeID)
 		if err != nil {
 			return workloads.Container{}, errors.Wrapf(err, "failed to encrypt env with key '%s'", k)
 		}
 		c.Container.SecretEnvironment[k] = secret
 	}
 	c.Container.Environment = make(map[string]string)
-	c.Epoch = schema.Date{Time: time.Now()}
+	c.GetContract().Epoch = schema.Date{Time: time.Now()}
 
 	return c.Container, nil
 }
 
 // WithNodeID sets the node ID to the container
 func (c *ContainerBuilder) WithNodeID(nodeID string) *ContainerBuilder {
-	c.Container.NodeId = nodeID
+	c.Container.GetContract().NodeID = nodeID
 	return c
 }
 
@@ -154,6 +156,6 @@ func (c *ContainerBuilder) WithContainerCapacity(cap workloads.ContainerCapacity
 
 // WithPoolID sets the poolID to the container
 func (c *ContainerBuilder) WithPoolID(poolID int64) *ContainerBuilder {
-	c.Container.PoolId = poolID
+	c.Container.GetContract().PoolID = poolID
 	return c
 }
