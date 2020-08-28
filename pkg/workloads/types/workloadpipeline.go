@@ -53,8 +53,7 @@ func (p *WorkloadPipeline) checkDeleteSignatures() bool {
 // Next gets new modified reservation, and true if the reservation has changed from the input
 func (p *WorkloadPipeline) Next() (model.Workloader, bool) {
 	state := p.w.GetState()
-	if state.NextAction == model.NextActionDelete ||
-		state.NextAction == model.NextActionDeleted {
+	if state.IsAny(model.NextActionDelete, model.NextActionDeleted) {
 		return p.w, false
 	}
 
