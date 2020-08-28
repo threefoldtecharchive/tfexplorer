@@ -485,11 +485,11 @@ func (a *API) queued(ctx context.Context, db *mongo.Database, nodeID string, lim
 	defer cur.Close(ctx)
 
 	for cur.Next(ctx) {
-		var wl model.Workloader
-		if err := cur.Decode(&wl); err != nil {
+		var c model.Codec
+		if err := cur.Decode(&c); err != nil {
 			return nil, err
 		}
-		workloads = append(workloads, wl)
+		workloads = append(workloads, c.Workloader)
 	}
 
 	return workloads, nil

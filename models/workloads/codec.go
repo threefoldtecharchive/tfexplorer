@@ -136,42 +136,52 @@ func UnmarshalBSON(buffer []byte) (Workloader, error) {
 	case WorkloadTypeContainer:
 		var c Container
 		c.ITContract = itc
+		err = bson.Unmarshal(buffer, &c)
 		workload = &c
 	case WorkloadTypeDomainDelegate:
 		var g GatewayDelegate
 		g.ITContract = itc
+		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeGateway4To6:
 		var g Gateway4To6
 		g.ITContract = itc
+		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeKubernetes:
 		var k K8S
 		k.ITContract = itc
+		err = bson.Unmarshal(buffer, &k)
 		workload = &k
 	case WorkloadTypeNetworkResource:
 		var n NetworkResource
 		n.ITContract = itc
+		err = bson.Unmarshal(buffer, &n)
 		workload = &n
 	case WorkloadTypeProxy:
 		var g GatewayProxy
 		g.ITContract = itc
+		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeReverseProxy:
 		var g GatewayReverseProxy
 		g.ITContract = itc
+		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeSubDomain:
 		var g GatewaySubdomain
 		g.ITContract = itc
+		err = bson.Unmarshal(buffer, &g)
 		workload = &g
 	case WorkloadTypeVolume:
 		var v Volume
 		v.ITContract = itc
+		err = bson.Unmarshal(buffer, &v)
 		workload = &v
 	case WorkloadTypeZDB:
 		var z ZDB
 		z.ITContract = itc
+		err = bson.Unmarshal(buffer, &z)
 		workload = &z
 	default:
 		return nil, errors.New("unrecognized workload type")

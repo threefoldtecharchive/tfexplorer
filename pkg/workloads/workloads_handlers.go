@@ -24,12 +24,11 @@ import (
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
-	bodyBuf := bytes.NewBuffer(nil)
-	bodyBuf.ReadFrom(r.Body)
-	workload, err := model.UnmarshalJSON(bodyBuf.Bytes())
-	if err != nil {
+	var codec model.Codec
+	if err := json.NewDecoder(r.Body).Decode(&codec); err != nil {
 		return nil, mw.BadRequest(err)
 	}
+	workload := codec.Workloader
 
 	// we make sure those arrays are initialized correctly
 	// this will make updating the document in place much easier
