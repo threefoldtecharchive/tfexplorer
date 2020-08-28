@@ -1188,29 +1188,39 @@
                   "type": "array",
                   "items": {
                     "oneOf": [
-                      "$ref",
-                      "#components/schemas/ContainerWorkload",
-                      "$ref",
-                      "#components/schemas/GatewayProxyWorkload",
-                      "$ref",
-                      "#components/schemas/GatewayReverseProxyWorkload",
-                      "$ref",
-                      "#components/schemas/GatewaySubdomainWorkload",
-                      "$ref",
-                      "#components/schemas/GatewayDelegateWorkload",
-                      "$ref",
-                      "#components/schemas/Gateway4To6Workload",
-                      "$ref",
-                      "#components/schemas/K8SWorkload",
-                      "$ref",
-                      "#components/schemas/NetworkResourceWorkload",
-                      "$ref",
-                      "#components/schemas/VolumeWorkload",
-                      "$ref",
-                      "#components/schemas/ZdbWorkload"
+                      {
+                        "$ref": "#/components/schemas/Container"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Proxy"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ReverseProxy"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SubDomain"
+                      },
+                      {
+                        "$ref": "#/components/schemas/DomainDelegate"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Gateway4To6"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Kubernetes"
+                      },
+                      {
+                        "$ref": "#/components/schemas/NetworkResource"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Volume"
+                      },
+                      {
+                        "$ref": "#/components/schemas/Zdb"
+                      }
                     ],
                     "discriminator": {
-                      "propertyName": "workload_type"
+                      "propertyName": "contract/workload_type"
                     }
                   }
                 }
@@ -1223,8 +1233,8 @@
         "tags": [
           "workloads"
         ],
-        "summary": "Create a workload",
-        "description": "Create a new workload",
+        "summary": "Deploy a workload on node",
+        "description": "deploy a workload",
         "operationId": "createworkload",
         "requestBody": {
           "content": {
@@ -1232,38 +1242,38 @@
               "schema": {
                 "oneOf": [
                   {
-                    "$ref": "#/components/schemas/ContainerWorkload"
+                    "$ref": "#/components/schemas/Container"
                   },
                   {
-                    "$ref": "#/components/schemas/GatewayProxyWorkload"
+                    "$ref": "#/components/schemas/Proxy"
                   },
                   {
-                    "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                    "$ref": "#/components/schemas/ReverseProxy"
                   },
                   {
-                    "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                    "$ref": "#/components/schemas/SubDomain"
                   },
                   {
-                    "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                    "$ref": "#/components/schemas/DomainDelegate"
                   },
                   {
-                    "$ref": "#/components/schemas/Gateway4To6Workload"
+                    "$ref": "#/components/schemas/Gateway4To6"
                   },
                   {
-                    "$ref": "#/components/schemas/K8SWorkload"
+                    "$ref": "#/components/schemas/Kubernetes"
                   },
                   {
-                    "$ref": "#/components/schemas/NetworkResourceWorkload"
+                    "$ref": "#/components/schemas/NetworkResource"
                   },
                   {
-                    "$ref": "#/components/schemas/VolumeWorkload"
+                    "$ref": "#/components/schemas/Volume"
                   },
                   {
-                    "$ref": "#/components/schemas/ZdbWorkload"
+                    "$ref": "#/components/schemas/Zdb"
                   }
                 ],
                 "discriminator": {
-                  "propertyName": "workload_type"
+                  "propertyName": "contract/workload_type"
                 }
               }
             }
@@ -1316,38 +1326,38 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/ContainerWorkload"
+                      "$ref": "#/components/schemas/Container"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewayProxyWorkload"
+                      "$ref": "#/components/schemas/Proxy"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                      "$ref": "#/components/schemas/ReverseProxy"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                      "$ref": "#/components/schemas/SubDomain"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                      "$ref": "#/components/schemas/DomainDelegate"
                     },
                     {
-                      "$ref": "#/components/schemas/Gateway4To6Workload"
+                      "$ref": "#/components/schemas/Gateway4To6"
                     },
                     {
-                      "$ref": "#/components/schemas/K8SWorkload"
+                      "$ref": "#/components/schemas/Kubernetes"
                     },
                     {
-                      "$ref": "#/components/schemas/NetworkResourceWorkload"
+                      "$ref": "#/components/schemas/NetworkResource"
                     },
                     {
-                      "$ref": "#/components/schemas/VolumeWorkload"
+                      "$ref": "#/components/schemas/Volume"
                     },
                     {
-                      "$ref": "#/components/schemas/ZdbWorkload"
+                      "$ref": "#/components/schemas/Zdb"
                     }
                   ],
                   "discriminator": {
-                    "propertyName": "workload_type"
+                    "propertyName": "contract/workload_type"
                   }
                 }
               }
@@ -1445,7 +1455,7 @@
         "operationId": "getconversion",
         "responses": {
           "200": {
-            "description": "list of workloadsto sign",
+            "description": "list of workloads to sign",
             "content": {
               "application/json": {
                 "schema": {
@@ -1453,38 +1463,38 @@
                   "items": {
                     "oneOf": [
                       {
-                        "$ref": "#/components/schemas/ContainerWorkload"
+                        "$ref": "#/components/schemas/Container"
                       },
                       {
-                        "$ref": "#/components/schemas/GatewayProxyWorkload"
+                        "$ref": "#/components/schemas/Proxy"
                       },
                       {
-                        "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                        "$ref": "#/components/schemas/ReverseProxy"
                       },
                       {
-                        "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                        "$ref": "#/components/schemas/SubDomain"
                       },
                       {
-                        "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                        "$ref": "#/components/schemas/DomainDelegate"
                       },
                       {
-                        "$ref": "#/components/schemas/Gateway4To6Workload"
+                        "$ref": "#/components/schemas/Gateway4To6"
                       },
                       {
-                        "$ref": "#/components/schemas/K8SWorkload"
+                        "$ref": "#/components/schemas/Kubernetes"
                       },
                       {
-                        "$ref": "#/components/schemas/NetworkResourceWorkload"
+                        "$ref": "#/components/schemas/NetworkResource"
                       },
                       {
-                        "$ref": "#/components/schemas/VolumeWorkload"
+                        "$ref": "#/components/schemas/Volume"
                       },
                       {
-                        "$ref": "#/components/schemas/ZdbWorkload"
+                        "$ref": "#/components/schemas/Zdb"
                       }
                     ],
                     "discriminator": {
-                      "propertyName": "workload_type"
+                      "propertyName": "contract/workload_type"
                     }
                   }
                 }
@@ -1507,38 +1517,38 @@
                 "items": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/ContainerWorkload"
+                      "$ref": "#/components/schemas/Container"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewayProxyWorkload"
+                      "$ref": "#/components/schemas/Proxy"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+                      "$ref": "#/components/schemas/ReverseProxy"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+                      "$ref": "#/components/schemas/SubDomain"
                     },
                     {
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
+                      "$ref": "#/components/schemas/DomainDelegate"
                     },
                     {
-                      "$ref": "#/components/schemas/Gateway4To6Workload"
+                      "$ref": "#/components/schemas/Gateway4To6"
                     },
                     {
-                      "$ref": "#/components/schemas/K8SWorkload"
+                      "$ref": "#/components/schemas/Kubernetes"
                     },
                     {
-                      "$ref": "#/components/schemas/NetworkResourceWorkload"
+                      "$ref": "#/components/schemas/NetworkResource"
                     },
                     {
-                      "$ref": "#/components/schemas/VolumeWorkload"
+                      "$ref": "#/components/schemas/Volume"
                     },
                     {
-                      "$ref": "#/components/schemas/ZdbWorkload"
+                      "$ref": "#/components/schemas/Zdb"
                     }
                   ],
                   "discriminator": {
-                    "propertyName": "workload_type"
+                    "propertyName": "contract/workload_type"
                   }
                 }
               }
@@ -1733,7 +1743,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "k8s_vm": {
+          "Kubernetes_vm": {
             "type": "integer",
             "format": "int64"
           },
@@ -2129,6 +2139,12 @@
       "Gateway4To6": {
         "type": "object",
         "properties": {
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
+          },
           "id": {
             "type": "integer"
           },
@@ -2146,14 +2162,11 @@
       "SubDomain": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "domain": {
             "type": "string"
@@ -2169,31 +2182,48 @@
       "DomainDelegate": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "domain": {
             "type": "string"
           }
         }
       },
+      "Proxy": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
+          },
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "port_tls": {
+            "type": "integer"
+          }
+        }
+      },
       "ReverseProxy": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "domain": {
             "type": "string"
@@ -2206,11 +2236,11 @@
       "Kubernetes": {
         "type": "object",
         "properties": {
-          "workload_id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "size": {
             "type": "integer"
@@ -2276,11 +2306,11 @@
       "Zdb": {
         "type": "object",
         "properties": {
-          "workload_id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "size": {
             "type": "integer"
@@ -2311,11 +2341,11 @@
       "Volume": {
         "type": "object",
         "properties": {
-          "workload_id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "size": {
             "type": "integer"
@@ -2328,20 +2358,17 @@
             "items": {
               "$ref": "#/components/schemas/StatsAggregator"
             }
-          },
-          "farmer_tid": {
-            "type": "integer"
           }
         }
       },
       "Container": {
         "type": "object",
         "properties": {
-          "workload_id": {
-            "type": "integer"
+          "state": {
+            "$ref": "#/components/schemas/ITContractState"
           },
-          "node_id": {
-            "type": "string"
+          "contract": {
+            "$ref": "#/components/schemas/ITContractContract"
           },
           "flist": {
             "type": "string"
@@ -2382,9 +2409,6 @@
               "$ref": "#/components/schemas/Logs"
             }
           },
-          "farmer_tid": {
-            "type": "integer"
-          },
           "capacity": {
             "$ref": "#/components/schemas/Capacity"
           }
@@ -2394,6 +2418,35 @@
         "type": "object",
         "properties": {
           "node_id": {
+            "type": "string"
+          },
+          "wireguard_private_key_encrypted": {
+            "type": "string"
+          },
+          "wireguard_public_key": {
+            "type": "string"
+          },
+          "wireguard_listen_port": {
+            "type": "integer"
+          },
+          "iprange": {
+            "type": "string"
+          },
+          "peers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireguardPeer"
+            }
+          }
+        }
+      },
+      "NetworkResource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "network_iprange": {
             "type": "string"
           },
           "wireguard_private_key_encrypted": {
@@ -2493,6 +2546,9 @@
             "type": "string"
           },
           "public_ip6": {
+            "type": "boolean"
+          },
+          "yggdrasil_ip": {
             "type": "boolean"
           }
         }
@@ -2797,30 +2853,9 @@
           }
         }
       },
-      "WorkloadBase": {
+      "ITContractState": {
         "type": "object",
         "properties": {
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "pool_id": {
-            "type": "integer"
-          },
-          "reference": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "signing_request_provision": {
-            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
-          },
-          "signing_request_delete": {
-            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
-          },
           "next_action": {
             "type": "integer"
           },
@@ -2839,304 +2874,54 @@
               "$ref": "#/components/schemas/SigningSignature"
             }
           },
+          "customer_signature": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ReservationResult"
+          }
+        }
+      },
+      "ITContractContract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "pool_id": {
+            "type": "integer"
+          },
+          "customer_tid": {
+            "type": "integer"
+          },
+          "signing_request_provision": {
+            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
+          },
+          "signing_request_delete": {
+            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
           "epoch": {
             "type": "integer"
           },
           "metadata": {
             "type": "string"
           },
-          "result": {
-            "$ref": "#/components/schemas/ReservationResult"
-          },
           "workload_type": {
             "type": "integer"
           }
         }
-      },
-      "ContainerWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "flist": {
-                "type": "string"
-              },
-              "hub_url": {
-                "type": "string"
-              },
-              "environment": {
-                "$ref": "#/components/schemas/Container_environment"
-              },
-              "secret_environment": {
-                "$ref": "#/components/schemas/Container_environment"
-              },
-              "entrypoint": {
-                "type": "string"
-              },
-              "interactive": {
-                "type": "boolean"
-              },
-              "volumes": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ContainerMout"
-                }
-              },
-              "network_connection": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/NetworkConnection"
-                }
-              },
-              "stats_aggregator": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/StatsAggregator"
-                }
-              },
-              "logs": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Logs"
-                }
-              },
-              "capacity": {
-                "$ref": "#/components/schemas/Capacity"
-              }
-            }
-          }
-        ]
-      },
-      "GatewayProxyWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "domain": {
-                "type": "string"
-              },
-              "addr": {
-                "type": "string"
-              },
-              "port": {
-                "type": "integer"
-              },
-              "port_tls": {
-                "type": "integer"
-              }
-            }
-          }
-        ]
-      },
-      "GatewayReverseProxyWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "domain": {
-                "type": "string"
-              },
-              "secret": {
-                "type": "string"
-              }
-            }
-          }
-        ]
-      },
-      "GatewaySubdomainWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "domain": {
-                "type": "string"
-              },
-              "ips": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "GatewayDelegateWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "domain": {
-                "type": "string"
-              }
-            }
-          }
-        ]
-      },
-      "Gateway4To6Workload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "public_key": {
-                "type": "string"
-              }
-            }
-          }
-        ]
-      },
-      "K8SWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "size": {
-                "type": "integer"
-              },
-              "cluster_secret": {
-                "type": "string"
-              },
-              "network_id": {
-                "type": "integer"
-              },
-              "ipaddress": {
-                "type": "string"
-              },
-              "master_ips": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "ssh_keys": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "stats_aggregator": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/StatsAggregator"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "NetworkResourceWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "network_iprange ": {
-                "type": "string"
-              },
-              "wireguard_private_key_encrypted": {
-                "type": "string"
-              },
-              "wireguard_public_key": {
-                "type": "string"
-              },
-              "wireguard_listen_port": {
-                "type": "integer"
-              },
-              "iprange ": {
-                "type": "string"
-              },
-              "peers": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/WireguardPeer"
-                }
-              },
-              "stats_aggregator": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/StatsAggregator"
-                }
-              }
-            }
-          }
-        ]
-      },
-      "VolumeWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "size": {
-                "type": "integer"
-              },
-              "type": {
-                "type": "integer"
-              }
-            }
-          }
-        ]
-      },
-      "ZdbWorkload": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/WorkloadBase"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "size": {
-                "type": "integer"
-              },
-              "mode": {
-                "type": "integer"
-              },
-              "password": {
-                "type": "string"
-              },
-              "disk_type": {
-                "type": "integer"
-              },
-              "public": {
-                "type": "boolean"
-              },
-              "stats_aggregator": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/StatsAggregator"
-                }
-              }
-            }
-          }
-        ]
       }
     }
   }
