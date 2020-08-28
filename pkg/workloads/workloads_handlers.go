@@ -34,14 +34,19 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	// this will make updating the document in place much easier
 	// in later stages
 	contract := workload.GetContract()
-	state := workload.GetState()
-	*state = model.NewState()
 	contract.ID = schema.ID(0)
+
+	state := workload.GetState()
+	state.Result = model.Result{}
+	state.SignatureFarmer = model.SigningSignature{}
+	state.SignaturesDelete = []model.SigningSignature{}
+	state.SignaturesProvision = []model.SigningSignature{}
 
 	if err := validateReservation(workload); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
+	var err error
 	workload, err = a.workloadpipeline(workload, nil)
 	if err != nil {
 		// if failed to create pipeline, then
