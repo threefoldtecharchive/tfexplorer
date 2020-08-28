@@ -40,8 +40,9 @@ type m map[string]interface{}
 
 func printResult(r workloads.Workloader) {
 	output := m{}
-	fmt.Printf("ID: %d", r.GetID())
-	fmt.Printf("Workload type: %s", r.GetWorkloadType().String())
+	c := r.GetContract()
+	fmt.Printf("ID: %d", c.ID)
+	fmt.Printf("Workload type: %s", c.WorkloadType.String())
 
 	if err := yaml.NewEncoder(os.Stdout).Encode(output); err != nil {
 		log.Error().Err(err).Msg("failed to print result")
@@ -107,10 +108,12 @@ func worker(wg *sync.WaitGroup, cIn <-chan job, cOut chan<- workloads.Workloader
 		if err != nil {
 			continue
 		}
-		if res.GetResult().State == workloads.ResultStateDeleted {
+		s := res.GetState()
+		c := res.GetContract()
+		if s.Result.State == workloads.ResultStateDeleted {
 			continue
 		}
-		if res.GetCustomerTid() != job.user {
+		if c.CustomerTid != job.user {
 			continue
 		}
 		cOut <- res

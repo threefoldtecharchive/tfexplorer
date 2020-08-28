@@ -83,13 +83,14 @@ func fixSigningRequest(ctx context.Context, db *mongo.Database) {
 	}
 	defer cur.Close(ctx)
 
-	var info workloads.ReservationInfo
+	var codec workloads.Codec
 	for cur.Next(ctx) {
-		if err := cur.Decode(&info); err != nil {
+		if err := cur.Decode(&codec); err != nil {
 			log.Fatal().Err(err).Msg("failed to decode workload info")
 		}
 
-		sID := strings.Split(info.Reference, "-")[0]
+		contract := codec.Workloader.GetContract()
+		sID := strings.Split(contract.Reference, "-")[0]
 		rID, err := strconv.ParseInt(sID, 10, 64)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("failed to parse reference ID %v", sID)
@@ -101,12 +102,12 @@ func fixSigningRequest(ctx context.Context, db *mongo.Database) {
 		}
 
 		// copy the singing request from their original reservation
-		info.SigningRequestDelete = reservation.DataReservation.SigningRequestDelete
-		info.SigningRequestProvision = reservation.DataReservation.SigningRequestProvision
+		contract.SigningRequestDelete = reservation.DataReservation.SigningRequestDelete
+		contract.SigningRequestProvision = reservation.DataReservation.SigningRequestProvision
 
-		log.Info().Msgf("fix signing request of workload %v", info.ID)
-		if _, err := wCol.UpdateOne(ctx, bson.M{"_id": info.ID}, bson.M{"$set": info}); err != nil {
-			log.Fatal().Msgf("failed to fix signing request of workload %v", info.ID)
+		log.Info().Msgf("fix signing request of workload %v", contract.ID)
+		if _, err := wCol.UpdateOne(ctx, bson.M{"_id": contract.ID}, bson.M{"$set": codec}); err != nil {
+			log.Fatal().Msgf("failed to fix signing request of workload %v", contract.ID)
 		}
 	}
 }
@@ -123,28 +124,29 @@ func fixSigningRequestNullArray(ctx context.Context, db *mongo.Database) {
 	}
 	defer cur.Close(ctx)
 
-	var info workloads.ReservationInfo
+	var codec workloads.Codec
 	for cur.Next(ctx) {
-		if err := cur.Decode(&info); err != nil {
+		if err := cur.Decode(&codec); err != nil {
 			log.Fatal().Err(err).Msg("failed to decode workload info")
 		}
 
+		contract := codec.Workloader.GetContract()
 		update := false
-		if info.SigningRequestDelete.Signers == nil {
+		if contract.SigningRequestDelete.Signers == nil {
 			update = true
-			log.Info().Msgf("fix singing_request_delete.signers null array on workload %v", info.ID)
-			info.SigningRequestDelete.Signers = []int64{}
+			log.Info().Msgf("fix singing_request_delete.signers null array on workload %v", contract.ID)
+			contract.SigningRequestDelete.Signers = []int64{}
 		}
 
-		if info.SigningRequestProvision.Signers == nil {
+		if contract.SigningRequestProvision.Signers == nil {
 			update = true
-			log.Info().Msgf("fix singing_request_provision.signers null array on workload %v", info.ID)
-			info.SigningRequestProvision.Signers = []int64{}
+			log.Info().Msgf("fix singing_request_provision.signers null array on workload %v", contract.ID)
+			contract.SigningRequestProvision.Signers = []int64{}
 		}
 
 		if update {
-			if _, err := wCol.UpdateOne(ctx, bson.M{"_id": info.ID}, bson.M{"$set": info}); err != nil {
-				log.Fatal().Msgf("failed to fix null array on workload %v", info.ID)
+			if _, err := wCol.UpdateOne(ctx, bson.M{"_id": contract.ID}, bson.M{"$set": codec}); err != nil {
+				log.Fatal().Msgf("failed to fix null array on workload %v", contract.ID)
 			}
 		}
 	}
@@ -159,29 +161,31 @@ func fixSignatureWrongType(ctx context.Context, db *mongo.Database) {
 	}
 	defer cur.Close(ctx)
 
-	var info workloads.ReservationInfo
+	var codec workloads.Codec
 	for cur.Next(ctx) {
-		if err := cur.Decode(&info); err != nil {
+		if err := cur.Decode(&codec); err != nil {
 			log.Fatal().Err(err).Msg("failed to decode workload info")
 		}
 
+		contract := codec.Workloader.GetContract()
+		state := codec.Workloader.GetState()
 		update := false
 
-		if info.SignaturesDelete == nil {
+		if state.SignaturesDelete == nil {
 			update = true
-			log.Info().Msgf("fix singing_delete on workload %v", info.ID)
-			info.SignaturesDelete = []workloads.SigningSignature{}
+			log.Info().Msgf("fix singing_delete on workload %v", contract.ID)
+			state.SignaturesDelete = []workloads.SigningSignature{}
 		}
 
-		if info.SignaturesProvision == nil {
+		if state.SignaturesProvision == nil {
 			update = true
-			log.Info().Msgf("fix singing_provision on workload %v", info.ID)
-			info.SignaturesProvision = []workloads.SigningSignature{}
+			log.Info().Msgf("fix singing_provision on workload %v", contract.ID)
+			state.SignaturesProvision = []workloads.SigningSignature{}
 		}
 
 		if update {
-			if _, err := wCol.UpdateOne(ctx, bson.M{"_id": info.ID}, bson.M{"$set": info}); err != nil {
-				log.Fatal().Msgf("failed to fix signatures on workload %v", info.ID)
+			if _, err := wCol.UpdateOne(ctx, bson.M{"_id": contract.ID}, bson.M{"$set": codec}); err != nil {
+				log.Fatal().Msgf("failed to fix signatures on workload %v", contract.ID)
 			}
 		}
 	}

@@ -23,7 +23,7 @@ verifiers: vet fmt lint cyclo spelling staticcheck
 
 vet:
 	@echo "Running $@"
-	@go vet -atomic -bool -copylocks -nilfunc -printf -rangeloops -unreachable -unsafeptr -unusedresult $(shell go list ./... | grep -v generated| grep -v statik | grep -v tfuser|  grep -v migrations)
+	@go vet -atomic -bool -copylocks -nilfunc -printf -rangeloops -unreachable -unsafeptr -unusedresult $(shell go list ./... | grep -v models| grep -v statik | grep -v tfuser|  grep -v migrations)
 
 fmt:
 	@echo "Running $@"
@@ -31,7 +31,7 @@ fmt:
 
 lint:
 	@echo "Running $@"
-	golint -set_exit_status $(shell go list ./... | grep -v generated| grep -v statik | grep -v tfuser|  grep -v migrations)
+	golint -set_exit_status $(shell go list ./... | grep -v models| grep -v statik | grep -v tfuser|  grep -v migrations)
 
 ineffassign:
 	@echo "Running $@"

@@ -439,7 +439,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Created()
 	}
 
-	workload, err = a.setWorkloadDelete(r.Context(), db, workload)
+	_, err = a.setWorkloadDelete(r.Context(), db, workload)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
