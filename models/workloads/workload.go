@@ -12,16 +12,20 @@ import (
 )
 
 type (
+	Capaciter interface {
+		GetRSU() RSU
+	}
+
+	Signer interface {
+		SignatureChallenge() ([]byte, error)
+	}
+
 	Workloader interface {
 		GetContract() *Contract
 		GetState() *State
 
-		// All workload should be able to generate a challenge used for signature
-		SignatureChallenge() ([]byte, error)
-	}
-
-	Capaciter interface {
-		GetRSU() RSU
+		Capaciter
+		Signer
 	}
 
 	RSU struct {

@@ -365,12 +365,7 @@ func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, 
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	capaciter, ok := w.(workloads.Capaciter)
-	if !ok {
-		panic("workload doesn't implement Capaciter interface")
-	}
-
-	cu, su := CloudUnitsFromResourceUnits(capaciter.GetRSU())
+	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
 	pool.AddWorkload(c.ID, cu, su)
 
 	return time.Now().Add(time.Second*time.Duration(seconds)).Unix() < pool.EmptyAt, nil
@@ -446,12 +441,7 @@ func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) err
 		return errors.Wrap(err, "could not load pool")
 	}
 
-	capaciter, ok := w.(workloads.Capaciter)
-	if !ok {
-		panic("workload doesn't implement Capaciter interface")
-	}
-
-	cu, su := CloudUnitsFromResourceUnits(capaciter.GetRSU())
+	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
 	if used {
 		pool.AddWorkload(c.ID, cu, su)
 	} else {

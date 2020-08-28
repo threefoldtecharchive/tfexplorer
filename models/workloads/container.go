@@ -10,10 +10,9 @@ import (
 )
 
 var _ Workloader = (*Container)(nil)
-var _ Capaciter = (*Container)(nil)
 
 type Container struct {
-	ITContract
+	ITContract `json:"it_contract"`
 
 	Flist             string              `bson:"flist" json:"flist"`
 	HubUrl            string              `bson:"hub_url" json:"hub_url"`
