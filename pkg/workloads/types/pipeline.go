@@ -1,6 +1,7 @@
 package types
 
 import (
+	"time"
 	"github.com/rs/zerolog/log"
 	model "github.com/threefoldtech/tfexplorer/models/workloads"
 )
@@ -69,11 +70,11 @@ func (p *Pipeline) Next() (Reservation, bool) {
 		return p.r, true
 	}
 
-	// if p.r.DataReservation.ExpirationProvisioning.Before(time.Now()) && !p.r.IsSuccessfullyDeployed() {
-	// 	log.Debug().Msg("provision expiration reached and not fully provisionned")
-	// 	p.r.NextAction = model.NextActionDelete
-	// 	return p.r, true
-	// }
+	if p.r.DataReservation.ExpirationProvisioning.Before(time.Now()) && !p.r.IsSuccessfullyDeployed() {
+		log.Debug().Msg("provision expiration reached and not fully provisionned")
+		p.r.NextAction = model.NextActionDelete
+		return p.r, true
+	}
 
 	current := p.r.NextAction
 	modified := false
