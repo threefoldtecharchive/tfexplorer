@@ -591,9 +591,20 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 		Canceled:      false,
 		FarmerID:      schema.ID(node.FarmId),
 	}
+	if amount == 0 {
+		// mark this reservation as fully processed already
+		reservationPaymentInfo.Paid = true
+		reservationPaymentInfo.Released = true
+		log.Debug().Int64("id", int64(reservation.ID)).Msg("0 value reservation, mark as processed")
+	}
 	err = types.CapacityReservationPaymentInfoCreate(e.ctx, e.db, reservationPaymentInfo)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to create reservation payment information")
+	}
+	if amount == 0 {
+		// Now that the info is successfully saved, notify that it has been paid
+		log.Debug().Int64("id", int64(reservation.ID)).Msg("pushing reservation id on paid reservations channel")
+		e.paidCapacityInfoChannel <- reservation.ID
 	}
 	log.Info().Int64("id", int64(reservation.ID)).Msg("processed reservation and created payment information")
 	customerInfo.Address = address
