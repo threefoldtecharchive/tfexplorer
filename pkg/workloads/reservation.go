@@ -231,6 +231,9 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 
 	info, err := a.capacityPlanner.Reserve(reservation, currencies)
 	if err != nil {
+		if errors.Is(err, capacity.ErrTransparantCapacityExtension) {
+			return nil, mw.BadRequest(err)
+		}
 		return nil, mw.Error(err)
 	}
 

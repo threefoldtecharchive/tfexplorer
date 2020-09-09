@@ -118,6 +118,13 @@ const (
 	unusedPoolExpiration = time.Hour * 24 * 365 * 280
 )
 
+var (
+	// ErrTransparantCapacityExtension indicates a capacity reservation, which is
+	// really an extension of a previous reservation, will not change the capacity
+	// pool in a meaningful, observable way.
+	ErrTransparantCapacityExtension = errors.New("this capacity reservation has no observable results")
+)
+
 // NewNaivePlanner creates a new NaivePlanner, using the provided escrow and
 // database connection
 func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
@@ -313,7 +320,8 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 		pool.SyncCurrentCapacity()
 		// verify node ID's, all node ID's from the existing pool should be present
 		// in the new reservation, but more are allowed. This makes sure we can
-		// add a node to a pool
+		// add a node to a pool. Rules for which farms the nodes can belong to
+		// are already enforced in the API handler.
 		for i := range pool.NodeIDs {
 			found := false
 			for j := range reservation.DataReservation.NodeIDs {
@@ -327,6 +335,10 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 			}
 		}
 
+		if data.CUs == 0 && data.SUs == 0 && len(data.NodeIDs) == len(pool.NodeIDs) {
+			// nil reservation
+			return pi, ErrTransparantCapacityExtension
+		}
 	} else {
 		// create new pool
 		pool = types.NewPool(reservation.ID, reservation.CustomerTid, data.NodeIDs)
@@ -408,6 +420,14 @@ func (p *NaivePlanner) addCapacity(id schema.ID) error {
 	if err != nil {
 		return errors.Wrap(err, "could not load pool")
 	}
+
+	// set the new node ID's as reserved. This allows extension of the pool's
+	// nodes, e.g. if a farm adds new nodes. We can just overwrite here: when
+	// the reservation was created, we already checked that all existing nodes
+	// are still in the reservation, so this can only be an addition of nodes, or
+	// the exact same nodes, which is fine. Also, we don't really care about
+	// any oredering of the node ID's.
+	pool.NodeIDs = reservation.DataReservation.NodeIDs
 
 	pool.AddCapacity(float64(reservation.DataReservation.CUs), float64(reservation.DataReservation.SUs))
 
