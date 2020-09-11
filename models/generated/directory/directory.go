@@ -92,6 +92,7 @@ type Node struct {
 	Approved          bool           `bson:"approved" json:"approved"`
 	PublicKeyHex      string         `bson:"public_key_hex" json:"public_key_hex"`
 	WgPorts           []int64        `bson:"wg_ports" json:"wg_ports"`
+	Deleted           bool           `bson:"deleted" json:"deleted"`
 }
 
 func NewNode() (Node, error) {

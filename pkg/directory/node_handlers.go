@@ -51,6 +51,8 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 
 	//make sure node can not set public config
 	n.PublicConfig = nil
+	// and it not immediately deleted
+	n.Deleted = false
 	if _, err := s.Add(r.Context(), db, n); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, mw.NotFound(fmt.Errorf("farm with id:%d does not exists", n.FarmId))

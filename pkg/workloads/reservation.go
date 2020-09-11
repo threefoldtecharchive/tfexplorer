@@ -1231,6 +1231,7 @@ func isAllFreeToUse(ctx context.Context, nodeIDs []string, db *mongo.Database) (
 	count, err := (directory.NodeFilter{}).
 		WithNodeIDs(nodeIDs).
 		WithFreeToUse(true).
+		ExcludeDeleted().
 		Count(ctx, db)
 	if err != nil {
 		return false, err

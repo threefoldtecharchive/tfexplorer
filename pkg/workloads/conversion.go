@@ -401,7 +401,7 @@ func farmForNodeID(ctx context.Context, db *mongo.Database, nodeID string) (int6
 
 func farmNodeIDs(ctx context.Context, db *mongo.Database, farmID int64) ([]string, error) {
 	var filter directorytypes.NodeFilter
-	filter = filter.WithFarmID(schema.ID(farmID))
+	filter = filter.WithFarmID(schema.ID(farmID)).ExcludeDeleted()
 
 	var nodes []directorytypes.Node
 	cur, err := filter.Find(ctx, db)

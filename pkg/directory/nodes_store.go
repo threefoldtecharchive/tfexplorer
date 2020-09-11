@@ -35,6 +35,7 @@ type nodeQuery struct {
 	SRU     int64
 	HRU     int64
 	Proofs  bool
+	Deleted bool
 }
 
 func (n *nodeQuery) Parse(r *http.Request) mw.Response {
@@ -62,6 +63,7 @@ func (n *nodeQuery) Parse(r *http.Request) mw.Response {
 		return mw.BadRequest(errors.Wrap(err, "invalid hru"))
 	}
 	n.Proofs = r.URL.Query().Get("proofs") == "true"
+	n.Deleted = r.URL.Query().Get("deleted") == "true"
 
 	return nil
 }
@@ -69,12 +71,17 @@ func (n *nodeQuery) Parse(r *http.Request) mw.Response {
 // List farms
 // TODO: add paging arguments
 func (s *NodeAPI) List(ctx context.Context, db *mongo.Database, q nodeQuery, opts ...*options.FindOptions) ([]directory.Node, int64, error) {
-	var filter directory.NodeFilter
+	// Initialize the filter since we don't want a default, we might want a fully
+	// empty one
+	filter := directory.NodeFilter{}
 	if q.FarmID > 0 {
 		filter = filter.WithFarmID(schema.ID(q.FarmID))
 	}
 	filter = filter.WithTotalCap(q.CRU, q.MRU, q.HRU, q.SRU)
 	filter = filter.WithLocation(q.Country, q.City)
+	if !q.Deleted {
+		filter = filter.ExcludeDeleted()
+	}
 
 	if !q.Proofs {
 		projection := bson.D{
@@ -111,9 +118,7 @@ func (s *NodeAPI) Get(ctx context.Context, db *mongo.Database, nodeID string, in
 
 // Delete a single node
 func (s *NodeAPI) Delete(ctx context.Context, db *mongo.Database, nodeID string) error {
-	var filter directory.NodeFilter
-	filter = filter.WithNodeID(nodeID)
-	return filter.Delete(ctx, db)
+	return directory.NodeDelete(ctx, db, nodeID)
 }
 
 // Exists tests if node exists
