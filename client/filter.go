@@ -15,6 +15,7 @@ type NodeFilter struct {
 	sru     *int64
 	hru     *int64
 	proofs  *bool
+	deleted *bool
 }
 
 // WithFarm filter with farm
@@ -59,6 +60,12 @@ func (n NodeFilter) WithProofs(proofs bool) NodeFilter {
 	return n
 }
 
+// WithDeleted filter with deleted nodes
+func (n NodeFilter) WithDeleted(deleted bool) NodeFilter {
+	n.deleted = &deleted
+	return n
+}
+
 // Apply fills query
 func (n NodeFilter) Apply(query url.Values) {
 
@@ -92,5 +99,9 @@ func (n NodeFilter) Apply(query url.Values) {
 
 	if n.proofs != nil {
 		query.Set("proofs", fmt.Sprint(*n.proofs))
+	}
+
+	if n.deleted != nil {
+		query.Set("deleted", fmt.Sprint(*n.deleted))
 	}
 }

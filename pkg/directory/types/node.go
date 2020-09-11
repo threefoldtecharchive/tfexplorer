@@ -122,21 +122,32 @@ func (f NodeFilter) WithFreeToUse(freeToUse bool) NodeFilter {
 	return append(f, bson.E{Key: "free_to_use", Value: freeToUse})
 }
 
+// ExcludeDeleted search the nodes that are not marked as deleted
+func (f NodeFilter) ExcludeDeleted() NodeFilter {
+	return append(f, bson.E{
+		Key: "$or",
+		Value: bson.A{
+			bson.M{
+				"deleted": false,
+			},
+			bson.M{
+				"deleted": nil,
+			},
+		},
+	})
+}
+
 // Find run the filter and return a cursor result
 func (f NodeFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) (*mongo.Cursor, error) {
 	col := db.Collection(NodeCollection)
-	if f == nil {
-		f = NodeFilter{}
-	}
+	f = ensureFilter(f)
 
 	return col.Find(ctx, f, opts...)
 }
 
 // Get one farm that matches the filter
 func (f NodeFilter) Get(ctx context.Context, db *mongo.Database, includeproofs bool) (node Node, err error) {
-	if f == nil {
-		f = NodeFilter{}
-	}
+	f = ensureFilter(f)
 
 	col := db.Collection(NodeCollection)
 
@@ -162,9 +173,7 @@ func (f NodeFilter) Get(ctx context.Context, db *mongo.Database, includeproofs b
 // Count number of documents matching
 func (f NodeFilter) Count(ctx context.Context, db *mongo.Database) (int64, error) {
 	col := db.Collection(NodeCollection)
-	if f == nil {
-		f = NodeFilter{}
-	}
+	f = ensureFilter(f)
 
 	return col.CountDocuments(ctx, f)
 }
@@ -172,9 +181,7 @@ func (f NodeFilter) Count(ctx context.Context, db *mongo.Database) (int64, error
 // Delete deletes a node by ID
 func (f NodeFilter) Delete(ctx context.Context, db *mongo.Database) error {
 	col := db.Collection(NodeCollection)
-	if f == nil {
-		f = NodeFilter{}
-	}
+	f = ensureFilter(f)
 	_, err := col.DeleteOne(ctx, f, options.Delete())
 	return err
 }
@@ -215,6 +222,9 @@ func NodeCreate(ctx context.Context, db *mongo.Database, node Node) (schema.ID, 
 		node.Location = tmp.Location
 		node.Uptime = tmp.Uptime
 		node.HostName = tmp.HostName
+
+		// clear node tombstone marker, since the node is _clearly_ not actually dead
+		node.Deleted = false
 	}
 
 	node.ID = id
@@ -235,7 +245,7 @@ func nodeUpdate(ctx context.Context, db *mongo.Database, nodeID string, value in
 
 	col := db.Collection(NodeCollection)
 	var filter NodeFilter
-	filter = filter.WithNodeID(nodeID)
+	filter = filter.WithNodeID(nodeID).ExcludeDeleted()
 	_, err := col.UpdateOne(ctx, filter, bson.M{
 		"$set": value,
 	})
@@ -307,7 +317,7 @@ func NodePushProof(ctx context.Context, db *mongo.Database, nodeID string, proof
 
 	col := db.Collection(NodeCollection)
 	var filter NodeFilter
-	filter = filter.WithNodeID(nodeID)
+	filter = filter.WithNodeID(nodeID).ExcludeDeleted()
 	_, err := col.UpdateOne(ctx, filter, bson.M{
 		"$addToSet": bson.M{
 			"proofs": proof,
@@ -315,6 +325,14 @@ func NodePushProof(ctx context.Context, db *mongo.Database, nodeID string, proof
 	})
 
 	return err
+}
+
+// NodeDelete marks a node as deleted in the database. The database entry
+// is kept, and the node can still be looked up.
+func NodeDelete(ctx context.Context, db *mongo.Database, nodeID string) error {
+	return nodeUpdate(ctx, db, nodeID, bson.M{
+		"deleted": true,
+	})
 }
 
 // FarmsForNodes return farm objects given node ids
@@ -364,4 +382,14 @@ func FarmsForNodes(ctx context.Context, db *mongo.Database, nodeID ...string) (f
 
 	err = cur.All(ctx, &farms)
 	return
+}
+
+// ensureFilter return the given filter, setting a default if the filter is empty
+func ensureFilter(f NodeFilter) NodeFilter {
+	if f == nil {
+		// don't look up deleted nodes by default
+		f = NodeFilter{}.ExcludeDeleted()
+	}
+
+	return f
 }
