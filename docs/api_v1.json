@@ -1230,6 +1230,8 @@
           "content": {
             "application/json": {
               "schema": {
+				"type": "array",
+				"items": { 
                 "oneOf": [
                   {
                     "$ref": "#/components/schemas/ContainerWorkload"
@@ -1265,6 +1267,7 @@
                 "discriminator": {
                   "propertyName": "workload_type"
                 }
+				}
               }
             }
           },
@@ -1314,6 +1317,8 @@
             "content": {
               "application/json": {
                 "schema": {
+				  "type":"array",
+				  "items":{
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/ContainerWorkload"
@@ -1349,6 +1354,7 @@
                   "discriminator": {
                     "propertyName": "workload_type"
                   }
+				  }
                 }
               }
             }
