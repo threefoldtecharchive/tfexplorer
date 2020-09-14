@@ -1187,47 +1187,13 @@
                 "schema": {
                   "type": "array",
                   "items": {
-						"type": "object",
-						"discriminator": {
-							"propertyName": "workload_type"
-						},
-						"oneOf": [
-							{
-                    		  "$ref": "#/components/schemas/ContainerWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/GatewayProxyWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/GatewaySubdomainWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/GatewayDelegateWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/Gateway4To6Workload"
-							},
-                    		{
-							  "$ref": "#/components/schemas/K8SWorkload"
-							},
-							{ "$ref": "#/components/schemas/NetworkResourceWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/VolumeWorkload"
-							},
-							{
-                    		  "$ref": "#/components/schemas/ZdbWorkload"
-							}
-						]
-                  }
+					"$ref": "#/components/schemas/GenericWorkload"
+					 }
+				  }
                 }
               }
             }
           }
-        }
       },
       "post": {
         "tags": [
@@ -1240,42 +1206,7 @@
           "content": {
             "application/json": {
               "schema": {
-				"type": "object",
-                "discriminator": {
-                  "propertyName": "workload_type"
-                },
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/ContainerWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/GatewayProxyWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/GatewaySubdomainWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/GatewayDelegateWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/Gateway4To6Workload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/K8SWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/NetworkResourceWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/VolumeWorkload"
-                  },
-                  {
-                    "$ref": "#/components/schemas/ZdbWorkload"
-                  }
-                ]
+				"$ref":"#/components/schemas/GenericWorkload"
               }
             }
           },
@@ -1325,42 +1256,7 @@
             "content": {
               "application/json": {
                 "schema": {
-				  "type":"object",
-                  "discriminator": {
-                    "propertyName": "workload_type"
-                  },
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ContainerWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewayProxyWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Gateway4To6Workload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/K8SWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/NetworkResourceWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/VolumeWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/ZdbWorkload"
-                    }
-                  ]
+					"$ref": "#/components/schemas/GenericWorkload"
                 }
               }
             }
@@ -1457,47 +1353,13 @@
         "operationId": "getconversion",
         "responses": {
           "200": {
-            "description": "list of workloadsto sign",
+            "description": "list of workloads to sign",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "oneOf": [
-                      {
-                        "$ref": "#/components/schemas/ContainerWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/GatewayProxyWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/GatewaySubdomainWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/GatewayDelegateWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/Gateway4To6Workload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/K8SWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/NetworkResourceWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/VolumeWorkload"
-                      },
-                      {
-                        "$ref": "#/components/schemas/ZdbWorkload"
-                      }
-                    ],
-                    "discriminator": {
-                      "propertyName": "workload_type"
-                    }
+					  "$ref": "#/components/schemas/GenericWorkload"
                   }
                 }
               }
@@ -1513,48 +1375,12 @@
         "description": "Submit signed workloads to convert from the old reservation system to the new workload system. The workloads need to match what is obtained from the get handler.",
         "operationId": "postconversion",
         "requestBody": {
-		  "description": "this would be really dumb",
           "content": {
             "application/json": {
               "schema": {
                 "type": "array",
                 "items": {
-				  "type": "object",
-                  "discriminator": {
-                    "propertyName": "workload_type"
-                  },
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ContainerWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewayProxyWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Gateway4To6Workload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/K8SWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/NetworkResourceWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/VolumeWorkload"
-                    },
-                    {
-                      "$ref": "#/components/schemas/ZdbWorkload"
-                    }
-                  ]
+					"$ref":"#/components/schemas/GenericWorkload"
                 }
               }
             }
@@ -2672,7 +2498,45 @@
             }
           }
         ]
-      }
+      },
+	  "GenericWorkload": {
+		"type": "object",
+        "discriminator": {
+          "propertyName": "workload_type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ContainerWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/GatewayProxyWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/GatewayDelegateWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/Gateway4To6Workload"
+          },
+          {
+            "$ref": "#/components/schemas/K8SWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/NetworkResourceWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/VolumeWorkload"
+          },
+          {
+            "$ref": "#/components/schemas/ZdbWorkload"
+          }
+        ]
+	  }
     }
   }
 }
