@@ -1188,26 +1188,35 @@
                   "type": "array",
                   "items": {
                     "oneOf": [
-                      "$ref",
-                      "#components/schemas/ContainerWorkload",
-                      "$ref",
-                      "#components/schemas/GatewayProxyWorkload",
-                      "$ref",
-                      "#components/schemas/GatewayReverseProxyWorkload",
-                      "$ref",
-                      "#components/schemas/GatewaySubdomainWorkload",
-                      "$ref",
-                      "#components/schemas/GatewayDelegateWorkload",
-                      "$ref",
-                      "#components/schemas/Gateway4To6Workload",
-                      "$ref",
-                      "#components/schemas/K8SWorkload",
-                      "$ref",
-                      "#components/schemas/NetworkResourceWorkload",
-                      "$ref",
-                      "#components/schemas/VolumeWorkload",
-                      "$ref",
-                      "#components/schemas/ZdbWorkload"
+					{
+                      "$ref": "#/components/schemas/ContainerWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/GatewayProxyWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/Gateway4To6Workload"
+					},
+                    {
+					  "$ref": "#/components/schemas/K8SWorkload"
+					},
+					{ "$ref": "#/components/schemas/NetworkResourceWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/VolumeWorkload"
+					},
+					{
+                      "$ref": "#/components/schemas/ZdbWorkload"
+					}
                     ],
                     "discriminator": {
                       "propertyName": "workload_type"
