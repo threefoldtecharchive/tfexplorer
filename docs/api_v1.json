@@ -1187,40 +1187,41 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "oneOf": [
-					{
-                      "$ref": "#/components/schemas/ContainerWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/GatewayProxyWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/GatewaySubdomainWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/GatewayDelegateWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/Gateway4To6Workload"
-					},
-                    {
-					  "$ref": "#/components/schemas/K8SWorkload"
-					},
-					{ "$ref": "#/components/schemas/NetworkResourceWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/VolumeWorkload"
-					},
-					{
-                      "$ref": "#/components/schemas/ZdbWorkload"
-					}
-                    ],
-                    "discriminator": {
-                      "propertyName": "workload_type"
-                    }
+						"type": "object",
+						"discriminator": {
+							"propertyName": "workload_type"
+						},
+						"oneOf": [
+							{
+                    		  "$ref": "#/components/schemas/ContainerWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/GatewayProxyWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/GatewayReverseProxyWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/GatewaySubdomainWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/GatewayDelegateWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/Gateway4To6Workload"
+							},
+                    		{
+							  "$ref": "#/components/schemas/K8SWorkload"
+							},
+							{ "$ref": "#/components/schemas/NetworkResourceWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/VolumeWorkload"
+							},
+							{
+                    		  "$ref": "#/components/schemas/ZdbWorkload"
+							}
+						]
                   }
                 }
               }
@@ -1239,8 +1240,10 @@
           "content": {
             "application/json": {
               "schema": {
-				"type": "array",
-				"items": { 
+				"type": "object",
+                "discriminator": {
+                  "propertyName": "workload_type"
+                },
                 "oneOf": [
                   {
                     "$ref": "#/components/schemas/ContainerWorkload"
@@ -1272,11 +1275,7 @@
                   {
                     "$ref": "#/components/schemas/ZdbWorkload"
                   }
-                ],
-                "discriminator": {
-                  "propertyName": "workload_type"
-                }
-				}
+                ]
               }
             }
           },
@@ -1326,8 +1325,10 @@
             "content": {
               "application/json": {
                 "schema": {
-				  "type":"array",
-				  "items":{
+				  "type":"object",
+                  "discriminator": {
+                    "propertyName": "workload_type"
+                  },
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/ContainerWorkload"
@@ -1359,11 +1360,7 @@
                     {
                       "$ref": "#/components/schemas/ZdbWorkload"
                     }
-                  ],
-                  "discriminator": {
-                    "propertyName": "workload_type"
-                  }
-				  }
+                  ]
                 }
               }
             }
@@ -1516,11 +1513,16 @@
         "description": "Submit signed workloads to convert from the old reservation system to the new workload system. The workloads need to match what is obtained from the get handler.",
         "operationId": "postconversion",
         "requestBody": {
+		  "description": "this would be really dumb",
           "content": {
             "application/json": {
               "schema": {
                 "type": "array",
                 "items": {
+				  "type": "object",
+                  "discriminator": {
+                    "propertyName": "workload_type"
+                  },
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/ContainerWorkload"
@@ -1552,10 +1554,7 @@
                     {
                       "$ref": "#/components/schemas/ZdbWorkload"
                     }
-                  ],
-                  "discriminator": {
-                    "propertyName": "workload_type"
-                  }
+                  ]
                 }
               }
             }
@@ -1695,38 +1694,6 @@
           "sru": {
             "type": "integer",
             "format": "int64"
-          }
-        }
-      },
-      "ReservationWorkload": {
-        "type": "object",
-        "properties": {
-          "workload_id": {
-            "type": "string"
-          },
-          "user": {
-            "type": "string"
-          },
-          "type": {
-            "type": "integer"
-          },
-          "content": {
-            "$ref": "#/components/schemas/ReservationWorkload_content"
-          },
-          "created": {
-            "type": "integer"
-          },
-          "duration": {
-            "type": "integer"
-          },
-          "signature": {
-            "type": "string"
-          },
-          "to_delete": {
-            "type": "boolean"
-          },
-          "node_id": {
-            "type": "string"
           }
         }
       },
@@ -2061,377 +2028,6 @@
           }
         }
       },
-      "DataReservation": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "currencies": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "example": "TFT"
-            }
-          },
-          "signing_request_provision": {
-            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
-          },
-          "signing_request_delete": {
-            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
-          },
-          "containers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Container"
-            }
-          },
-          "volumes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Volume"
-            }
-          },
-          "zdbs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Zdb"
-            }
-          },
-          "networks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Network"
-            }
-          },
-          "kubernetes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Kubernetes"
-            }
-          },
-          "reserve_proxies": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReverseProxy"
-            }
-          },
-          "subdomains": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SubDomain"
-            }
-          },
-          "domain_delegates": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DomainDelegate"
-            }
-          },
-          "gateway4to6": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Gateway4To6"
-            }
-          },
-          "expiration_provisioning": {
-            "type": "integer"
-          },
-          "expiration_reservation": {
-            "type": "integer"
-          }
-        }
-      },
-      "Gateway4To6": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "public_key": {
-            "type": "string"
-          }
-        }
-      },
-      "SubDomain": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "domain": {
-            "type": "string"
-          },
-          "ips": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "DomainDelegate": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "domain": {
-            "type": "string"
-          }
-        }
-      },
-      "ReverseProxy": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "domain": {
-            "type": "string"
-          },
-          "secret": {
-            "type": "string"
-          }
-        }
-      },
-      "Kubernetes": {
-        "type": "object",
-        "properties": {
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer"
-          },
-          "network_id": {
-            "type": "integer"
-          },
-          "ipaddress": {
-            "type": "string"
-          },
-          "cluster_secret": {
-            "type": "string"
-          },
-          "master_ips": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "ssh_keys": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "stats_aggregator": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatsAggregator"
-            }
-          },
-          "farmer_tid": {
-            "type": "integer"
-          }
-        }
-      },
-      "Network": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "workload_id": {
-            "type": "integer"
-          },
-          "iprange": {
-            "type": "string"
-          },
-          "stats_aggregator": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatsAggregator"
-            }
-          },
-          "network_resources": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NetworkNetResource"
-            }
-          }
-        }
-      },
-      "Zdb": {
-        "type": "object",
-        "properties": {
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer"
-          },
-          "mode": {
-            "type": "integer"
-          },
-          "password": {
-            "type": "string"
-          },
-          "disk_type": {
-            "type": "integer"
-          },
-          "public": {
-            "type": "boolean"
-          },
-          "stats_aggregator": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatsAggregator"
-            }
-          },
-          "farmer_tid": {
-            "type": "integer"
-          }
-        }
-      },
-      "Volume": {
-        "type": "object",
-        "properties": {
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer"
-          },
-          "type": {
-            "type": "integer"
-          },
-          "stats_aggregator": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatsAggregator"
-            }
-          },
-          "farmer_tid": {
-            "type": "integer"
-          }
-        }
-      },
-      "Container": {
-        "type": "object",
-        "properties": {
-          "workload_id": {
-            "type": "integer"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "flist": {
-            "type": "string"
-          },
-          "environment": {
-            "$ref": "#/components/schemas/Container_environment"
-          },
-          "secret_environment": {
-            "$ref": "#/components/schemas/Container_environment"
-          },
-          "entrypoint": {
-            "type": "string"
-          },
-          "interactive": {
-            "type": "boolean"
-          },
-          "volumes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ContainerMout"
-            }
-          },
-          "network_connection": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NetworkConnection"
-            }
-          },
-          "stats_aggregator": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatsAggregator"
-            }
-          },
-          "logs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Logs"
-            }
-          },
-          "farmer_tid": {
-            "type": "integer"
-          },
-          "capacity": {
-            "$ref": "#/components/schemas/Capacity"
-          }
-        }
-      },
-      "NetworkNetResource": {
-        "type": "object",
-        "properties": {
-          "node_id": {
-            "type": "string"
-          },
-          "wireguard_private_key_encrypted": {
-            "type": "string"
-          },
-          "wireguard_public_key": {
-            "type": "string"
-          },
-          "wireguard_listen_port": {
-            "type": "integer"
-          },
-          "iprange": {
-            "type": "string"
-          },
-          "peers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WireguardPeer"
-            }
-          }
-        }
-      },
       "WireguardPeer": {
         "type": "object",
         "properties": {
@@ -2556,54 +2152,6 @@
           }
         }
       },
-      "Reservation": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "json": {
-            "type": "string",
-            "description": "reservation as json"
-          },
-          "data_reservation": {
-            "$ref": "#/components/schemas/DataReservation"
-          },
-          "customer_tid": {
-            "type": "integer"
-          },
-          "customer_signature": {
-            "type": "string"
-          },
-          "next_action": {
-            "type": "integer"
-          },
-          "signatures_provision": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SigningSignature"
-            }
-          },
-          "signatures_delete": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SigningSignature"
-            }
-          },
-          "epoch": {
-            "type": "integer"
-          },
-          "metadata": {
-            "type": "string"
-          },
-          "result": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReservationResult"
-            }
-          }
-        }
-      },
       "inline_response_200": {
         "type": "object",
         "properties": {
@@ -2617,35 +2165,6 @@
         "properties": {
           "is_valid": {
             "type": "boolean"
-          }
-        }
-      },
-      "ReservationWorkload_content": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "workload_id": {
-            "type": "string"
-          },
-          "iprange": {
-            "type": "string"
-          },
-          "stats_aggregator": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StatsAggregator"
-            }
-          },
-          "network_resources": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NetworkNetResource"
-            }
-          },
-          "farmer_tid": {
-            "type": "integer"
           }
         }
       },
