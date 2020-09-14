@@ -1499,6 +1499,7 @@
         ],
         "summary": "post reservations to convert",
         "description": "Submit signed workloads to convert from the old reservation system to the new workload system. The workloads need to match what is obtained from the get handler.",
+        "operationId": "postconversion",
         "requestBody": {
           "content": {
             "application/json": {
