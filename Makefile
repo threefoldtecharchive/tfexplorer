@@ -5,7 +5,7 @@ branch = $(shell git symbolic-ref -q --short HEAD || git describe --tags --exact
 revision = $(shell git rev-parse HEAD)
 dirty = $(shell test -n "`git diff --shortstat 2> /dev/null | tail -n1`" && echo "*")
 version = github.com/threefoldtech/zos/pkg/version
-ldflags = '-w -s -X $(version).Branch=$(branch) -X $(version).Revision=$(revision) -X $(version).Dirty=$(dirty)'
+ldflags = '-w -s -X $(version).Branch=$(branch) -X $(version).Revision=$(revision) -X $(version).Dirty=$(dirty) -extldflags "-static"'
 
 .PHONY: frontend server tfexplorer tffarmer tfuser docs
 
@@ -64,18 +64,18 @@ frontend: frontend/src/*
 
 server:
 	cd cmds/tfexplorer && go generate
-	cd cmds/tfexplorer && go build -ldflags $(ldflags) -o $(OUT)/tfexplorer
+	cd cmds/tfexplorer && CGO_ENABLED=0 GOOS=linux  go build -ldflags $(ldflags) -o $(OUT)/tfexplorer
 
 tfexplorer: frontend server
 
 tfuser:
-	cd cmds/tfuser && go build -ldflags $(ldflags) -o $(OUT)/tfuser
+	cd cmds/tfuser && CGO_ENABLED=0 GOOS=linux  go build -ldflags $(ldflags) -o $(OUT)/tfuser
 
 tffarmer:
-	cd cmds/tffarmer && go build -ldflags $(ldflags) -o $(OUT)/tffarmer
+	cd cmds/tffarmer && CGO_ENABLED=0 GOOS=linux  go build -ldflags $(ldflags) -o $(OUT)/tffarmer
 	
 stellar:
-	cd cmds/stellar && go build -ldflags $(ldflags) -o $(OUT)/stellar
+	cd cmds/stellar && CGO_ENABLED=0 GOOS=linux  go build -ldflags $(ldflags) -o $(OUT)/stellar
 
 docs:
 	cd docs && openapi-generator generate -i openapi.json -g html2
