@@ -195,9 +195,10 @@ func (n NetworkConnection) SigingEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%t", n.PublicIp6); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "%t", n.YggdrasilIP); err != nil {
-		return err
-	}
+	// TODO: re-enable when working on https://github.com/threefoldtech/zos/issues/868
+	// if _, err := fmt.Fprintf(w, "%t", n.YggdrasilIP); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
