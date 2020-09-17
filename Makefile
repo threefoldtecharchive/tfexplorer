@@ -17,7 +17,6 @@ getdeps:
 	@echo "Installing misspell" && go install github.com/client9/misspell/cmd/misspell
 	@echo "Installing ineffassign" && go install github.com/gordonklaus/ineffassign
 	@echo "Installing statik" && go install github.com/rakyll/statik
-	@echo "Installing open api generator" && sudo npm install @openapitools/openapi-generator-cli -g
 
 verifiers: vet fmt lint cyclo spelling staticcheck
 
@@ -76,14 +75,6 @@ tffarmer:
 	
 stellar:
 	cd cmds/stellar && go build -ldflags $(ldflags) -o $(OUT)/stellar
-
-docs:
-	cd docs && openapi-generator generate -i openapi.json -g html2 
-	mv docs/index.html frontend/public/docs_legacy.html
-	cd docs && openapi-generator generate -i api_v1.json -g html2
-	mv docs/index.html frontend/public/docs_api_v1.html
-	rm -rf docs/.openapi-generator
-	rm -f docs/.openapi-generator-ignore
 
 clean:
 	rm -rf dist statik bin/*
