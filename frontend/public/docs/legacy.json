@@ -1,0 +1,2425 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Threefold Explorer",
+    "description": "The threefold explorer API\n",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "email": "apiteam@swagger.io"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "description": "Find out more about Swagger",
+    "url": "http://swagger.io"
+  },
+  "servers": [
+    {
+      "url": "https://explorer.grid.tf/explorer",
+      "description": "Production grid explorer"
+    },
+    {
+      "url": "https://explorer.testnet.grid.tf/explorer",
+      "description": "Testnet grid explorer"
+    },
+    {
+      "url": "https://explorer.devnet.grid.tf/explorer",
+      "description": "Devnet grid explorer"
+    }
+  ],
+  "tags": [
+    {
+      "name": "farms",
+      "description": "Everything about Threefold farms",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "https://www.threefold.io"
+      }
+    },
+    {
+      "name": "nodes",
+      "description": "Everything about Threefold nodes",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "https://www.threefold.io"
+      }
+    },
+    {
+      "name": "gateways",
+      "description": "Everything about Threefold gateways",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "https://www.threefold.io"
+      }
+    },
+    {
+      "name": "users",
+      "description": "Everything about Threefold users",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "https://www.threefold.io"
+      }
+    },
+    {
+      "name": "reservations",
+      "description": "Everything about Threefold reservations",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "https://www.threefold.io"
+      }
+    }
+  ],
+  "paths": {
+    "/farms": {
+      "get": {
+        "tags": [
+          "farms"
+        ],
+        "summary": "List all the farms",
+        "description": "Lists all the registered farms",
+        "operationId": "getFarms",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The number of items to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "The farm with name to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "description": "The farms of an owner to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of farms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Farm"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "list of farms"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "farms"
+        ],
+        "summary": "Create a farm",
+        "description": "Create a new farm",
+        "operationId": "createFarm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Farm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "farm id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "farm id"
+          }
+        }
+      }
+    },
+    "/farms/{farmId}": {
+      "get": {
+        "tags": [
+          "farms"
+        ],
+        "summary": "Get a farm by ID",
+        "description": "Get a farm by ID",
+        "operationId": "getFarm",
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "description": "ID of the farm to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "a farm",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Farm"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a farm"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "farms"
+        ],
+        "summary": "Update a farm by ID",
+        "description": "Update a farm by ID",
+        "operationId": "updateFarm",
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "description": "ID of the farm to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Farm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "farm id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a farm"
+          }
+        }
+      }
+    },
+    "/farms/{farmId}/{nodeId}": {
+      "delete": {
+        "tags": [
+          "farms"
+        ],
+        "summary": "Delete a node from a farm",
+        "description": "Delete a node from a farm",
+        "operationId": "deleteFarmNode",
+        "parameters": [
+          {
+            "name": "farmId",
+            "in": "path",
+            "description": "ID of the farm",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "ID of the node to delete",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/nodes": {
+      "get": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "List all the nodes",
+        "description": "Lists all the registered nodes",
+        "operationId": "getNodes",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The number of items to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "farm",
+            "in": "query",
+            "description": "Nodes that belong to a farm",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Nodes that are in a specific country",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "description": "Nodes that are in a specific city",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cru",
+            "in": "query",
+            "description": "Nodes with a specific amount of cru",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "sru",
+            "in": "query",
+            "description": "Nodes with a specific amount of sru",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "mru",
+            "in": "query",
+            "description": "Nodes with a specific amount of mru",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "hru",
+            "in": "query",
+            "description": "Nodes with a specific amount of hru",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "proofs",
+            "in": "query",
+            "description": "Fetch nodes with proofs",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of nodes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Node"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "list of nodes"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Create a node",
+        "description": "Create a new node",
+        "operationId": "createNode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Node"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "node id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "node id"
+          }
+        }
+      }
+    },
+    "/nodes/{nodeId}": {
+      "get": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Get a node by ID",
+        "description": "Get a node by ID",
+        "operationId": "getNode",
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "ID of the node to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "a node",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Node"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a node"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Update a node by ID",
+        "description": "Update a node by ID",
+        "operationId": "updateNode",
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "ID of the node to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Node"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "node id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a node"
+          }
+        }
+      }
+    },
+    "/gateways": {
+      "get": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "List all the gateways",
+        "description": "Lists all the registered gateways",
+        "operationId": "getGateways",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The number of items to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Gateways that are in a specific country",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "description": "Gateways that are in a specific city",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of gateways",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Gateway"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "list of gateways"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "Create a gateway",
+        "description": "Create a new gateway",
+        "operationId": "createGateway",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Gateway"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "gateway id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "gateway id"
+          }
+        }
+      }
+    },
+    "/gateways/{gatewayId}": {
+      "get": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "Get a gateway by ID",
+        "description": "Get a gateway by ID",
+        "operationId": "getGateway",
+        "parameters": [
+          {
+            "name": "gatewayId",
+            "in": "path",
+            "description": "ID of the gateway to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Gateway that is in a specific country",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "description": "Gateway that is in a specific city",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "a gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Gateway"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a gateway"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "Update a gateway by ID",
+        "description": "Update a gateway by ID",
+        "operationId": "updateGateway",
+        "parameters": [
+          {
+            "name": "gatewayId",
+            "in": "path",
+            "description": "ID of the gateway to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Gateway"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "gateway id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a gateway"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List all the users",
+        "description": "Lists all the registered users",
+        "operationId": "getusers",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The number of items to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Users by name",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "description": "Users by email",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "list of users"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Create a user",
+        "description": "Create a new user",
+        "operationId": "createUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "users id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "users id"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get a user by ID",
+        "description": "Get a user by ID",
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "ID of the user to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "a users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a users"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update a user by ID",
+        "description": "Update a user by ID",
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "ID of the user to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "users id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a users"
+          }
+        }
+      }
+    },
+    "/users/{userId}/validate": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Validate a user by ID",
+        "description": "Validate a user by ID",
+        "operationId": "validateUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "ID of the user to validate",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "users id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200_1"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a users"
+          }
+        }
+      }
+    },
+    "/reservations": {
+      "get": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "List all the reservations",
+        "description": "Lists all the reservations",
+        "operationId": "getreservations",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The number of items to fetch",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "customer_tid",
+            "in": "query",
+            "description": "Reservations to fetch for a specific customer id",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "next_action",
+            "in": "query",
+            "description": "Reservations to fetch for a specific next_action",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "list of reservations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reservation"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "list of reservations"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "Create a reservation",
+        "description": "Create a new reservation",
+        "operationId": "createreservation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reservation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "reservation id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "reservation id"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}": {
+      "get": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "Get a reservation by ID",
+        "description": "Get a reservation by ID",
+        "operationId": "getreservation",
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "description": "ID of the reservation to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "a reservation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a reservation"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/sign/provision": {
+      "post": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "Sign provision a reservation",
+        "description": "Sign and provision a reservation",
+        "operationId": "provisionReservation",
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "description": "ID of the reservation to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigningSignature"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "ok"
+          },
+          "default": {
+            "description": "ok"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/sign/delete": {
+      "post": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "Sign delete a reservation",
+        "description": "Sign and delete a reservation",
+        "operationId": "deleteReservation",
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "description": "ID of the reservation to return",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SigningSignature"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "ok"
+          },
+          "default": {
+            "description": "ok"
+          }
+        }
+      }
+    },
+    "/reservations/workloads/{nodeId}": {
+      "get": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "List workloads of a reservation by nodeID",
+        "description": "List all reservation's workloads by nodeID",
+        "operationId": "getWorkloads",
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "ID of the node",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "the index to get the workloads from",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "a list of workloads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationWorkload"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "a list of workloads"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Farm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "threebot_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "iyo_organization": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "wallet_addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WalletAddress"
+            }
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "resource_prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourcePrice"
+            }
+          },
+          "prefix_zero": {
+            "type": "string",
+            "example": "::/128"
+          }
+        },
+        "xml": {
+          "name": "Farm"
+        }
+      },
+      "WalletAddress": {
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "example": "TFT"
+          },
+          "address": {
+            "type": "string",
+            "example": "GDKNF2MV4PH47EZRMJKFYUA5GUEIJFAKIHUFPCU5XFV56W4UCRACTTLR"
+          }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "continent": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "longitude": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ResourcePrice": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "integer",
+            "format": "uint8"
+          },
+          "cru": {
+            "type": "integer",
+            "format": "float64"
+          },
+          "mru": {
+            "type": "integer",
+            "format": "float6"
+          },
+          "hru": {
+            "type": "integer",
+            "format": "float6"
+          },
+          "sru": {
+            "type": "integer",
+            "format": "float6"
+          },
+          "nru": {
+            "type": "integer"
+          }
+        }
+      },
+      "Resource": {
+        "type": "object",
+        "properties": {
+          "cru": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mru": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hru": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sru": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ReservationWorkload": {
+        "type": "object",
+        "properties": {
+          "workload_id": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ReservationWorkload_content"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "to_delete": {
+            "type": "boolean"
+          },
+          "node_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Workload": {
+        "type": "object",
+        "properties": {
+          "network": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "volume": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "zdb_namespace": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "container": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "k8s_vm": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "proxy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reverse_proxy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subdomain": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "delegate_domain": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Iface": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "lo"
+          },
+          "addrs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "127.0.0.1/8"
+            }
+          },
+          "gateway": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "172.20.0.1"
+            }
+          },
+          "macaddress": {
+            "type": "string"
+          }
+        }
+      },
+      "PublicConfig": {
+        "type": "object",
+        "properties": {
+          "master": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "ipv4": {
+            "type": "string"
+          },
+          "ipv6": {
+            "type": "string"
+          },
+          "gw4": {
+            "type": "string"
+          },
+          "gw6": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "HardwareSubsection": {
+        "type": "object"
+      },
+      "HardwareSection": {
+        "type": "object",
+        "properties": {
+          "handleline": {
+            "type": "string"
+          },
+          "subsections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HardwareSubsection"
+            }
+          },
+          "type": {
+            "type": "integer"
+          },
+          "typestr": {
+            "type": "string"
+          }
+        }
+      },
+      "Hardware": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HardwareSection"
+            }
+          },
+          "tooling": {
+            "$ref": "#/components/schemas/Hardware_tooling"
+          },
+          "tool": {
+            "type": "string"
+          }
+        }
+      },
+      "Disks": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string"
+          },
+          "information": {
+            "type": "object"
+          }
+        }
+      },
+      "Proof": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer"
+          },
+          "hardware_hash": {
+            "type": "string"
+          },
+          "disk_hash": {
+            "type": "string"
+          },
+          "hardware": {
+            "$ref": "#/components/schemas/Hardware"
+          },
+          "disks": {
+            "$ref": "#/components/schemas/Disks"
+          }
+        }
+      },
+      "Node": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "node_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "node_id_v1": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "farm_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "os_version": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "updated": {
+            "type": "integer"
+          },
+          "address": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "total_resources": {
+            "$ref": "#/components/schemas/Resource"
+          },
+          "used_resources": {
+            "$ref": "#/components/schemas/Resource"
+          },
+          "reserved_resources": {
+            "$ref": "#/components/schemas/Resource"
+          },
+          "workloads": {
+            "$ref": "#/components/schemas/Workload"
+          },
+          "proofs": {
+            "$ref": "#/components/schemas/Proof"
+          },
+          "ifaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Iface"
+            }
+          },
+          "public_config": {
+            "$ref": "#/components/schemas/PublicConfig"
+          },
+          "free_to_use": {
+            "type": "boolean"
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "public_key_hex": {
+            "type": "string"
+          },
+          "wg_ports": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "xml": {
+          "name": "Farm"
+        }
+      },
+      "Gateway": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "node_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "farm_id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "os_version": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "updated": {
+            "type": "integer"
+          },
+          "uptime": {
+            "type": "integer"
+          },
+          "address": {
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "public_key_hex": {
+            "type": "string"
+          },
+          "workloads": {
+            "$ref": "#/components/schemas/Workload"
+          },
+          "managed_domain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tcp_router_port": {
+            "type": "integer"
+          },
+          "dns_nameserver": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "free_to_use": {
+            "type": "boolean"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "pubkey": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          }
+        }
+      },
+      "DataReservation": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "TFT"
+            }
+          },
+          "signing_request_provision": {
+            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
+          },
+          "signing_request_delete": {
+            "$ref": "#/components/schemas/DataReservation_signing_request_provision"
+          },
+          "containers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Container"
+            }
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Volume"
+            }
+          },
+          "zdbs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Zdb"
+            }
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Network"
+            }
+          },
+          "kubernetes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Kubernetes"
+            }
+          },
+          "reserve_proxies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReverseProxy"
+            }
+          },
+          "subdomains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubDomain"
+            }
+          },
+          "domain_delegates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DomainDelegate"
+            }
+          },
+          "gateway4to6": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Gateway4To6"
+            }
+          },
+          "expiration_provisioning": {
+            "type": "integer"
+          },
+          "expiration_reservation": {
+            "type": "integer"
+          }
+        }
+      },
+      "Gateway4To6": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          }
+        }
+      },
+      "SubDomain": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "ips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "DomainDelegate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          }
+        }
+      },
+      "ReverseProxy": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          }
+        }
+      },
+      "Kubernetes": {
+        "type": "object",
+        "properties": {
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "network_id": {
+            "type": "integer"
+          },
+          "ipaddress": {
+            "type": "string"
+          },
+          "cluster_secret": {
+            "type": "string"
+          },
+          "master_ips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ssh_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stats_aggregator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsAggregator"
+            }
+          },
+          "farmer_tid": {
+            "type": "integer"
+          }
+        }
+      },
+      "Network": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "workload_id": {
+            "type": "integer"
+          },
+          "iprange": {
+            "type": "string"
+          },
+          "stats_aggregator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsAggregator"
+            }
+          },
+          "network_resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkNetResource"
+            }
+          }
+        }
+      },
+      "Zdb": {
+        "type": "object",
+        "properties": {
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "mode": {
+            "type": "integer"
+          },
+          "password": {
+            "type": "string"
+          },
+          "disk_type": {
+            "type": "integer"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "stats_aggregator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsAggregator"
+            }
+          },
+          "farmer_tid": {
+            "type": "integer"
+          }
+        }
+      },
+      "Volume": {
+        "type": "object",
+        "properties": {
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "integer"
+          },
+          "stats_aggregator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsAggregator"
+            }
+          },
+          "farmer_tid": {
+            "type": "integer"
+          }
+        }
+      },
+      "Container": {
+        "type": "object",
+        "properties": {
+          "workload_id": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "flist": {
+            "type": "string"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/Container_environment"
+          },
+          "secret_environment": {
+            "$ref": "#/components/schemas/Container_environment"
+          },
+          "entrypoint": {
+            "type": "string"
+          },
+          "interactive": {
+            "type": "boolean"
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContainerMout"
+            }
+          },
+          "network_connection": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkConnection"
+            }
+          },
+          "stats_aggregator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsAggregator"
+            }
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Logs"
+            }
+          },
+          "farmer_tid": {
+            "type": "integer"
+          },
+          "capacity": {
+            "$ref": "#/components/schemas/Capacity"
+          }
+        }
+      },
+      "NetworkNetResource": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "string"
+          },
+          "wireguard_private_key_encrypted": {
+            "type": "string"
+          },
+          "wireguard_public_key": {
+            "type": "string"
+          },
+          "wireguard_listen_port": {
+            "type": "integer"
+          },
+          "iprange": {
+            "type": "string"
+          },
+          "peers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireguardPeer"
+            }
+          }
+        }
+      },
+      "WireguardPeer": {
+        "type": "object",
+        "properties": {
+          "public_key": {
+            "type": "string"
+          },
+          "allowed_iprange": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "iprange": {
+            "type": "string"
+          }
+        }
+      },
+      "ContainerMout": {
+        "type": "object",
+        "properties": {
+          "volume_id": {
+            "type": "string"
+          },
+          "mountpoint": {
+            "type": "string"
+          }
+        }
+      },
+      "Capacity": {
+        "type": "object",
+        "properties": {
+          "cpu": {
+            "type": "integer"
+          },
+          "memory": {
+            "type": "integer"
+          },
+          "disk_size": {
+            "type": "integer"
+          },
+          "disk_type": {
+            "type": "integer"
+          }
+        }
+      },
+      "Logs": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Logs_data"
+          }
+        }
+      },
+      "StatsAggregator": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatsAggregator_data"
+          }
+        }
+      },
+      "NetworkConnection": {
+        "type": "object",
+        "properties": {
+          "network_id": {
+            "type": "string"
+          },
+          "ipaddress": {
+            "type": "string"
+          },
+          "public_ip6": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SigningSignature": {
+        "type": "object",
+        "properties": {
+          "tid": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "epoch": {
+            "type": "integer"
+          }
+        }
+      },
+      "ReservationResult": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "integer"
+          },
+          "workload_id": {
+            "type": "string"
+          },
+          "data_json": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "state": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "epoch": {
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Reservation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "json": {
+            "type": "string",
+            "description": "reservation as json"
+          },
+          "data_reservation": {
+            "$ref": "#/components/schemas/DataReservation"
+          },
+          "customer_tid": {
+            "type": "integer"
+          },
+          "customer_signature": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "integer"
+          },
+          "signatures_provision": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SigningSignature"
+            }
+          },
+          "signatures_delete": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SigningSignature"
+            }
+          },
+          "epoch": {
+            "type": "integer"
+          },
+          "metadata": {
+            "type": "string"
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationResult"
+            }
+          }
+        }
+      },
+      "inline_response_200": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        }
+      },
+      "inline_response_200_1": {
+        "type": "object",
+        "properties": {
+          "is_valid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReservationWorkload_content": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "workload_id": {
+            "type": "string"
+          },
+          "iprange": {
+            "type": "string"
+          },
+          "stats_aggregator": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsAggregator"
+            }
+          },
+          "network_resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkNetResource"
+            }
+          },
+          "farmer_tid": {
+            "type": "integer"
+          }
+        }
+      },
+      "Hardware_tooling": {
+        "type": "object",
+        "properties": {
+          "aggregator": {
+            "type": "string"
+          },
+          "decoder": {
+            "type": "string"
+          }
+        }
+      },
+      "DataReservation_signing_request_provision": {
+        "type": "object",
+        "properties": {
+          "signers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "quorom_min": {
+            "type": "integer"
+          }
+        }
+      },
+      "Container_environment": {
+        "type": "object",
+        "properties": {
+          "pub_key": {
+            "type": "string"
+          }
+        }
+      },
+      "Logs_data": {
+        "type": "object",
+        "properties": {
+          "stdout": {
+            "type": "string"
+          },
+          "stderr": {
+            "type": "string"
+          }
+        }
+      },
+      "StatsAggregator_data": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

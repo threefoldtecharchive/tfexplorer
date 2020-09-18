@@ -105,15 +105,23 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
-	go s.ListenAndServe()
+	go func() {
+		<-c
 
-	<-c
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+		if err := s.Shutdown(ctx); err != nil {
+			log.Printf("error during server shutdown: %v\n", err)
+		}
+	}()
 
-	if err := s.Shutdown(ctx); err != nil {
-		log.Printf("error during server shutdown: %v\n", err)
+	if err := s.ListenAndServe(); err != nil {
+		if err == http.ErrServerClosed {
+			log.Info().Msg("server stopped gracefully")
+		} else {
+			log.Error().Err(err).Msg("server stopped unexpectedly")
+		}
 	}
 }
 
@@ -154,8 +162,8 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 	router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(statikFS)))
 
 	router.Path("/").HandlerFunc(serveStatic("/index.html", statikFS))
-	router.Path("/explorer").HandlerFunc(serveStatic("/docs.html", statikFS))
-	router.Path("/api/v1").HandlerFunc(serveStatic("/docs.html", statikFS))
+	router.Path("/explorer").HandlerFunc(serveStatic("/swagger/legacy.html", statikFS))
+	router.Path("/api/v1").HandlerFunc(serveStatic("/swagger/v1.html", statikFS))
 
 	if dropEscrowData {
 		log.Warn().Msg("dropping escrow and address collection")
