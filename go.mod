@@ -16,7 +16,6 @@ require (
 	github.com/rusart/muxprom v0.0.0-20200323164249-36ea051efbe6
 	github.com/stellar/go v0.0.0-20200917104244-8dc2a7354bf8
 	github.com/stretchr/testify v1.5.1
-	github.com/threefoldtech/zos v0.2.4
 	github.com/tyler-smith/go-bip39 v1.0.2
 	github.com/urfave/cli v1.22.3
 	github.com/zaibon/httpsig v0.0.0-20200401133919-ea9cb57b0946
