@@ -14,7 +14,7 @@ require (
 	github.com/rakyll/statik v0.1.7
 	github.com/rs/zerolog v1.18.0
 	github.com/rusart/muxprom v0.0.0-20200323164249-36ea051efbe6
-	github.com/stellar/go v0.0.0-20200520124219-6cdb4e841dc7
+	github.com/stellar/go v0.0.0-20200917104244-8dc2a7354bf8
 	github.com/stretchr/testify v1.5.1
 	github.com/threefoldtech/zos v0.2.4
 	github.com/tyler-smith/go-bip39 v1.0.2
