@@ -154,8 +154,8 @@ type LogsRedis struct {
 
 	// Same as stdout, stderr urls but encrypted
 	// with the node public key.
-	SecretStdout string `json:"secret_stdout"`
-	SecretStderr string `json:"secret_stderr"`
+	SecretStdout string `bson:"secret_stdout" json:"secret_stdout"`
+	SecretStderr string `bson:"secret_stderr" json:"secret_stderr"`
 }
 
 func (l LogsRedis) SigingEncode(w io.Writer) error {
