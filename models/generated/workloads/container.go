@@ -151,6 +151,11 @@ func (c Logs) SigingEncode(w io.Writer) error {
 type LogsRedis struct {
 	Stdout string `bson:"stdout" json:"stdout"`
 	Stderr string `bson:"stderr" json:"stderr"`
+
+	// Same as stdout, stderr urls but encrypted
+	// with the node public key.
+	SecretStdout string `bson:"secret_stdout" json:"secret_stdout"`
+	SecretStderr string `bson:"secret_stderr" json:"secret_stderr"`
 }
 
 func (l LogsRedis) SigingEncode(w io.Writer) error {
@@ -158,6 +163,13 @@ func (l LogsRedis) SigingEncode(w io.Writer) error {
 		return err
 	}
 	if _, err := fmt.Fprintf(w, "%s", l.Stderr); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(w, "%s", l.SecretStdout); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "%s", l.SecretStderr); err != nil {
 		return err
 	}
 	return nil
