@@ -32,7 +32,7 @@ func generateContainer(c *cli.Context) error {
 		DiskType: workloads.DiskTypeSSD,
 	}
 
-	var sts []workloads.StatsAggregator
+	var sts []workloads.Stats
 	if s := c.String("stats"); s != "" {
 		// validating stdout argument
 		_, _, err := logger.RedisParseURL(s)
@@ -40,7 +40,7 @@ func generateContainer(c *cli.Context) error {
 			return err
 		}
 
-		ss := workloads.StatsAggregator{
+		ss := workloads.Stats{
 			Type: stats.RedisType,
 			Data: workloads.StatsRedis{
 				Endpoint: s,
@@ -99,7 +99,7 @@ func generateContainer(c *cli.Context) error {
 		WithVolumes(mounts).WithInteractive(c.Bool("corex")).
 		WithContainerCapacity(cap).
 		WithLogs(logs).
-		WithStatsAggregator(sts)
+		WithStats(sts)
 
 	if c.Int64("poolID") != 0 {
 		containerBuilder.WithPoolID(c.Int64("poolID"))
