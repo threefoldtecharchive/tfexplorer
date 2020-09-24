@@ -135,8 +135,8 @@ func (c *ContainerBuilder) WithVolumes(mounts []workloads.ContainerMount) *Conta
 }
 
 // WithStatsAggregator sets the stats aggregators to the container
-func (c *ContainerBuilder) WithStatsAggregator(aggregators []workloads.StatsAggregator) *ContainerBuilder {
-	c.Container.StatsAggregator = aggregators
+func (c *ContainerBuilder) WithStats(stats []workloads.Stats) *ContainerBuilder {
+	c.Container.Stats = stats
 	return c
 }
 
