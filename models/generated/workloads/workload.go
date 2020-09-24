@@ -420,7 +420,7 @@ func (i *ReservationInfo) SetReference(ref string) {
 
 // Stub type not used (for now)
 type StatsAggregator struct {
-	stub bool `bson:"stub" json:"stub"` // To be defined
+	// To be defined
 }
 
 func (s StatsAggregator) SigingEncode(w io.Writer) error {
