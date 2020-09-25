@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -139,8 +140,8 @@ type Logs struct {
 }
 
 type Stats struct {
-	Type string     `bson:"type" json:"type"`
-	Data StatsRedis `bson:"data" json:"data"`
+	Type string          `bson:"type" json:"type"`
+	Data json.RawMessage `bson:"data" json:"data"`
 }
 
 func (c Logs) SigingEncode(w io.Writer) error {

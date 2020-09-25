@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -40,11 +41,18 @@ func generateContainer(c *cli.Context) error {
 			return err
 		}
 
+		r := workloads.StatsRedis{
+			Endpoint: s,
+		}
+
+		data, err := json.Marshal(&r)
+		if err != nil {
+			return err
+		}
+
 		ss := workloads.Stats{
 			Type: stats.RedisType,
-			Data: workloads.StatsRedis{
-				Endpoint: s,
-			},
+			Data: data,
 		}
 
 		sts = append(sts, ss)
