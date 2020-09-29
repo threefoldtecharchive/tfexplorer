@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -415,4 +416,13 @@ func (i *ReservationInfo) GetReference() string {
 
 func (i *ReservationInfo) SetReference(ref string) {
 	i.Reference = ref
+}
+
+// Stub type not used (for now)
+type StatsAggregator struct {
+	// To be defined
+}
+
+func (s StatsAggregator) SigingEncode(w io.Writer) error {
+	return nil
 }

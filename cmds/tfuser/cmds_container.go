@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -32,7 +33,7 @@ func generateContainer(c *cli.Context) error {
 		DiskType: workloads.DiskTypeSSD,
 	}
 
-	var sts []workloads.StatsAggregator
+	var sts []workloads.Stats
 	if s := c.String("stats"); s != "" {
 		// validating stdout argument
 		_, _, err := logger.RedisParseURL(s)
@@ -40,11 +41,18 @@ func generateContainer(c *cli.Context) error {
 			return err
 		}
 
-		ss := workloads.StatsAggregator{
+		r := workloads.StatsRedis{
+			Endpoint: s,
+		}
+
+		data, err := json.Marshal(&r)
+		if err != nil {
+			return err
+		}
+
+		ss := workloads.Stats{
 			Type: stats.RedisType,
-			Data: workloads.StatsRedis{
-				Endpoint: s,
-			},
+			Data: data,
 		}
 
 		sts = append(sts, ss)
@@ -99,7 +107,7 @@ func generateContainer(c *cli.Context) error {
 		WithVolumes(mounts).WithInteractive(c.Bool("corex")).
 		WithContainerCapacity(cap).
 		WithLogs(logs).
-		WithStatsAggregator(sts)
+		WithStats(sts)
 
 	if c.Int64("poolID") != 0 {
 		containerBuilder.WithPoolID(c.Int64("poolID"))

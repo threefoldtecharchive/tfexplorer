@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -23,7 +24,7 @@ type Container struct {
 	Interactive       bool                `bson:"interactive" json:"interactive"`
 	Volumes           []ContainerMount    `bson:"volumes" json:"volumes"`
 	NetworkConnection []NetworkConnection `bson:"network_connection" json:"network_connection"`
-	StatsAggregator   []StatsAggregator   `bson:"stats_aggregator" json:"stats_aggregator"`
+	Stats             []Stats             `bson:"stats" json:"stats"`
 	Logs              []Logs              `bson:"logs" json:"logs"`
 	Capacity          ContainerCapacity   `bson:"capcity" json:"capacity"`
 }
@@ -138,6 +139,11 @@ type Logs struct {
 	Data LogsRedis `bson:"data" json:"data"`
 }
 
+type Stats struct {
+	Type string          `bson:"type" json:"type"`
+	Data json.RawMessage `bson:"data" json:"data"`
+}
+
 func (c Logs) SigingEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%s", c.Type); err != nil {
 		return err
@@ -156,6 +162,10 @@ type LogsRedis struct {
 	// with the node public key.
 	SecretStdout string `bson:"secret_stdout" json:"secret_stdout"`
 	SecretStderr string `bson:"secret_stderr" json:"secret_stderr"`
+}
+
+type StatsRedis struct {
+	Endpoint string `bson:"endpoint" json:"endpoint"`
 }
 
 func (l LogsRedis) SigingEncode(w io.Writer) error {
@@ -214,12 +224,7 @@ func (n NetworkConnection) SigingEncode(w io.Writer) error {
 	return nil
 }
 
-type StatsAggregator struct {
-	Type string     `bson:"type" json:"type"`
-	Data StatsRedis `bson:"data" json:"data"`
-}
-
-func (s StatsAggregator) SigingEncode(w io.Writer) error {
+func (s Stats) SigingEncode(w io.Writer) error {
 	return nil
 	// if _, err := fmt.Fprintf(w, "%s", s.Type); err != nil {
 	// 	return err
@@ -228,8 +233,4 @@ func (s StatsAggregator) SigingEncode(w io.Writer) error {
 	// 	return err
 	// }
 	// return nil
-}
-
-type StatsRedis struct {
-	Endpoint string `bson:"stdout" json:"endpoint"`
 }
