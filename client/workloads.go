@@ -108,13 +108,13 @@ func (w *httpWorkloads) NodeWorkloads(nodeID string, from uint64) ([]workloads.W
 
 func (w *httpWorkloads) NodeWorkloadGet(gwid string) (result workloads.Workloader, err error) {
 	// var output intermediateWL
-	var output workloads.Workloader
+	var output wrkldstypes.WorkloaderType
 	_, err = w.get(w.url("reservations", "nodes", "workloads", gwid), nil, &output, http.StatusOK)
 	if err != nil {
 		return
 	}
 
-	return output, nil
+	return output.Workloader, nil
 }
 
 func (w *httpWorkloads) NodeWorkloadPutResult(nodeID, gwid string, result workloads.Result) error {
