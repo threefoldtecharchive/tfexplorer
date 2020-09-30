@@ -500,6 +500,8 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 		}
 
 		for i := range expiredPools {
+			// sync pool capacity, this forces the pool to have 0 values for expired resources
+			expiredPools[i].SyncCurrentCapacity()
 			log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Msg("expire pool workloads")
 			filter := workloadtypes.WorkloadFilter{}.WithPoolID(int64(expiredPools[i].ID)).WithNextAction(workloadtypes.Deploy)
 			workloads, err := filter.Find(p.ctx, p.db)
@@ -507,6 +509,11 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 				return errors.Wrap(err, "could not load workloads to expire")
 			}
 			for j := range workloads {
+				if !usesExpiredResources(expiredPools[i], workloads[j]) {
+					// not using an expired resource, workload can stay
+					log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Int64("Workload", int64(workloads[j].GetID())).Msg("workload is not using expired resources, don't delete it")
+					continue
+				}
 				log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Int64("Workload", int64(workloads[j].GetID())).Msg("expire workload")
 				workloads[j].SetNextAction(workloadtypes.Delete)
 				if err = workloadtypes.WorkloadSetNextAction(p.ctx, p.db, workloads[j].GetID(), workloadtypes.Delete); err != nil {
@@ -553,4 +560,24 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 	p.timer = time.NewTimer(time.Until(time.Unix(nextPoolToExpire.EmptyAt, 0)))
 
 	return nil
+}
+
+// usesExpiredResources checks if a workload uses expired resources in the pool.
+//
+// No checks are done to make sure the workload is actually part of the pool. This
+// method only checks if a workload is using a non zero amount of a resource which
+// is no longer present in the pool.
+func usesExpiredResources(pool types.Pool, workload workloads.Workloader) bool {
+	// Only delete workloads we actually need to delete
+	// In other words, only delete the workload if it consumes resources
+	// which are empty
+
+	cu, su := CloudUnitsFromResourceUnits(workload.GetRSU())
+	if cu > 0 && pool.Cus <= 0 {
+		return true
+	}
+	if su > 0 && pool.Sus <= 0 {
+		return true
+	}
+	return false
 }
