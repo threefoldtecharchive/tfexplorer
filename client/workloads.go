@@ -38,7 +38,7 @@ func (w *httpWorkloads) List(nextAction *workloads.NextActionEnum, customerTid i
 }
 
 func (w *httpWorkloads) Get(id schema.ID) (workload workloads.Workloader, err error) {
-	_, err = w.get(w.url("workloads", fmt.Sprint(id)), nil, &workload, http.StatusOK)
+	_, err = w.get(w.url("reservations", "workloads", fmt.Sprint(id)), nil, &workload, http.StatusOK)
 	return
 }
 
