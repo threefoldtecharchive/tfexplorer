@@ -54,6 +54,8 @@ type (
 		UniqueWorkloadID() string
 		SetReference(string)
 		GetReference() string
+		GetVersion() int
+		SetVersion(version int)
 
 		Capaciter
 	}
@@ -216,6 +218,7 @@ type ReservationInfo struct {
 	Metadata            string             `bson:"metadata" json:"metadata"`
 	Result              Result             `bson:"result" json:"result"`
 	WorkloadType        WorkloadTypeEnum   `bson:"workload_type" json:"workload_type"`
+	Version             int                `bson:"version" json:"version"`
 }
 
 func (i *ReservationInfo) WorkloadID() int64 {
@@ -416,6 +419,14 @@ func (i *ReservationInfo) GetReference() string {
 
 func (i *ReservationInfo) SetReference(ref string) {
 	i.Reference = ref
+}
+
+func (i *ReservationInfo) GetVersion() int {
+	return i.Version
+}
+
+func (i *ReservationInfo) SetVersion(version int) {
+	i.Version = version
 }
 
 // Stub type not used (for now)
