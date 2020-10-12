@@ -186,8 +186,17 @@ func UserUpdate(ctx context.Context, db *mongo.Database, id schema.ID, signature
 		return ErrUserNotFound
 	}
 
-	// user need to always sign with current stored public key
-	// even to update new key
+	// sanity check make sure user is not trying to update his public key
+	if len(update.Pubkey) != 0 && current.Pubkey != update.Pubkey {
+		return errors.Wrap(ErrBadUserUpdate, "can not update public key")
+	}
+
+	// sanity check make sure user is not trying to update his name
+	if len(update.Name) != 0 && current.Name != update.Name {
+		return errors.Wrap(ErrBadUserUpdate, "can not update name")
+	}
+
+	// user need to always sign the changes
 	key, err := crypto.KeyFromHex(current.Pubkey)
 	if err != nil {
 		return err
@@ -200,22 +209,6 @@ func UserUpdate(ctx context.Context, db *mongo.Database, id schema.ID, signature
 	log.Debug().Str("encoded", string(encoded)).Msg("encoded message")
 	if err := crypto.Verify(key, encoded, signature); err != nil {
 		return errors.Wrap(ErrBadUserUpdate, "payload verification failed")
-	}
-
-	// if public key update is required, we make sure
-	// that is valid key.
-	if len(update.Pubkey) != 0 {
-		_, err := crypto.KeyFromHex(update.Pubkey)
-		if err != nil {
-			return errors.Wrap(ErrBadUserUpdate, "invalid public key")
-		}
-
-		current.Pubkey = update.Pubkey
-	}
-
-	// sanity check make sure user is not trying to update his name
-	if len(update.Name) != 0 && current.Name != update.Name {
-		return errors.Wrap(ErrBadUserUpdate, "can not update name")
 	}
 
 	// copy all modified fields.
