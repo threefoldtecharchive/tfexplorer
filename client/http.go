@@ -15,6 +15,11 @@ import (
 )
 
 var (
+	// ErrRequestFailure is returned if client fails to send
+	// the request mostly duo to network problem. Mostly
+	// this error is resolved by retrying again later.
+	ErrRequestFailure = fmt.Errorf("request failure")
+
 	successCodes = []int{
 		http.StatusOK,
 		http.StatusCreated,
@@ -149,7 +154,7 @@ func (c *httpClient) post(u string, input interface{}, output interface{}, expec
 	}
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrapf(ErrRequestFailure, "reason: %s", err)
 	}
 
 	return response, c.process(response, output, expect...)
@@ -171,7 +176,7 @@ func (c *httpClient) put(u string, input interface{}, output interface{}, expect
 
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrapf(ErrRequestFailure, "reason: %s", err)
 	}
 
 	return nil, c.process(response, output, expect...)
@@ -193,7 +198,7 @@ func (c *httpClient) get(u string, query url.Values, output interface{}, expect 
 
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrapf(ErrRequestFailure, "reason: %s", err)
 	}
 
 	return response, c.process(response, output, expect...)
@@ -214,7 +219,7 @@ func (c *httpClient) delete(u string, query url.Values, output interface{}, expe
 
 	response, err := c.cl.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to send request")
+		return nil, errors.Wrapf(ErrRequestFailure, "reason: %s", err)
 	}
 
 	return response, c.process(response, output, expect...)
