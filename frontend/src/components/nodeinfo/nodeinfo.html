@@ -121,6 +121,9 @@
               <v-row dense>
                 Reserved: {{ node.reservedResources[key] }}
               </v-row>
+              <v-row v-if="key === 'sru' || key === 'hru'" dense>
+                100 GB can be reserved for Zos cache
+              </v-row>
             </span>
           </v-tooltip>
         </v-flex>
