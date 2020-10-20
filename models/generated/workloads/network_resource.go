@@ -53,7 +53,7 @@ func (n *NetworkResource) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 	for _, p := range n.Peers {
-		if err := p.SigingEncode(b); err != nil {
+		if err := p.SigningEncode(b); err != nil {
 			return nil, err
 		}
 	}

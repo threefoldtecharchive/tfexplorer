@@ -434,6 +434,6 @@ type StatsAggregator struct {
 	// To be defined
 }
 
-func (s StatsAggregator) SigingEncode(w io.Writer) error {
+func (s StatsAggregator) SigningEncode(w io.Writer) error {
 	return nil
 }

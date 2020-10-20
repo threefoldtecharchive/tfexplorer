@@ -76,17 +76,17 @@ func (c *Container) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 	for _, v := range c.Volumes {
-		if err := v.SigingEncode(b); err != nil {
+		if err := v.SigningEncode(b); err != nil {
 			return nil, err
 		}
 	}
 	for _, v := range c.NetworkConnection {
-		if err := v.SigingEncode(b); err != nil {
+		if err := v.SigningEncode(b); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := c.Capacity.SigingEncode(b); err != nil {
+	if err := c.Capacity.SigningEncode(b); err != nil {
 		return nil, err
 	}
 
@@ -100,7 +100,7 @@ type ContainerCapacity struct {
 	DiskType DiskTypeEnum `bson:"disk_type" json:"disk_type"`
 }
 
-func (c ContainerCapacity) SigingEncode(w io.Writer) error {
+func (c ContainerCapacity) SigningEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%d", c.Cpu); err != nil {
 		return err
 	}
@@ -144,11 +144,11 @@ type Stats struct {
 	Data json.RawMessage `bson:"data" json:"data"`
 }
 
-func (c Logs) SigingEncode(w io.Writer) error {
+func (c Logs) SigningEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%s", c.Type); err != nil {
 		return err
 	}
-	if err := c.Data.SigingEncode(w); err != nil {
+	if err := c.Data.SigningEncode(w); err != nil {
 		return err
 	}
 	return nil
@@ -168,7 +168,7 @@ type StatsRedis struct {
 	Endpoint string `bson:"endpoint" json:"endpoint"`
 }
 
-func (l LogsRedis) SigingEncode(w io.Writer) error {
+func (l LogsRedis) SigningEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%s", l.Stdout); err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ type ContainerMount struct {
 	Mountpoint string `bson:"mountpoint" json:"mountpoint"`
 }
 
-func (c ContainerMount) SigingEncode(w io.Writer) error {
+func (c ContainerMount) SigningEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%s", c.VolumeId); err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ type NetworkConnection struct {
 	YggdrasilIP bool   `bson:"yggdrasil_ip" json:"yggdrasil_ip"`
 }
 
-func (n NetworkConnection) SigingEncode(w io.Writer) error {
+func (n NetworkConnection) SigningEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%s", n.NetworkId); err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (n NetworkConnection) SigingEncode(w io.Writer) error {
 	return nil
 }
 
-func (s Stats) SigingEncode(w io.Writer) error {
+func (s Stats) SigningEncode(w io.Writer) error {
 	return nil
 	// if _, err := fmt.Fprintf(w, "%s", s.Type); err != nil {
 	// 	return err

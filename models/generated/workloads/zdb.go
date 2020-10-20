@@ -56,7 +56,7 @@ func (z *ZDB) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 	for _, s := range z.StatsAggregator {
-		if err := s.SigingEncode(b); err != nil {
+		if err := s.SigningEncode(b); err != nil {
 			return nil, err
 		}
 	}
