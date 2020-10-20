@@ -60,7 +60,7 @@ type WireguardPeer struct {
 	AllowedIprange []schema.IPRange `bson:"allowed_iprange" json:"allowed_iprange"`
 }
 
-func (p *WireguardPeer) SigingEncode(w io.Writer) error {
+func (p *WireguardPeer) SigningEncode(w io.Writer) error {
 	if _, err := fmt.Fprintf(w, "%s", p.PublicKey); err != nil {
 		return err
 	}
