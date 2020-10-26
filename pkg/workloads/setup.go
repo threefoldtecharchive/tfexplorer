@@ -33,7 +33,13 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	apiReservation.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(service.getPool)).Methods(http.MethodGet).Name("versionned-pool-get")
 	apiReservation.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(service.listPools)).Methods(http.MethodGet).Name("versionned-pool-get-by-owner")
 
-	apiReservation.HandleFunc("/workloads", mw.AsHandlerFunc(service.create)).Methods(http.MethodPost).Name("versionned-workloads-create")
+	// only create reservation call requires authentication to make sure
+	// the user identity associated with the request is the same exact
+	// one associated with the signed reservation object.
+	authenticated := apiReservation.NewRoute().Subrouter()
+	authenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
+	authenticated.HandleFunc("/workloads", mw.AsHandlerFunc(service.create)).Methods(http.MethodPost).Name("versionned-workloads-create")
+	// other calls are public
 	apiReservation.HandleFunc("/workloads", mw.AsHandlerFunc(service.listWorkload)).Methods(http.MethodGet).Name("versionned-workloadreservation-list")
 	apiReservation.HandleFunc("/workloads/{res_id:\\d+}", mw.AsHandlerFunc(service.getWorkload)).Methods(http.MethodGet).Name("versionned-workloadreservation-get")
 	apiReservation.HandleFunc("/workloads/{res_id:\\d+}/sign/provision", mw.AsHandlerFunc(service.signProvision)).Methods(http.MethodPost).Name("versionned-reservation-sign-provision")

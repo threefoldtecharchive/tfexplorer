@@ -27,6 +27,7 @@ import (
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -65,6 +66,11 @@ const lastestWorkloadVersion = 1
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
+	requestUserID, err := strconv.ParseInt(httpsig.KeyIDFromContext(r.Context()), 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "failed to parse request user id"))
+	}
+
 	bodyBuf := bytes.NewBuffer(nil)
 	bodyBuf.ReadFrom(r.Body)
 	w, err := workloads.UnmarshalJSON(bodyBuf.Bytes())
@@ -86,6 +92,10 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	if err := workload.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
+	}
+
+	if workload.GetCustomerTid() != requestUserID {
+		return nil, mw.UnAuthorized(fmt.Errorf("request user identity does not match the reservation customer-tid"))
 	}
 
 	workload, err = a.workloadpipeline(workload, nil)
