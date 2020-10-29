@@ -580,7 +580,7 @@ func (w *Wallet) keypairFromEncryptedSeed(seed string) (keypair.Full, error) {
 func (w *Wallet) GetHorizonClient() (*horizonclient.Client, error) {
 	switch w.network {
 	case "testnet":
-		return horizonclient.DefaultTestNetClient, nil
+		return &horizonclient.Client{HorizonURL: "https://stellar-testnet.grid.tf"}, nil
 	case "production":
 		return horizonclient.DefaultPublicNetClient, nil
 	default:
