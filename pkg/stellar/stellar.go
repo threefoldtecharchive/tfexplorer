@@ -202,8 +202,8 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 	}
 
 	bo := backoff.NewExponentialBackOff()
-	bo.MaxElapsedTime = time.Second * 20 // retry for 5 minutes
-	bo.MaxInterval = time.Second * 2
+	bo.MaxElapsedTime = time.Second * 10 // retry for 5 minutes
+	bo.MaxInterval = time.Second * 1
 
 	err = backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
 		log.Error().
