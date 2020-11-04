@@ -3,7 +3,9 @@ package stellar
 import (
 	"fmt"
 	"math/big"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/amount"
 	"github.com/stellar/go/clients/horizonclient"
@@ -131,10 +133,21 @@ func (w *Wallet) CreateAccount() (string, string, error) {
 		return "", "", errors.Wrap(err, "failed to get source account")
 	}
 
-	err = w.activateEscrowAccount(newKp, sourceAccount, client)
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to activate escrow account %s", newKp.Address())
+	activateEscrowBackoff := func() error {
+		log.Info().Msg("Trying to activate escrow account")
+		return w.activateEscrowAccount(newKp, sourceAccount, client)
 	}
+
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = 0 // retry forever
+	backoff.RetryNotify(activateEscrowBackoff, bo, func(err error, d time.Duration) {
+		log.Error().
+			Err(err).
+			Str("sleep", d.String()).
+			Msgf("failed active escrow account %s", newKp.Address())
+	})
+
+	log.Info().Msg("escrow account activation succesful")
 
 	// Now fetch the escrow source account to perform operations on it
 	sourceAccount, err = w.GetAccountDetails(newKp.Address())
