@@ -139,7 +139,8 @@ func (w *Wallet) CreateAccount() (string, string, error) {
 	}
 
 	bo := backoff.NewExponentialBackOff()
-	bo.MaxElapsedTime = 0 // retry forever
+	bo.MaxElapsedTime = time.Minute * 5 // retry for 5 minutes
+	bo.MaxInterval = time.Second * 30
 	backoff.RetryNotify(activateEscrowBackoff, bo, func(err error, d time.Duration) {
 		log.Error().
 			Err(err).
