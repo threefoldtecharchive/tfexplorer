@@ -133,20 +133,10 @@ func (w *Wallet) CreateAccount() (string, string, error) {
 		return "", "", errors.Wrap(err, "failed to get source account")
 	}
 
-	activateEscrowBackoff := func() error {
-		log.Info().Msg("Trying to activate escrow account")
-		return w.activateEscrowAccount(newKp, sourceAccount, client)
+	err = w.activateEscrowAccount(newKp, sourceAccount, client)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to activate escrow account %s", newKp.Address())
 	}
-
-	bo := backoff.NewExponentialBackOff()
-	bo.MaxElapsedTime = time.Minute * 5 // retry for 5 minutes
-	bo.MaxInterval = time.Second * 30
-	backoff.RetryNotify(activateEscrowBackoff, bo, func(err error, d time.Duration) {
-		log.Error().
-			Err(err).
-			Str("sleep", d.String()).
-			Msgf("failed active escrow account %s", newKp.Address())
-	})
 
 	log.Info().Msg("escrow account activation succesful")
 
@@ -197,12 +187,35 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		return errors.Wrap(err, "failed to sign transaction")
 	}
 
-	// Submit the transaction
-	_, err = client.SubmitTransaction(tx)
-	if err != nil {
-		hError := err.(*horizonclient.Error)
-		return errors.Wrap(hError, "error submitting transaction")
+	submitTransactionBackof := func() error {
+		log.Info().Msg("trying to submit activate escrow account transaction")
+		_, err = client.SubmitTransaction(tx)
+		if err != nil {
+			hError := err.(*horizonclient.Error)
+			log.Error().Msgf("horizon problem: %s", hError.Problem.Error())
+			if hError.Problem.Status == 504 {
+				return err
+			}
+			return backoff.Permanent(err)
+		}
+		return nil
 	}
+
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = time.Second * 20 // retry for 5 minutes
+	bo.MaxInterval = time.Second * 2
+
+	err = backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
+		log.Error().
+			Err(err).
+			Str("sleep", d.String()).
+			Msgf("failed submit activate escrow account transaction for: %s", newKp.Address())
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
