@@ -35,6 +35,78 @@ func (k *K8S) GetRSU() RSU {
 			MRU: 4,
 			SRU: 100,
 		}
+	case 3:
+		return RSU{
+			CRU: 2,
+			MRU: 8,
+			SRU: 25,
+		}
+	case 4:
+		return RSU{
+			CRU: 2,
+			MRU: 5,
+			SRU: 50,
+		}
+	case 5:
+		return RSU{
+			CRU: 2,
+			MRU: 8,
+			SRU: 200,
+		}
+	case 6:
+		return RSU{
+			CRU: 4,
+			MRU: 16,
+			SRU: 50,
+		}
+	case 7:
+		return RSU{
+			CRU: 4,
+			MRU: 16,
+			SRU: 100,
+		}
+	case 8:
+		return RSU{
+			CRU: 4,
+			MRU: 16,
+			SRU: 400,
+		}
+	case 9:
+		return RSU{
+			CRU: 8,
+			MRU: 32,
+			SRU: 100,
+		}
+	case 10:
+		return RSU{
+			CRU: 8,
+			MRU: 32,
+			SRU: 200,
+		}
+	case 11:
+		return RSU{
+			CRU: 8,
+			MRU: 32,
+			SRU: 800,
+		}
+	case 12:
+		return RSU{
+			CRU: 1,
+			MRU: 64,
+			SRU: 200,
+		}
+	case 13:
+		return RSU{
+			CRU: 1,
+			MRU: 64,
+			SRU: 400,
+		}
+	case 14:
+		return RSU{
+			CRU: 1,
+			MRU: 64,
+			SRU: 800,
+		}
 	}
 	return RSU{}
 }
