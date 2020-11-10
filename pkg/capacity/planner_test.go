@@ -28,7 +28,7 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -153,7 +153,7 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -278,7 +278,7 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -393,7 +393,7 @@ func Test_usesExpiredResources(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "pool empty SU container",
+			name: "pool empty SU container free disk",
 			args: args{
 				pool: types.Pool{
 					Cus: 10_000,
@@ -403,7 +403,25 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
+						DiskType: workloads.DiskTypeSSD,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "pool empty SU container paying disk",
+			args: args{
+				pool: types.Pool{
+					Cus: 10_000,
+					Sus: 0,
+				},
+				workload: &workloads.Container{
+					Capacity: workloads.ContainerCapacity{
+						Cpu:      2,
+						Memory:   2048,
+						DiskSize: 51 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},

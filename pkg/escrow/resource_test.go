@@ -21,8 +21,6 @@ type (
 	nodeAPIMock struct{}
 )
 
-const precision = 1e7
-
 func TestProcessReservation(t *testing.T) {
 	data := workloads.ReservationData{
 		Containers: []workloads.Container{
