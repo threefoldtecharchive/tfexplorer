@@ -122,13 +122,13 @@ func (c ContainerCapacity) GetRSU() RSU {
 		// round mru to 4 digits precision
 		MRU: math.Round(float64(c.Memory)/1024*10000) / 10000,
 	}
+	storageSize := math.Round(float64(c.DiskSize)/1024*10000) / 10000
+	storageSize = math.Max(0, storageSize-50) // we offer the 50 first GB of storage for container root
 	switch c.DiskType {
 	case DiskTypeHDD:
-		hru := math.Round(float64(c.DiskSize)/1024*10000) / 10000
-		rsu.HRU = hru
+		rsu.HRU = storageSize
 	case DiskTypeSSD:
-		sru := math.Round(float64(c.DiskSize)/1024*10000) / 10000
-		rsu.SRU = sru
+		rsu.SRU = storageSize
 	}
 
 	return rsu
