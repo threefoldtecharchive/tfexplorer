@@ -22,7 +22,7 @@ func TestContainer_GetRSU(t *testing.T) {
 			rsu: RSU{
 				CRU: 1,
 				MRU: 1,
-				SRU: 0.25,
+				SRU: 0,
 			},
 		},
 		{
@@ -35,7 +35,7 @@ func TestContainer_GetRSU(t *testing.T) {
 			rsu: RSU{
 				CRU: 1,
 				MRU: 1,
-				SRU: 1,
+				SRU: 0,
 			},
 		},
 		{
@@ -49,7 +49,7 @@ func TestContainer_GetRSU(t *testing.T) {
 				CRU: 4,
 				MRU: 2,
 				SRU: 0,
-				HRU: 10,
+				HRU: 0,
 			},
 		},
 		{
@@ -63,7 +63,21 @@ func TestContainer_GetRSU(t *testing.T) {
 				CRU: 1,
 				MRU: 0.1953,
 				SRU: 0,
-				HRU: 9.7656,
+				HRU: 0,
+			},
+		},
+		{
+			capcity: ContainerCapacity{
+				Cpu:      1,
+				Memory:   200,
+				DiskSize: 52224,
+				DiskType: DiskTypeSSD,
+			},
+			rsu: RSU{
+				CRU: 1,
+				MRU: 0.1953,
+				SRU: 1,
+				HRU: 0,
 			},
 		},
 	}
