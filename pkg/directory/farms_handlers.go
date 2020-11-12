@@ -163,7 +163,7 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	for _, ip := range info {
 		for _, farmerIP := range farm.IPs {
 			if ip.IP.Equal(farmerIP.IP) {
-				return nil, mw.BadRequest(fmt.Errorf("Ip %v already exists in farm", ip))
+				return nil, mw.BadRequest(fmt.Errorf("ip %v already exists in farm", ip))
 			}
 			// If IP does not exist yet, add it to the list
 			farm.IPs = append(farm.IPs, farmerIP)
@@ -192,7 +192,7 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 		for idx, farmIP := range farm.IPs {
 			if ip.Equal(farmIP.IP) {
 				if farmIP.ReservationID != 0 {
-					return nil, mw.BadRequest(fmt.Errorf("Cannot remove an IP that is in use"))
+					return nil, mw.BadRequest(fmt.Errorf("cannot remove an IP that is in use"))
 				}
 				// If IP is not used, remove it from the farmer's ip's
 				farm.IPs = append(farm.IPs[:idx], farm.IPs[idx+1:]...)
