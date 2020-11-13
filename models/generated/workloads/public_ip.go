@@ -13,7 +13,7 @@ var _ Capaciter = (*PublicIP)(nil)
 type PublicIP struct {
 	ReservationInfo `bson:",inline"`
 
-	net.IP        `bson:"ip" json:"ip"`
+	IP            net.IP `bson:"ip" json:"ip"`
 	DestinationIP net.IP `bson:"destination_ip" json:"destination_ip"`
 }
 
