@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/tfexplorer/models"
+	generatedDirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
@@ -170,6 +171,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 			return nil, mw.Error(fmt.Errorf("failed to marked the workload as invalid:%w", err))
 		}
 		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
+	}
+
+	err = a.checkAllowedPublicIPs(workload, db)
+	if err != nil {
+		return nil, mw.Error(err)
 	}
 
 	// immediately deploy the workload
@@ -1132,6 +1138,15 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
+	wrklds := reservation.Workloads("")
+	for _, wrkld := range wrklds {
+		if wrkld.GetWorkloadType() == generated.WorkloadTypePublicIP {
+			if err = a.setFarmIPFree(wrkld, id, db); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
+	}
+
 	return nil, mw.Created()
 }
 
@@ -1209,6 +1224,76 @@ func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types
 	}
 
 	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
+}
+
+func (a *API) checkAllowedPublicIPs(workload types.WorkloaderType, db *mongo.Database) error {
+	if workload.GetWorkloadType() != generated.WorkloadTypePublicIP {
+		return nil
+	}
+
+	ipWorkload := workload.Workloader.(*generated.PublicIP)
+
+	var nodeFilter directory.NodeFilter
+	nodeFilter = nodeFilter.WithNodeID(ipWorkload.NodeId)
+	node, err := nodeFilter.Get(context.Background(), db, false)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve node id for ip")
+	}
+
+	var farmFilter directory.FarmFilter
+	farmFilter = farmFilter.WithID(schema.ID(node.FarmId))
+	farm, err := farmFilter.Get(context.Background(), db)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve farm")
+	}
+
+	found := false
+	for _, farmIP := range farm.IPs {
+		if ipWorkload.IP.Equal(farmIP.IP) {
+			found = true
+			if farmIP.ReservationID != 0 {
+				return fmt.Errorf("ip %s is already in use", farmIP.IP.String())
+			}
+			err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, workload.GetID())
+			if err != nil {
+				return errors.Wrap(err, "failed to update ip for farm")
+			}
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("ip %s is not available in farmer ip range", ipWorkload.IP.String())
+	}
+
+	return nil
+}
+
+func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mongo.Database) error {
+	ipWorkload := workload.Workloader.(*generated.PublicIP)
+
+	var nodeFilter directory.NodeFilter
+	nodeFilter = nodeFilter.WithNodeID(ipWorkload.NodeId)
+	node, err := nodeFilter.Get(context.Background(), db, false)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve node id for ip")
+	}
+
+	var farmFilter directory.FarmFilter
+	farmFilter = farmFilter.WithID(schema.ID(node.FarmId))
+	farm, err := farmFilter.Get(context.Background(), db)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve farm")
+	}
+
+	farmIP := generatedDirectory.FarmerIP{
+		IP:            ipWorkload.IP,
+		ReservationID: id,
+	}
+	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, 0)
+	if err != nil {
+		return errors.Wrap(err, "failed to update ip for farm")
+	}
+	return nil
 }
 
 // userCanSign checks if a specific user has right to push a deletion or provision signature to the reservation/workload

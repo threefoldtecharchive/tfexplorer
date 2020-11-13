@@ -119,6 +119,11 @@ func (f FarmFilter) WithFarmQuery(q FarmQuery) FarmFilter {
 
 }
 
+// WithIP filter farm ips by specific ip
+func (f FarmFilter) WithIP(ip generated.FarmerIP) FarmFilter {
+	return append(f, bson.E{Key: "ip", Value: ip})
+}
+
 // Find run the filter and return a cursor result
 func (f FarmFilter) Find(ctx context.Context, db *mongo.Database, opts ...*options.FindOptions) (*mongo.Cursor, error) {
 	col := db.Collection(FarmCollection)
@@ -194,5 +199,14 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id)
 	_, err := col.UpdateOne(ctx, f, bson.M{"$set": farm})
+	return err
+}
+
+// FarmIPUpdate update an existing farm ips
+func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.FarmerIP, workloadID schema.ID) error {
+	col := db.Collection(FarmCollection)
+	f := FarmFilter{}.WithID(id).WithIP(ip)
+	ip.ReservationID = workloadID
+	_, err := col.UpdateOne(ctx, f, bson.M{"$set": bson.M{"ip": ip}})
 	return err
 }
