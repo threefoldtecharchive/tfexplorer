@@ -28,6 +28,8 @@ const getDefaultState = () => {
       mru: 0,
       sru: 0,
       hru: 0,
+      cu: 0,
+      su: 0,
       network: 0,
       volume: 0,
       container: 0,
@@ -204,6 +206,8 @@ export default ({
       state.nodeSpecs.mru = lodash.sumBy(onlineNodes, node => node.total_resources.mru)
       state.nodeSpecs.sru = lodash.sumBy(onlineNodes, node => node.total_resources.sru)
       state.nodeSpecs.hru = lodash.sumBy(onlineNodes, node => node.total_resources.hru)
+      state.nodeSpecs.cu = lodash.sumBy(onlineNodes, node => Math.round(Math.max(node.total_resources.mru / 4, node.total_resources.cru * 2)))
+      state.nodeSpecs.su = lodash.sumBy(onlineNodes, node => Math.round(Math.max(node.total_resources.hru / 1200, node.total_resources.sru / 300)))
       state.nodeSpecs.network = lodash.sumBy(onlineNodes, node => node.workloads.network)
       state.nodeSpecs.volume = lodash.sumBy(onlineNodes, node => node.workloads.volume)
       state.nodeSpecs.container = lodash.sumBy(onlineNodes, node => node.workloads.container)
