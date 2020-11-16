@@ -18,7 +18,7 @@ type Farm struct {
 	Email           schema.Email        `bson:"email" json:"email"`
 	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	IPs             []PublicIP          `bson:"ips" json:"ips"`
+	IPaddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
 }
 
 func NewFarm() (Farm, error) {
@@ -298,6 +298,6 @@ type Gateway struct {
 }
 
 type PublicIP struct {
-	net.IP        `bson:"ip" json:"ip"`
+	Ipaddress     net.IP    `bson:"ipaddress" json:"ipaddress"`
 	ReservationID schema.ID `bson:"reservation_id" json:"reservation_id"`
 }
