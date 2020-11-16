@@ -1247,22 +1247,16 @@ func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database
 		return errors.Wrap(err, "failed to retrieve farm")
 	}
 
-	found := false
-	for _, farmIP := range farm.IPs {
-		if ipWorkload.IP.Equal(farmIP.IP) {
-			found = true
-			if farmIP.ReservationID != 0 {
-				return fmt.Errorf("ip %s is already in use", farmIP.IP.String())
-			}
-			err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, workload.GetID())
-			if err != nil {
-				return errors.Wrap(err, "failed to update ip for farm")
-			}
-		}
+	// Construct expected object
+	// a free ip (reservation id = 0)
+	farmIP := generatedDirectory.PublicIP{
+		IP:            ipWorkload.IP,
+		ReservationID: 0,
 	}
 
-	if !found {
-		return fmt.Errorf("ip %s is not available in farmer ip range", ipWorkload.IP.String())
+	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, workload.GetID())
+	if err != nil {
+		return errors.Wrap(err, "failed to update ip for farm")
 	}
 
 	return nil
@@ -1285,10 +1279,13 @@ func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mon
 		return errors.Wrap(err, "failed to retrieve farm")
 	}
 
+	// Construct expected object
+	// a used ip (reservation id = 0)
 	farmIP := generatedDirectory.PublicIP{
 		IP:            ipWorkload.IP,
 		ReservationID: id,
 	}
+
 	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, 0)
 	if err != nil {
 		return errors.Wrap(err, "failed to update ip for farm")
