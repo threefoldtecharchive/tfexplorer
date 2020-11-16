@@ -107,6 +107,11 @@ func (f FarmFilter) WithOwner(tid int64) FarmFilter {
 	return append(f, bson.E{Key: "threebot_id", Value: tid})
 }
 
+// WithIP filter farm ipaddresses by ipaddress
+func (f FarmFilter) WithIP(ip generated.PublicIP) FarmFilter {
+	return append(f, bson.E{Key: "ipaddresses.ipaddress", Value: ip.Ipaddress}, bson.E{Key: "ipaddresses.reservation_id", Value: ip.ReservationID})
+}
+
 // WithFarmQuery filter based on FarmQuery
 func (f FarmFilter) WithFarmQuery(q FarmQuery) FarmFilter {
 	if len(q.FarmName) != 0 {
@@ -117,11 +122,6 @@ func (f FarmFilter) WithFarmQuery(q FarmQuery) FarmFilter {
 	}
 	return f
 
-}
-
-// WithIP filter farm ips by specific ip
-func (f FarmFilter) WithIP(ip generated.PublicIP) FarmFilter {
-	return append(f, bson.E{Key: "ip", Value: ip})
 }
 
 // Find run the filter and return a cursor result
@@ -206,17 +206,29 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP, workloadID schema.ID) error {
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id).WithIP(ip)
-	_, err := col.UpdateOne(ctx, f, bson.M{"$set": bson.M{"ip.reservation_id": workloadID}})
+	_, err := col.UpdateOne(ctx, f, bson.M{
+		"$set": bson.M{"ipaddresses.$.reservation_id": workloadID},
+	})
 	return err
 }
 
 // FarmPushIP pushes ip to a farm public ips
 func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
 	col := db.Collection(FarmCollection)
-	f := FarmFilter{}.WithID(id).WithIP(ip)
+
+	// Check if IP exists already first
+	res := col.FindOne(ctx, bson.M{"ipaddresses.ipaddress": bson.M{"$ne": ip.Ipaddress}})
+	if err := res.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return fmt.Errorf("Ip already exists")
+		}
+		return err
+	}
+
+	f := FarmFilter{}.WithID(id)
 	_, err := col.UpdateOne(ctx, f, bson.M{
 		"$addToSet": bson.M{
-			"ips": ip,
+			"ipaddresses": ip,
 		},
 	})
 
@@ -226,10 +238,10 @@ func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip genera
 // FarmRemoveIP removes ip from a farm public ips
 func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
 	col := db.Collection(FarmCollection)
-	f := FarmFilter{}.WithID(id).WithIP(ip)
+	f := FarmFilter{}.WithID(id)
 	_, err := col.UpdateOne(ctx, f, bson.M{
 		"$pull": bson.M{
-			"ips": ip,
+			"ipaddresses": ip,
 		},
 	})
 

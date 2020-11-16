@@ -32,11 +32,11 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.registerFarm)).Methods("POST").Name("farm-register-v1")
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list-v1")
+	farmsAuthenticated.HandleFunc("/ip/{farm_id}", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.addFarmIPs))).Methods("POST").Name("farm-add-ip-v1")
+	farmsAuthenticated.HandleFunc("/ip/{farm_id}", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.deleteFarmIps))).Methods("DELETE").Name("farm-delete-ip-v1")
 	farms.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.getFarm)).Methods("GET").Name("farm-get-v1")
 	farmsAuthenticated.HandleFunc("/{farm_id}", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.updateFarm))).Methods("PUT").Name("farm-update-v1")
 	farmsAuthenticated.HandleFunc("/{farm_id}/{node_id}", farmAPI.verifySameFarm(mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm)))).Methods("DELETE").Name("farm-node-delete-v1")
-	farmsAuthenticated.HandleFunc("/{farm_id}/ip", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.addFarmIPs))).Methods("POST").Name("farm-add-ip-v1")
-	farmsAuthenticated.HandleFunc("/{farm_id}/ip", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.deleteFarmIps))).Methods("DELETE").Name("farm-delete-ip-v1")
 
 	nodes := api.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := api.PathPrefix("/nodes").Subrouter()

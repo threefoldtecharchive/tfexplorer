@@ -13,7 +13,7 @@ var _ Capaciter = (*PublicIP)(nil)
 type PublicIP struct {
 	ReservationInfo `bson:",inline"`
 
-	IP net.IP `bson:"ip" json:"ip"`
+	IPaddress net.IP `bson:"ipaddress" json:"ipaddress"`
 }
 
 func (z *PublicIP) GetRSU() RSU {
@@ -26,7 +26,7 @@ func (z *PublicIP) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 	b := bytes.NewBuffer(ric)
-	fmt.Fprintf(b, "%v", z.IP)
+	fmt.Fprintf(b, "%v", z.IPaddress)
 
 	return b.Bytes(), nil
 }

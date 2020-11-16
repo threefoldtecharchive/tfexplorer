@@ -1203,6 +1203,12 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
+	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
+		if err = a.setFarmIPFree(workload, id, db); err != nil {
+			return nil, mw.Error(err)
+		}
+	}
+
 	return nil, mw.Created()
 }
 
@@ -1250,7 +1256,7 @@ func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database
 	// Construct expected object
 	// a free ip (reservation id = 0)
 	farmIP := generatedDirectory.PublicIP{
-		Ipaddress:     ipWorkload.IP,
+		Ipaddress:     ipWorkload.IPaddress,
 		ReservationID: 0,
 	}
 
@@ -1282,9 +1288,11 @@ func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mon
 	// Construct expected object
 	// a used ip (reservation id = 0)
 	farmIP := generatedDirectory.PublicIP{
-		Ipaddress:     ipWorkload.IP,
+		Ipaddress:     ipWorkload.IPaddress,
 		ReservationID: id,
 	}
+
+	log.Info().Msgf("%+v", farmIP)
 
 	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, 0)
 	if err != nil {

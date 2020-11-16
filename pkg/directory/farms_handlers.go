@@ -21,6 +21,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type key int
+
+const Farmkey key = iota
+
 func (f FarmAPI) isAuthenticated(r *http.Request) bool {
 	_, err := f.verifier.Verify(r)
 	return err == nil
@@ -54,7 +58,7 @@ func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (f *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
-	farm := r.Context().Value("farm").(directory.Farm)
+	farm := r.Context().Value(Farmkey).(directory.Farm)
 
 	var info directory.Farm
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -128,7 +132,7 @@ func (f *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response) {
-	farm := r.Context().Value("farm").(directory.Farm)
+	farm := r.Context().Value(Farmkey).(directory.Farm)
 
 	var nodeAPI NodeAPI
 	nodeID := mux.Vars(r)["node_id"]
@@ -153,7 +157,7 @@ func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 
 func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
-	farm := r.Context().Value("farm").(directory.Farm)
+	farm := r.Context().Value(Farmkey).(directory.Farm)
 
 	var info []generated.PublicIP
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -162,14 +166,9 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		for _, farmerIP := range farm.IPaddresses {
-			if ip.Ipaddress.Equal(farmerIP.Ipaddress) {
-				return nil, mw.BadRequest(fmt.Errorf("ip %v already exists in farm", ip))
-			}
-			err := f.PushIP(r.Context(), db, farm.ID, ip)
-			if err != nil {
-				return nil, mw.Error(err)
-			}
+		err := f.PushIP(r.Context(), db, farm.ID, ip)
+		if err != nil {
+			return nil, mw.BadRequest(err)
 		}
 	}
 	return nil, mw.Ok()
@@ -177,7 +176,7 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
-	farm := r.Context().Value("farm").(directory.Farm)
+	farm := r.Context().Value(Farmkey).(directory.Farm)
 
 	var info []generated.PublicIP
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -186,16 +185,9 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		for _, farmIP := range farm.IPaddresses {
-			if ip.Ipaddress.Equal(farmIP.Ipaddress) {
-				if farmIP.ReservationID != 0 {
-					return nil, mw.BadRequest(fmt.Errorf("cannot remove an IP that is in use"))
-				}
-				err := f.RemoveIP(r.Context(), db, farm.ID, ip)
-				if err != nil {
-					return nil, mw.Error(err)
-				}
-			}
+		err := f.RemoveIP(r.Context(), db, farm.ID, ip)
+		if err != nil {
+			return nil, mw.BadRequest(err)
 		}
 	}
 	return nil, mw.Ok()
@@ -233,8 +225,8 @@ func (f *FarmAPI) verifySameFarm(next http.Handler) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), farm, "farm")
-
+		// Store the farm object in the request context for later usage
+		ctx := context.WithValue(r.Context(), Farmkey, farm)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
