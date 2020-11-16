@@ -155,27 +155,23 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
 	farm := r.Context().Value("farm").(directory.Farm)
 
-	var info []generated.FarmerIP
+	var info []generated.PublicIP
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
+	db := mw.Database(r)
 	for _, ip := range info {
 		for _, farmerIP := range farm.IPs {
 			if ip.IP.Equal(farmerIP.IP) {
 				return nil, mw.BadRequest(fmt.Errorf("ip %v already exists in farm", ip))
 			}
-			// If IP does not exist yet, add it to the list
-			farm.IPs = append(farm.IPs, farmerIP)
+			err := f.PushIP(r.Context(), db, farm.ID, ip)
+			if err != nil {
+				return nil, mw.Error(err)
+			}
 		}
 	}
-
-	db := mw.Database(r)
-	err := f.Update(r.Context(), db, farm.ID, farm)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
 	return nil, mw.Ok()
 }
 
@@ -183,29 +179,25 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
 	farm := r.Context().Value("farm").(directory.Farm)
 
-	var info []generated.FarmerIP
+	var info []generated.PublicIP
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
+	db := mw.Database(r)
 	for _, ip := range info {
-		for idx, farmIP := range farm.IPs {
+		for _, farmIP := range farm.IPs {
 			if ip.Equal(farmIP.IP) {
 				if farmIP.ReservationID != 0 {
 					return nil, mw.BadRequest(fmt.Errorf("cannot remove an IP that is in use"))
 				}
-				// If IP is not used, remove it from the farmer's ip's
-				farm.IPs = append(farm.IPs[:idx], farm.IPs[idx+1:]...)
+				err := f.RemoveIP(r.Context(), db, farm.ID, ip)
+				if err != nil {
+					return nil, mw.Error(err)
+				}
 			}
 		}
 	}
-
-	db := mw.Database(r)
-	err := f.Update(r.Context(), db, farm.ID, farm)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
 	return nil, mw.Ok()
 }
 

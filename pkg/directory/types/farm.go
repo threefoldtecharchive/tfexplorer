@@ -120,7 +120,7 @@ func (f FarmFilter) WithFarmQuery(q FarmQuery) FarmFilter {
 }
 
 // WithIP filter farm ips by specific ip
-func (f FarmFilter) WithIP(ip generated.FarmerIP) FarmFilter {
+func (f FarmFilter) WithIP(ip generated.PublicIP) FarmFilter {
 	return append(f, bson.E{Key: "ip", Value: ip})
 }
 
@@ -203,10 +203,35 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 }
 
 // FarmIPUpdate update an existing farm ips
-func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.FarmerIP, workloadID schema.ID) error {
+func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP, workloadID schema.ID) error {
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id).WithIP(ip)
-	ip.ReservationID = workloadID
-	_, err := col.UpdateOne(ctx, f, bson.M{"$set": bson.M{"ip": ip}})
+	_, err := col.UpdateOne(ctx, f, bson.M{"$set": bson.M{"ip.reservation_id": workloadID}})
+	return err
+}
+
+// FarmPushIP pushes ip to a farm public ips
+func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+	col := db.Collection(FarmCollection)
+	f := FarmFilter{}.WithID(id).WithIP(ip)
+	_, err := col.UpdateOne(ctx, f, bson.M{
+		"$addToSet": bson.M{
+			"ips": ip,
+		},
+	})
+
+	return err
+}
+
+// FarmRemoveIP removes ip from a farm public ips
+func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+	col := db.Collection(FarmCollection)
+	f := FarmFilter{}.WithID(id).WithIP(ip)
+	_, err := col.UpdateOne(ctx, f, bson.M{
+		"$pull": bson.M{
+			"ips": ip,
+		},
+	})
+
 	return err
 }

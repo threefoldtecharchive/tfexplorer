@@ -18,7 +18,7 @@ type Farm struct {
 	Email           schema.Email        `bson:"email" json:"email"`
 	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	IPs             []FarmerIP          `bson:"ips" json:"ips"`
+	IPs             []PublicIP          `bson:"ips" json:"ips"`
 }
 
 func NewFarm() (Farm, error) {
@@ -297,16 +297,7 @@ type Gateway struct {
 	FreeToUse      bool           `bson:"free_to_use" json:"free_to_use"`
 }
 
-type FarmerIP struct {
+type PublicIP struct {
 	net.IP        `bson:"ip" json:"ip"`
 	ReservationID schema.ID `bson:"reservation_id" json:"reservation_id"`
-}
-
-func NewFarmerIP(ip net.IP) (FarmerIP, error) {
-	const value = "{}"
-	var object FarmerIP
-	if err := json.Unmarshal([]byte(value), &object); err != nil {
-		return object, err
-	}
-	return object, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
@@ -62,6 +63,16 @@ func (s *FarmAPI) Add(ctx context.Context, db *mongo.Database, farm directory.Fa
 // Update farm information
 func (s *FarmAPI) Update(ctx context.Context, db *mongo.Database, id schema.ID, farm directory.Farm) error {
 	return directory.FarmUpdate(ctx, db, id, farm)
+}
+
+// PushIP push ip
+func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+	return directory.FarmPushIP(ctx, db, id, ip)
+}
+
+// RemoveIP removes ip
+func (s *FarmAPI) RemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+	return directory.FarmRemoveIP(ctx, db, id, ip)
 }
 
 // Delete deletes a farm by ID

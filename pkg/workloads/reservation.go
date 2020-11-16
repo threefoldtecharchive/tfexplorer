@@ -173,7 +173,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
 	}
 
-	err = a.checkAllowedPublicIPs(workload, db)
+	err = a.allocatePublicIP(workload, db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -1226,7 +1226,7 @@ func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types
 	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
 }
 
-func (a *API) checkAllowedPublicIPs(workload types.WorkloaderType, db *mongo.Database) error {
+func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database) error {
 	if workload.GetWorkloadType() != generated.WorkloadTypePublicIP {
 		return nil
 	}
@@ -1285,7 +1285,7 @@ func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mon
 		return errors.Wrap(err, "failed to retrieve farm")
 	}
 
-	farmIP := generatedDirectory.FarmerIP{
+	farmIP := generatedDirectory.PublicIP{
 		IP:            ipWorkload.IP,
 		ReservationID: id,
 	}
