@@ -18,7 +18,7 @@ type Farm struct {
 	Email           schema.Email        `bson:"email" json:"email"`
 	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	IPaddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
+	IPAddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
 }
 
 func NewFarm() (Farm, error) {

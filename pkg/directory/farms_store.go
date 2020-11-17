@@ -2,9 +2,9 @@ package directory
 
 import (
 	"context"
+	"net"
 
 	"github.com/pkg/errors"
-	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
@@ -66,12 +66,12 @@ func (s *FarmAPI) Update(ctx context.Context, db *mongo.Database, id schema.ID, 
 }
 
 // PushIP push ip
-func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP) error {
 	return directory.FarmPushIP(ctx, db, id, ip)
 }
 
 // RemoveIP removes ip
-func (s *FarmAPI) RemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+func (s *FarmAPI) RemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP) error {
 	return directory.FarmRemoveIP(ctx, db, id, ip)
 }
 

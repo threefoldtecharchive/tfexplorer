@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 
@@ -107,9 +108,9 @@ func (f FarmFilter) WithOwner(tid int64) FarmFilter {
 	return append(f, bson.E{Key: "threebot_id", Value: tid})
 }
 
-// WithIP filter farm ipaddresses by ipaddress
+// WithIP filter farm ipaddresses by ipaddress (including reservation id)
 func (f FarmFilter) WithIP(ip generated.PublicIP) FarmFilter {
-	return append(f, bson.E{Key: "ipaddresses.ipaddress", Value: ip.Ipaddress}, bson.E{Key: "ipaddresses.reservation_id", Value: ip.ReservationID})
+	return append(f, bson.E{Key: "ipaddresses", Value: ip})
 }
 
 // WithFarmQuery filter based on FarmQuery
@@ -213,22 +214,23 @@ func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip gene
 }
 
 // FarmPushIP pushes ip to a farm public ips
-func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP) error {
 	col := db.Collection(FarmCollection)
 
 	// Check if IP exists already first
-	res := col.FindOne(ctx, bson.M{"ipaddresses.ipaddress": bson.M{"$ne": ip.Ipaddress}})
+	res := col.FindOne(ctx, bson.M{"_id": id, "ipaddresses.ipaddress": bson.M{"$ne": ip}})
 	if err := res.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return fmt.Errorf("Ip already exists")
+			// we already have the ip then nothing to do
+			return nil
 		}
 		return err
 	}
 
 	f := FarmFilter{}.WithID(id)
 	_, err := col.UpdateOne(ctx, f, bson.M{
-		"$addToSet": bson.M{
-			"ipaddresses": ip,
+		"$push": bson.M{
+			"ipaddresses": generated.PublicIP{IPAddress: ip},
 		},
 	})
 
@@ -236,12 +238,14 @@ func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip genera
 }
 
 // FarmRemoveIP removes ip from a farm public ips
-func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP) error {
+func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP) error {
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id)
+	// TODO: what should we return in case the IP is configured but reserved.
+	// NOTE: this operation will ONLY delete the IP if it's not reserved (reservation_id = empty)
 	_, err := col.UpdateOne(ctx, f, bson.M{
 		"$pull": bson.M{
-			"ipaddresses": ip,
+			"ipaddresses": generated.PublicIP{IPAddress: ip},
 		},
 	})
 

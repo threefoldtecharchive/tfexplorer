@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/threefoldtech/tfexplorer/models"
-	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -167,7 +166,7 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		err := f.PushIP(r.Context(), db, farm.ID, generated.PublicIP{IPAddress: ip})
+		err := f.PushIP(r.Context(), db, farm.ID, ip)
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
@@ -179,7 +178,7 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
 	farm := r.Context().Value(Farmkey).(directory.Farm)
 
-	var info []generated.PublicIP
+	var info []net.IP
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}

@@ -1256,7 +1256,7 @@ func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database
 	// Construct expected object
 	// a free ip (reservation id = 0)
 	farmIP := generatedDirectory.PublicIP{
-		Ipaddress:     ipWorkload.IPaddress,
+		IPAddress:     ipWorkload.IPaddress,
 		ReservationID: 0,
 	}
 
@@ -1288,7 +1288,7 @@ func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mon
 	// Construct expected object
 	// a used ip (reservation id = 0)
 	farmIP := generatedDirectory.PublicIP{
-		Ipaddress:     ipWorkload.IPaddress,
+		IPAddress:     ipWorkload.IPaddress,
 		ReservationID: id,
 	}
 
