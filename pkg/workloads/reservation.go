@@ -1264,6 +1264,7 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, workload.GetID())
 	var message string
 	state := generated.ResultStateOK
+	nextAction := types.Deploy
 	if err != nil {
 		message = err.Error()
 		state = generated.ResultStateError
@@ -1275,6 +1276,7 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 			Epoch:      schema.Date{Time: time.Now()},
 		}
 
+		nextAction = types.Deleted
 		if err := types.WorkloadResultPush(context.Background(), db, workload.GetID(), result); err != nil {
 			return mw.Error(err)
 		}
@@ -1283,7 +1285,7 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	}
 
 	// update workload
-	if err := types.WorkloadSetNextAction(context.Background(), db, workload.GetID(), types.Deploy); err != nil {
+	if err := types.WorkloadSetNextAction(context.Background(), db, workload.GetID(), nextAction); err != nil {
 		return mw.Error(errors.Wrap(err, "failed to set workload to DEPLOY state"))
 	}
 
