@@ -207,10 +207,18 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip generated.PublicIP, workloadID schema.ID) error {
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id).WithIP(ip)
-	_, err := col.UpdateOne(ctx, f, bson.M{
+	results, err := col.UpdateOne(ctx, f, bson.M{
 		"$set": bson.M{"ipaddresses.$.reservation_id": workloadID},
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	if results.ModifiedCount != 1 {
+		return fmt.Errorf("ip is not available for reservation")
+	}
+
+	return nil
 }
 
 // FarmPushIP pushes ip to a farm public ips

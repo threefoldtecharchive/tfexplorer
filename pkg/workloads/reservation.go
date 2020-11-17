@@ -173,15 +173,20 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
 	}
 
-	err = a.allocatePublicIP(workload, db)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
-	// immediately deploy the workload
-	if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
-		log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
-		return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
+	if workload.GetWorkloadType() != generated.WorkloadTypePublicIP {
+		if err := a.handlePublicIPReservation(db, workload); err != nil {
+			return nil, err
+		}
+		// update workload
+		if err := types.WorkloadSetNextAction(r.Context(), db, w.GetID(), types.Deploy); err != nil {
+			return nil, mw.Error(errors.Wrap(err, "failed to set workload to DEPLOY state"))
+		}
+	} else {
+		// immediately deploy the workload
+		if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
+			log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
+			return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
+		}
 	}
 
 	return ReservationCreateResponse{ID: id}, mw.Created()
@@ -1099,8 +1104,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-		return a.newSignDelete(r)
+		return nil, mw.Error(err)
 	}
 
 	if httpErr := userCanSign(signature.Tid, reservation.DataReservation.SigningRequestDelete, reservation.SignaturesDelete); httpErr != nil {
@@ -1232,7 +1236,7 @@ func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types
 	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
 }
 
-func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database) error {
+func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.WorkloaderType) mw.Response {
 	if workload.GetWorkloadType() != generated.WorkloadTypePublicIP {
 		return nil
 	}
@@ -1243,14 +1247,14 @@ func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database
 	nodeFilter = nodeFilter.WithNodeID(ipWorkload.NodeId)
 	node, err := nodeFilter.Get(context.Background(), db, false)
 	if err != nil {
-		return errors.Wrap(err, "failed to retrieve node id for ip")
+		return mw.BadRequest(errors.Wrap(err, "failed to retrieve node id for ip"))
 	}
 
 	var farmFilter directory.FarmFilter
 	farmFilter = farmFilter.WithID(schema.ID(node.FarmId))
 	farm, err := farmFilter.Get(context.Background(), db)
 	if err != nil {
-		return errors.Wrap(err, "failed to retrieve farm")
+		return mw.BadRequest(errors.Wrap(err, "failed to retrieve farm"))
 	}
 
 	// Construct expected object
@@ -1260,10 +1264,22 @@ func (a *API) allocatePublicIP(workload types.WorkloaderType, db *mongo.Database
 		ReservationID: 0,
 	}
 
+	//
 	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, workload.GetID())
+	var message string
+	state := generated.ResultStateOK
 	if err != nil {
-		return errors.Wrap(err, "failed to update ip for farm")
+		message = err.Error()
+		state = generated.ResultStateError
 	}
+
+	workload.SetResult(generated.Result{
+		Category:   generated.WorkloadTypePublicIP,
+		WorkloadId: fmt.Sprintf("%d-1", workload.GetID()),
+		Message:    message,
+		State:      state,
+		Epoch:      schema.Date{Time: time.Now()},
+	})
 
 	return nil
 }
@@ -1286,13 +1302,10 @@ func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mon
 	}
 
 	// Construct expected object
-	// a used ip (reservation id = 0)
 	farmIP := generatedDirectory.PublicIP{
 		IPAddress:     ipWorkload.IPaddress,
 		ReservationID: id,
 	}
-
-	log.Info().Msgf("%+v", farmIP)
 
 	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, 0)
 	if err != nil {
