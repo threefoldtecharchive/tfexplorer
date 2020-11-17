@@ -65,10 +65,11 @@ type (
 	}
 
 	RSU struct {
-		CRU int64
-		SRU float64
-		HRU float64
-		MRU float64
+		CRU   int64
+		SRU   float64
+		HRU   float64
+		MRU   float64
+		IPV4U float64
 	}
 )
 

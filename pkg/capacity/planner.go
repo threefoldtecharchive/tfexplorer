@@ -375,8 +375,8 @@ func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, 
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
-	pool.AddWorkload(w.GetID(), cu, su)
+	cu, su, ipu := CloudUnitsFromResourceUnits(w.GetRSU())
+	pool.AddWorkload(w.GetID(), cu, su, ipu)
 
 	return time.Now().Add(time.Second*time.Duration(seconds)).Unix() < pool.EmptyAt, nil
 }
@@ -429,7 +429,11 @@ func (p *NaivePlanner) addCapacity(id schema.ID) error {
 	// any oredering of the node ID's.
 	pool.NodeIDs = reservation.DataReservation.NodeIDs
 
-	pool.AddCapacity(float64(reservation.DataReservation.CUs), float64(reservation.DataReservation.SUs))
+	pool.AddCapacity(
+		float64(reservation.DataReservation.CUs),
+		float64(reservation.DataReservation.SUs),
+		float64(reservation.DataReservation.IPv4Us),
+	)
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
 		return errors.Wrap(err, "could not save pool")
@@ -458,11 +462,11 @@ func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) err
 		return errors.Wrap(err, "could not load pool")
 	}
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
+	cu, su, ipu := CloudUnitsFromResourceUnits(w.GetRSU())
 	if used {
-		pool.AddWorkload(w.GetID(), cu, su)
+		pool.AddWorkload(w.GetID(), cu, su, ipu)
 	} else {
-		pool.RemoveWorkload(w.GetID(), cu, su)
+		pool.RemoveWorkload(w.GetID(), cu, su, ipu)
 	}
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
@@ -572,11 +576,14 @@ func usesExpiredResources(pool types.Pool, workload workloads.Workloader) bool {
 	// In other words, only delete the workload if it consumes resources
 	// which are empty
 
-	cu, su := CloudUnitsFromResourceUnits(workload.GetRSU())
+	cu, su, ipu := CloudUnitsFromResourceUnits(workload.GetRSU())
 	if cu > 0 && pool.Cus <= 0 {
 		return true
 	}
 	if su > 0 && pool.Sus <= 0 {
+		return true
+	}
+	if ipu > 0 && pool.IPv4us <= 0 {
 		return true
 	}
 	return false

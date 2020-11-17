@@ -17,7 +17,7 @@ type PublicIP struct {
 }
 
 func (z *PublicIP) GetRSU() RSU {
-	return RSU{}
+	return RSU{IPV4U: 1}
 }
 
 func (z *PublicIP) SignatureChallenge() ([]byte, error) {

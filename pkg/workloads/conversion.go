@@ -209,6 +209,7 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 	// calculate how much to add per pool
 	poolCU := make(map[int64]float64)
 	poolSU := make(map[int64]float64)
+	poolIPU := make(map[int64]float64)
 	for _, wl := range workloaders {
 		ss := strings.Split(wl.GetReference(), "-")
 		reservationID, err := a.parseID(ss[0])
@@ -224,16 +225,19 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 			continue
 		}
 		secondsLeft := math.Floor(time.Until(reservation.DataReservation.ExpirationReservation.Time).Seconds())
-		cu, su := capacity.CloudUnitsFromResourceUnits(wl.GetRSU())
+		cu, su, ipu := capacity.CloudUnitsFromResourceUnits(wl.GetRSU())
 		poolID := wl.GetPoolID()
 
-		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wl.GetWorkloadType().String())
+		log.Info().Msgf("pool %d cu %v su %v ipu %v %+v", poolID, cu, su, ipu, wl.GetWorkloadType().String())
 
 		if cu > 0 {
 			poolCU[poolID] = poolCU[poolID] + cu*secondsLeft
 		}
 		if su > 0 {
 			poolSU[poolID] = poolSU[poolID] + su*secondsLeft
+		}
+		if ipu > 0 {
+			poolIPU[poolID] = poolIPU[poolID] + ipu*secondsLeft
 		}
 	}
 
@@ -244,7 +248,7 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 		if err != nil {
 			return nil, mw.Error(err)
 		}
-		pool.AddCapacity(poolCU[poolID], poolSU[poolID])
+		pool.AddCapacity(poolCU[poolID], poolSU[poolID], poolIPU[poolID])
 		if err = capacitytypes.UpdatePool(r.Context(), db, pool); err != nil {
 			return nil, mw.Error(err)
 		}

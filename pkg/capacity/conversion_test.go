@@ -88,7 +88,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%v", tt.rsu), func(t *testing.T) {
-			cu, su := CloudUnitsFromResourceUnits(tt.rsu)
+			cu, su, _ := CloudUnitsFromResourceUnits(tt.rsu)
 			assert.Equal(t, tt.cu, cu, "wrong number of cu")
 			assert.Equal(t, tt.su, su, "wrong number of su")
 		})
