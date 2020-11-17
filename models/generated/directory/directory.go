@@ -297,7 +297,8 @@ type Gateway struct {
 	FreeToUse      bool           `bson:"free_to_use" json:"free_to_use"`
 }
 
+// PublicIP structure
 type PublicIP struct {
-	Ipaddress     net.IP    `bson:"ipaddress" json:"ipaddress"`
+	IPAddress     net.IP    `bson:"ipaddress" json:"ipaddress"`
 	ReservationID schema.ID `bson:"reservation_id" json:"reservation_id"`
 }

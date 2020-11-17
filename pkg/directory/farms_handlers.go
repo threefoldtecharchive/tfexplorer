@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -159,14 +160,14 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
 	farm := r.Context().Value(Farmkey).(directory.Farm)
 
-	var info []generated.PublicIP
+	var info []net.IP
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		err := f.PushIP(r.Context(), db, farm.ID, ip)
+		err := f.PushIP(r.Context(), db, farm.ID, generated.PublicIP{IPAddress: ip})
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
