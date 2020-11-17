@@ -173,7 +173,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
 	}
 
-	if workload.GetWorkloadType() != generated.WorkloadTypePublicIP {
+	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
 		if err := a.handlePublicIPReservation(db, workload); err != nil {
 			return nil, err
 		}
