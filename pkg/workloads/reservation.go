@@ -177,10 +177,6 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		if err := a.handlePublicIPReservation(db, workload); err != nil {
 			return nil, err
 		}
-		// update workload
-		if err := types.WorkloadSetNextAction(r.Context(), db, w.GetID(), types.Deploy); err != nil {
-			return nil, mw.Error(errors.Wrap(err, "failed to set workload to DEPLOY state"))
-		}
 	} else {
 		// immediately deploy the workload
 		if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
@@ -1271,15 +1267,25 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	if err != nil {
 		message = err.Error()
 		state = generated.ResultStateError
+		result := types.Result{
+			Category:   generated.WorkloadTypePublicIP,
+			WorkloadId: fmt.Sprintf("%d-1", workload.GetID()),
+			Message:    message,
+			State:      state,
+			Epoch:      schema.Date{Time: time.Now()},
+		}
+
+		if err := types.WorkloadResultPush(context.Background(), db, workload.GetID(), result); err != nil {
+			return mw.Error(err)
+		}
+
+		return nil
 	}
 
-	workload.SetResult(generated.Result{
-		Category:   generated.WorkloadTypePublicIP,
-		WorkloadId: fmt.Sprintf("%d-1", workload.GetID()),
-		Message:    message,
-		State:      state,
-		Epoch:      schema.Date{Time: time.Now()},
-	})
+	// update workload
+	if err := types.WorkloadSetNextAction(context.Background(), db, workload.GetID(), types.Deploy); err != nil {
+		return mw.Error(errors.Wrap(err, "failed to set workload to DEPLOY state"))
+	}
 
 	return nil
 }
