@@ -1268,20 +1268,19 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	if err != nil {
 		message = err.Error()
 		state = generated.ResultStateError
-		result := types.Result{
-			Category:   generated.WorkloadTypePublicIP,
-			WorkloadId: fmt.Sprintf("%d-1", workload.GetID()),
-			Message:    message,
-			State:      state,
-			Epoch:      schema.Date{Time: time.Now()},
-		}
-
 		nextAction = types.Deleted
-		if err := types.WorkloadResultPush(context.Background(), db, workload.GetID(), result); err != nil {
-			return mw.Error(err)
-		}
+	}
 
-		return nil
+	result := types.Result{
+		Category:   generated.WorkloadTypePublicIP,
+		WorkloadId: fmt.Sprintf("%d-1", workload.GetID()),
+		Message:    message,
+		State:      state,
+		Epoch:      schema.Date{Time: time.Now()},
+	}
+
+	if err := types.WorkloadResultPush(context.Background(), db, workload.GetID(), result); err != nil {
+		return mw.Error(err)
 	}
 
 	// update workload
