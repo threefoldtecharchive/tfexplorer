@@ -34,8 +34,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 
 	farmsAuthenticated := api.PathPrefix("/farms").Subrouter()
 	farmsAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
-	farmsAuthenticated.HandleFunc("{farm_id}/ip", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.addFarmIPs))).Methods("POST").Name("farm-add-ip-v1")
-	farmsAuthenticated.HandleFunc("{farm_id}/ip", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.deleteFarmIps))).Methods("DELETE").Name("farm-delete-ip-v1")
+	farmsAuthenticated.HandleFunc("/{farm_id}/ip", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.addFarmIPs))).Methods("POST").Name("farm-add-ip-v1")
+	farmsAuthenticated.HandleFunc("/{farm_id}/ip", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.deleteFarmIps))).Methods("DELETE").Name("farm-delete-ip-v1")
 	farmsAuthenticated.HandleFunc("/{farm_id}", farmAPI.verifySameFarm(mw.AsHandlerFunc(farmAPI.updateFarm))).Methods("PUT").Name("farm-update-v1")
 	farmsAuthenticated.HandleFunc("/{farm_id}/{node_id}", farmAPI.verifySameFarm(mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm)))).Methods("DELETE").Name("farm-node-delete-v1")
 
