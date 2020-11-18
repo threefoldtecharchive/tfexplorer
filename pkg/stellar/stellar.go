@@ -3,7 +3,9 @@ package stellar
 import (
 	"fmt"
 	"math/big"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/amount"
 	"github.com/stellar/go/clients/horizonclient"
@@ -136,6 +138,8 @@ func (w *Wallet) CreateAccount() (string, string, error) {
 		return "", "", errors.Wrapf(err, "failed to activate escrow account %s", newKp.Address())
 	}
 
+	log.Info().Msg("escrow account activation succesful")
+
 	// Now fetch the escrow source account to perform operations on it
 	sourceAccount, err = w.GetAccountDetails(newKp.Address())
 	if err != nil {
@@ -183,12 +187,35 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		return errors.Wrap(err, "failed to sign transaction")
 	}
 
-	// Submit the transaction
-	_, err = client.SubmitTransaction(tx)
-	if err != nil {
-		hError := err.(*horizonclient.Error)
-		return errors.Wrap(hError, "error submitting transaction")
+	submitTransactionBackof := func() error {
+		log.Info().Msg("trying to submit activate escrow account transaction")
+		_, err = client.SubmitTransaction(tx)
+		if err != nil {
+			hError := err.(*horizonclient.Error)
+			log.Error().Msgf("horizon problem: %s", hError.Problem.Error())
+			if hError.Problem.Status == 504 {
+				return err
+			}
+			return backoff.Permanent(err)
+		}
+		return nil
 	}
+
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = time.Second * 20 // retry for 20 seconds maximum
+	bo.MaxInterval = time.Second * 1
+
+	err = backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
+		log.Error().
+			Err(err).
+			Str("sleep", d.String()).
+			Msgf("failed submit activate escrow account transaction for: %s", newKp.Address())
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
