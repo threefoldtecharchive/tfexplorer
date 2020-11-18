@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 
@@ -196,9 +197,34 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 		return err
 	}
 
+	// update is a subset of Farm that only has the updatable fields.
+	// this to preven the farmer from overriding other managed fields
+	// like the list of IPs
+	update := struct {
+		ThreebotID      int64                         `bson:"threebot_id" json:"threebot_id"`
+		IyoOrganization string                        `bson:"iyo_organization" json:"iyo_organization"`
+		Name            string                        `bson:"name" json:"name"`
+		WalletAddresses []generated.WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
+		Location        generated.Location            `bson:"location" json:"location"`
+		Email           schema.Email                  `bson:"email" json:"email"`
+		ResourcePrices  []generated.NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
+		PrefixZero      schema.IPRange                `bson:"prefix_zero" json:"prefix_zero"`
+		GatewayIP       net.IP                        `bson:"gateway_ip" json:"gateway_ip"`
+	}{
+		ThreebotID:      farm.ThreebotId,
+		IyoOrganization: farm.IyoOrganization,
+		Name:            farm.Name,
+		WalletAddresses: farm.WalletAddresses,
+		Location:        farm.Location,
+		Email:           farm.Email,
+		ResourcePrices:  farm.ResourcePrices,
+		PrefixZero:      farm.PrefixZero,
+		GatewayIP:       farm.GatewayIP,
+	}
+
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id)
-	_, err := col.UpdateOne(ctx, f, bson.M{"$set": farm})
+	_, err := col.UpdateOne(ctx, f, bson.M{"$set": update})
 	return err
 }
 
