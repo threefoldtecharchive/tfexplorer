@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"regexp"
 
@@ -222,7 +221,7 @@ func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip gene
 }
 
 // FarmPushIP pushes ip to a farm public ips
-func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP) error {
+func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPRange) error {
 	col := db.Collection(FarmCollection)
 
 	// Check if IP exists already first
@@ -246,7 +245,7 @@ func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP
 }
 
 // FarmRemoveIP removes ip from a farm public ips
-func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip net.IP) error {
+func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPRange) error {
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id)
 	// TODO: what should we return in case the IP is configured but reserved.

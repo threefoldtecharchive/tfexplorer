@@ -18,6 +18,7 @@ type Farm struct {
 	Email           schema.Email        `bson:"email" json:"email"`
 	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	GatewayIP       net.IP              `bson:"gateway_ip" json:"gateway_ip"`
 	IPAddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
 }
 
@@ -299,6 +300,6 @@ type Gateway struct {
 
 // PublicIP structure
 type PublicIP struct {
-	IPAddress     net.IP    `bson:"ipaddress" json:"ipaddress"`
-	ReservationID schema.ID `bson:"reservation_id" json:"reservation_id"`
+	IPAddress     schema.IPRange `bson:"ipaddress" json:"ipaddress"`
+	ReservationID schema.ID      `bson:"reservation_id" json:"reservation_id"`
 }

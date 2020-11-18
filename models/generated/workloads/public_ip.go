@@ -3,7 +3,8 @@ package workloads
 import (
 	"bytes"
 	"fmt"
-	"net"
+
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 var _ Workloader = (*PublicIP)(nil)
@@ -13,7 +14,7 @@ var _ Capaciter = (*PublicIP)(nil)
 type PublicIP struct {
 	ReservationInfo `bson:",inline"`
 
-	IPaddress net.IP `bson:"ipaddress" json:"ipaddress"`
+	IPaddress schema.IPRange `bson:"ipaddress" json:"ipaddress"`
 }
 
 func (z *PublicIP) GetRSU() RSU {

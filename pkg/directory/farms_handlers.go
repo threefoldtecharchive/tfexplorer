@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 
@@ -23,7 +22,7 @@ import (
 
 type key int
 
-const Farmkey key = iota
+const farmKey key = iota
 
 func (f FarmAPI) isAuthenticated(r *http.Request) bool {
 	_, err := f.verifier.Verify(r)
@@ -58,7 +57,7 @@ func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (f *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
-	farm := r.Context().Value(Farmkey).(directory.Farm)
+	farm := r.Context().Value(farmKey).(directory.Farm)
 
 	var info directory.Farm
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -132,7 +131,7 @@ func (f *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response) {
-	farm := r.Context().Value(Farmkey).(directory.Farm)
+	farm := r.Context().Value(farmKey).(directory.Farm)
 
 	var nodeAPI NodeAPI
 	nodeID := mux.Vars(r)["node_id"]
@@ -157,9 +156,9 @@ func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 
 func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
-	farm := r.Context().Value(Farmkey).(directory.Farm)
+	farm := r.Context().Value(farmKey).(directory.Farm)
 
-	var info []net.IP
+	var info []schema.IPRange
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -176,9 +175,9 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
-	farm := r.Context().Value(Farmkey).(directory.Farm)
+	farm := r.Context().Value(farmKey).(directory.Farm)
 
-	var info []net.IP
+	var info []schema.IPRange
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -226,7 +225,7 @@ func (f *FarmAPI) verifySameFarm(next http.Handler) http.HandlerFunc {
 		}
 
 		// Store the farm object in the request context for later usage
-		ctx := context.WithValue(r.Context(), Farmkey, farm)
+		ctx := context.WithValue(r.Context(), farmKey, farm)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
