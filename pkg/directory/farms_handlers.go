@@ -57,14 +57,14 @@ func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (f *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
-	farm := r.Context().Value(farmKey).(directory.Farm)
+	farmID := r.Context().Value(farmKey).(schema.ID)
 
 	var info directory.Farm
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	info.ID = farm.ID
+	info.ID = farmID
 
 	db := mw.Database(r)
 	err := f.Update(r.Context(), db, info.ID, info)
@@ -130,7 +130,7 @@ func (f *FarmAPI) getFarm(r *http.Request) (interface{}, mw.Response) {
 }
 
 func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response) {
-	farm := r.Context().Value(farmKey).(directory.Farm)
+	farmID := r.Context().Value(farmKey).(schema.ID)
 
 	var nodeAPI NodeAPI
 	nodeID := mux.Vars(r)["node_id"]
@@ -141,7 +141,7 @@ func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 		return nil, mw.NotFound(err)
 	}
 
-	if node.FarmId != int64(farm.ID) {
+	if node.FarmId != int64(farmID) {
 		return nil, mw.Forbidden(fmt.Errorf("only the farm owner of this node can delete this node"))
 	}
 
@@ -155,7 +155,7 @@ func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 
 func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
-	farm := r.Context().Value(farmKey).(directory.Farm)
+	farmID := r.Context().Value(farmKey).(schema.ID)
 
 	var info []schema.IPRange
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -164,7 +164,7 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		err := f.PushIP(r.Context(), db, farm.ID, ip)
+		err := f.PushIP(r.Context(), db, farmID, ip)
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
@@ -174,7 +174,7 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
-	farm := r.Context().Value(farmKey).(directory.Farm)
+	farmID := r.Context().Value(farmKey).(schema.ID)
 
 	var info []schema.IPRange
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -183,7 +183,7 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		err := f.RemoveIP(r.Context(), db, farm.ID, ip)
+		err := f.RemoveIP(r.Context(), db, farmID, ip)
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
@@ -221,7 +221,7 @@ func LoadFarmMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Store the farm object in the request context for later usage
-		ctx := context.WithValue(r.Context(), farmKey, farm)
+		ctx := context.WithValue(r.Context(), farmKey, farm.ID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
