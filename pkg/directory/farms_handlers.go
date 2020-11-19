@@ -90,7 +90,6 @@ func (f *FarmAPI) listFarm(r *http.Request) (interface{}, mw.Response) {
 
 	pager := models.PageFromRequest(r)
 	findOpts = append(findOpts, pager)
-
 	// hide the email of the farm for any non authenticated user
 	if !f.isAuthenticated(r) {
 		findOpts = append(findOpts, options.Find().SetProjection(bson.D{
@@ -192,9 +191,9 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Ok()
 }
 
-// VerifySameFarm verifies if the farmer who wants to update information
+// LoadFarmMiddleware verifies if the farmer who wants to update information
 // about it's farm is indeed that farmer
-func (f *FarmAPI) verifySameFarm(next http.Handler) http.HandlerFunc {
+func LoadFarmMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sid := mux.Vars(r)["farm_id"]
 
@@ -206,21 +205,18 @@ func (f *FarmAPI) verifySameFarm(next http.Handler) http.HandlerFunc {
 
 		db := mw.Database(r)
 
-		farm, err := f.GetByID(r.Context(), db, id)
-		if err != nil {
-			mw.NotFound(err)
-			return
-		}
-
-		sfarmerID := httpsig.KeyIDFromContext(r.Context())
-		requestFarmerID, err := strconv.ParseInt(sfarmerID, 10, 64)
+		farmerID := httpsig.KeyIDFromContext(r.Context())
+		requestFarmerID, err := strconv.ParseInt(farmerID, 10, 64)
 		if err != nil {
 			mw.BadRequest(err)
 			return
 		}
 
-		if farm.ThreebotId != requestFarmerID {
-			mw.Forbidden(fmt.Errorf("only the farm owner can update the information of its farm"))
+		var filter directory.FarmFilter
+		filter = filter.WithID(schema.ID(id)).WithOwner(requestFarmerID)
+		farm, err := filter.Get(r.Context(), db)
+		if err != nil {
+			mw.NotFound(err)
 			return
 		}
 
