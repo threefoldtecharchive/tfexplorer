@@ -250,22 +250,34 @@ func FarmIPUpdate(ctx context.Context, db *mongo.Database, id schema.ID, ip gene
 func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP) error {
 	col := db.Collection(FarmCollection)
 
-	// Check if IP exists already first
-	res := col.FindOne(ctx, bson.M{"_id": id, "ipaddresses.ipaddress": bson.M{"$ne": ip}})
-	if err := res.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-			// we already have the ip then nothing to do
-			return nil
-		}
+	var filter FarmFilter
+	filter = filter.WithID(id)
+	farm, err := filter.Get(ctx, db)
+	if err != nil {
 		return err
 	}
+	for _, configuredIP := range farm.IPAddresses {
+		if configuredIP.IPAddress.String() == ip.String() {
+			return nil
+		}
+	}
 
-	f := FarmFilter{}.WithID(id)
-	_, err := col.UpdateOne(ctx, f, bson.M{
-		"$push": bson.M{
-			"ipaddresses": generated.PublicIP{IPAddress: ip},
-		},
-	})
+	// add IP. we have 2 pathes
+	// if farm ips list is nil (or empty)
+	if len(farm.IPAddresses) == 0 {
+		_, err = col.UpdateOne(ctx, filter, bson.M{
+			"$set": bson.M{
+				"ipaddresses": []generated.PublicIP{{IPAddress: ip}},
+			},
+		})
+	} else {
+		// push new value
+		_, err = col.UpdateOne(ctx, filter, bson.M{
+			"$push": bson.M{
+				"ipaddresses": generated.PublicIP{IPAddress: ip},
+			},
+		})
+	}
 
 	return err
 }
