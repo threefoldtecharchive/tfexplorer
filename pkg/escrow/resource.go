@@ -31,12 +31,17 @@ type (
 // Price for 1 CU or SU for 1 month is 10$
 // TFT price is fixed at 0.15
 // CU and SU price per second is
-// (10 / 0.15) / (3600 *24*30) = 257.2
+// CU -> (10 / 0.15) / (3600 *24*30) = 257.2
+// SU -> (8 / 0.15) / (3600 *24*30) = 257.2
 const (
+	cuPriceDollarMonth = 10
+	suPriceDollarMonth = 8
+	tftPriceMill       = 150 // 0.15 * 1000 (1mill = 1/1000 of a dollar)
+
 	// express as stropes, to simplify things a bit
 	// TODO: check if the rounding errors here matter
-	computeUnitSecondTFTStropesCost = 257 //  ~ 0.00002572 * 10_000_000
-	storageUnitSecondTFTStropesCost = 257 // ~ 0.00002572 * 10_000_000
+	computeUnitSecondTFTStropesCost = (cuPriceDollarMonth * 10_000_000_000 / tftPriceMill) / (3600 * 24 * 30)
+	storageUnitSecondTFTStropesCost = (suPriceDollarMonth * 10_000_000_000 / tftPriceMill) / (3600 * 24 * 30)
 )
 
 const (
