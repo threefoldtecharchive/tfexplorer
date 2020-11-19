@@ -32,7 +32,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list-v1")
 	farms.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.getFarm)).Methods("GET").Name("farm-get-v1")
 
-	farmsAuthenticated := farms.PathPrefix("").Subrouter()
+	farmsAuthenticated := farms.PathPrefix("/{farm_id}").Subrouter()
 	farmsAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
 	farmsAuthenticated.Use(LoadFarmMiddleware)
 	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.addFarmIPs)).Methods("POST").Name("farm-add-ip-v1")
