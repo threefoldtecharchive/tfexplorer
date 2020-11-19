@@ -335,7 +335,7 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 			}
 		}
 
-		if data.CUs == 0 && data.SUs == 0 && len(data.NodeIDs) == len(pool.NodeIDs) {
+		if data.CUs == 0 && data.SUs == 0 && data.IPv4Us == 0 && len(data.NodeIDs) == len(pool.NodeIDs) {
 			// nil reservation
 			return pi, ErrTransparantCapacityExtension
 		}
