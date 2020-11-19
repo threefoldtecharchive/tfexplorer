@@ -10,7 +10,10 @@ import (
 
 	"math/big"
 
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 var (
@@ -247,24 +250,28 @@ func (i *IP) UnmarshalText(text []byte) error {
 }
 
 // MarshalBSON dumps ip as a bson
-func (i IP) MarshalBSON() ([]byte, error) {
+func (i IP) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	value := ""
 	if len(i.IPNet.IP) != 0 {
 		value = i.String()
 	}
-	return bson.Marshal(value)
+
+	return bson.MarshalValue(value)
 }
 
 // UnmarshalBSON loads IP from bson
-func (i *IP) UnmarshalBSON(bytes []byte) error {
-	var value string
-	if err := bson.Unmarshal(bytes, &value); err != nil {
-		return err
+func (i *IP) UnmarshalBSONValue(t bsontype.Type, bytes []byte) error {
+	if t != bsontype.String {
+		return fmt.Errorf("invalid ip bson type '%s'", t.String())
+	}
+	ip, _, ok := bsoncore.ReadString(bytes)
+	if !ok {
+		return fmt.Errorf("invalid bson ip format input")
 	}
 
-	v, err := ParseIP(value)
+	v, err := ParseIP(ip)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to parse ip address")
 	}
 
 	i.IPNet = v.IPNet
