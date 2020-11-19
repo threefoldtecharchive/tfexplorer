@@ -300,6 +300,6 @@ type Gateway struct {
 
 // PublicIP structure
 type PublicIP struct {
-	IPAddress     schema.IPRange `bson:"ipaddress" json:"ipaddress"`
-	ReservationID schema.ID      `bson:"reservation_id" json:"reservation_id"`
+	IPAddress     schema.IP `bson:"ipaddress" json:"ipaddress"`
+	ReservationID schema.ID `bson:"reservation_id" json:"reservation_id"`
 }

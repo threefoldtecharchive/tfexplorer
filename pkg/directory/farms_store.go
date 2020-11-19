@@ -65,12 +65,12 @@ func (s *FarmAPI) Update(ctx context.Context, db *mongo.Database, id schema.ID, 
 }
 
 // PushIP push ip
-func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPRange) error {
+func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP) error {
 	return directory.FarmPushIP(ctx, db, id, ip)
 }
 
 // RemoveIP removes ip
-func (s *FarmAPI) RemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPRange) error {
+func (s *FarmAPI) RemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP) error {
 	return directory.FarmRemoveIP(ctx, db, id, ip)
 }
 

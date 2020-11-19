@@ -14,7 +14,7 @@ var _ Capaciter = (*PublicIP)(nil)
 type PublicIP struct {
 	ReservationInfo `bson:",inline"`
 
-	IPaddress schema.IPRange `bson:"ipaddress" json:"ipaddress"`
+	IPaddress schema.IP `bson:"ipaddress" json:"ipaddress"`
 }
 
 func (z *PublicIP) GetRSU() RSU {

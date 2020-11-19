@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"math/big"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -201,6 +203,84 @@ func (i IPRange) MarshalJSON() ([]byte, error) {
 }
 
 func (i IPRange) String() string {
+	return i.IPNet.String()
+}
+
+// IPRange type
+type IP struct{ net.IPNet }
+
+// ParseIPRange parse iprange
+func ParseIP(txt string) (r IP, err error) {
+	if len(txt) == 0 {
+		//empty ip net value
+		return r, nil
+	}
+	//fmt.Println("parsing: ", string(text))
+	ip, net, err := net.ParseCIDR(txt)
+	if err != nil {
+		return r, err
+	}
+
+	net.IP = ip
+	r.IPNet = *net
+	return
+}
+
+// MustParseIPRange prases iprange, panics if invalid
+func MustParseIP(txt string) IP {
+	r, err := ParseIP(txt)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
+// UnmarshalText loads IPRange from string
+func (i *IP) UnmarshalText(text []byte) error {
+	v, err := ParseIP(string(text))
+	if err != nil {
+		return err
+	}
+
+	i.IPNet = v.IPNet
+	return nil
+}
+
+// MarshalBSON dumps ip as a bson
+func (i IP) MarshalBSON() ([]byte, error) {
+	value := ""
+	if len(i.IPNet.IP) != 0 {
+		value = i.String()
+	}
+	return bson.Marshal(value)
+}
+
+// UnmarshalBSON loads IP from bson
+func (i *IP) UnmarshalBSON(bytes []byte) error {
+	var value string
+	if err := bson.Unmarshal(bytes, &value); err != nil {
+		return err
+	}
+
+	v, err := ParseIP(value)
+	if err != nil {
+		return err
+	}
+
+	i.IPNet = v.IPNet
+	return nil
+}
+
+// MarshalJSON dumps iprange as a string
+func (i IP) MarshalJSON() ([]byte, error) {
+	if len(i.IPNet.IP) == 0 {
+		return []byte(`""`), nil
+	}
+	v := fmt.Sprint("\"", i.String(), "\"")
+	return []byte(v), nil
+}
+
+func (i IP) String() string {
 	return i.IPNet.String()
 }
 
