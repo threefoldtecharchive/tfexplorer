@@ -159,8 +159,8 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 	farmID := r.Context().Value(farmKey).(schema.ID)
 
 	var info []struct {
-		IP schema.IP `json:"address"`
-		GW net.IP    `json:"gateway"`
+		IP schema.IPCidr `json:"address"`
+		GW net.IP        `json:"gateway"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
@@ -181,7 +181,7 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 	// Get the farm from the middleware context
 	farmID := r.Context().Value(farmKey).(schema.ID)
 
-	var info []schema.IP
+	var info []schema.IPCidr
 	if err := json.NewDecoder(r.Body).Decode(&info); err != nil {
 		return nil, mw.BadRequest(err)
 	}

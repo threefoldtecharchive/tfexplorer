@@ -109,7 +109,7 @@ func (f FarmFilter) WithOwner(tid int64) FarmFilter {
 }
 
 // WithIP filter farm ipaddresses by ipaddress (including reservation id)
-func (f FarmFilter) WithIP(ip schema.IP, reservation schema.ID) FarmFilter {
+func (f FarmFilter) WithIP(ip schema.IPCidr, reservation schema.ID) FarmFilter {
 	return append(f, bson.E{Key: "ipaddresses", Value: ip})
 }
 
@@ -229,7 +229,7 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 }
 
 // FarmIPReserve reserves an IP if it's only free
-func FarmIPReserve(ctx context.Context, db *mongo.Database, farm schema.ID, ip schema.IP, reservation schema.ID) error {
+func FarmIPReserve(ctx context.Context, db *mongo.Database, farm schema.ID, ip schema.IPCidr, reservation schema.ID) error {
 	col := db.Collection(FarmCollection)
 	// filter using 0 reservation id (not reserved)
 	filter := FarmFilter{}.WithID(farm).WithIP(ip, 0)
@@ -249,7 +249,7 @@ func FarmIPReserve(ctx context.Context, db *mongo.Database, farm schema.ID, ip s
 }
 
 // FarmIPRelease releases a previously reservevd IP address
-func FarmIPRelease(ctx context.Context, db *mongo.Database, farm schema.ID, ip schema.IP, reservation schema.ID) error {
+func FarmIPRelease(ctx context.Context, db *mongo.Database, farm schema.ID, ip schema.IPCidr, reservation schema.ID) error {
 	col := db.Collection(FarmCollection)
 	// filter using 0 reservation id (not reserved)
 	filter := FarmFilter{}.WithID(farm).WithIP(ip, reservation)
@@ -270,11 +270,11 @@ func FarmIPRelease(ctx context.Context, db *mongo.Database, farm schema.ID, ip s
 }
 
 // FarmPushIP pushes ip to a farm public ips
-func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP, gw net.IP) error {
+func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPCidr, gw net.IP) error {
 
 	publicIP := generated.PublicIP{
 		Address: ip,
-		Gateway: gw,
+		Gateway: schema.IP{gw},
 	}
 
 	if err := publicIP.Valid(); err != nil {
@@ -316,7 +316,7 @@ func FarmPushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema
 }
 
 // FarmRemoveIP removes ip from a farm public ips
-func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP) error {
+func FarmRemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPCidr) error {
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id)
 
