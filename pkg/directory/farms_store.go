@@ -2,6 +2,7 @@ package directory
 
 import (
 	"context"
+	"net"
 
 	"github.com/pkg/errors"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
@@ -65,8 +66,8 @@ func (s *FarmAPI) Update(ctx context.Context, db *mongo.Database, id schema.ID, 
 }
 
 // PushIP push ip
-func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP) error {
-	return directory.FarmPushIP(ctx, db, id, ip)
+func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IP, gw net.IP) error {
+	return directory.FarmPushIP(ctx, db, id, ip, gw)
 }
 
 // RemoveIP removes ip

@@ -16,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/tfexplorer/models"
-	generatedDirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
@@ -1138,10 +1137,10 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	wrklds := reservation.Workloads("")
-	for _, wrkld := range wrklds {
-		if wrkld.GetWorkloadType() == generated.WorkloadTypePublicIP {
-			if err = a.setFarmIPFree(wrkld, id, db); err != nil {
+	workloads := reservation.Workloads("")
+	for _, workload := range workloads {
+		if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
+			if err = a.setFarmIPFree(db, workload); err != nil {
 				return nil, mw.Error(err)
 			}
 		}
@@ -1204,7 +1203,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
-		if err = a.setFarmIPFree(workload, id, db); err != nil {
+		if err = a.setFarmIPFree(db, workload); err != nil {
 			return nil, mw.Error(err)
 		}
 	}
@@ -1253,15 +1252,8 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 		return mw.BadRequest(errors.Wrap(err, "failed to retrieve farm"))
 	}
 
-	// Construct expected object
-	// a free ip (reservation id = 0)
-	farmIP := generatedDirectory.PublicIP{
-		IPAddress:     ipWorkload.IPaddress,
-		ReservationID: 0,
-	}
-
 	//
-	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, workload.GetID())
+	err = directory.FarmIPReserve(context.Background(), db, farm.ID, ipWorkload.IPaddress, workload.GetID())
 	var message string
 	state := generated.ResultStateOK
 	nextAction := types.Deploy
@@ -1291,7 +1283,7 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	return nil
 }
 
-func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mongo.Database) error {
+func (a *API) setFarmIPFree(db *mongo.Database, workload types.WorkloaderType) error {
 	ipWorkload := workload.Workloader.(*generated.PublicIP)
 
 	var nodeFilter directory.NodeFilter
@@ -1308,15 +1300,9 @@ func (a *API) setFarmIPFree(workload types.WorkloaderType, id schema.ID, db *mon
 		return errors.Wrap(err, "failed to retrieve farm")
 	}
 
-	// Construct expected object
-	farmIP := generatedDirectory.PublicIP{
-		IPAddress:     ipWorkload.IPaddress,
-		ReservationID: id,
-	}
-
-	err = directory.FarmIPUpdate(context.Background(), db, farm.ID, farmIP, 0)
+	err = directory.FarmIPRelease(context.Background(), db, farm.ID, ipWorkload.IPaddress, ipWorkload.GetID())
 	if err != nil {
-		return errors.Wrap(err, "failed to update ip for farm")
+		return errors.Wrap(err, "failed to release ip reservation")
 	}
 	return nil
 }

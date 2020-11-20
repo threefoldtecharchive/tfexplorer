@@ -300,6 +300,19 @@ type Gateway struct {
 
 // PublicIP structure
 type PublicIP struct {
-	IPAddress     schema.IP `bson:"ipaddress" json:"ipaddress"`
+	Address       schema.IP `bson:"address" json:"address"`
+	Gateway       net.IP    `bson:"gateway" json:"gateway"`
 	ReservationID schema.ID `bson:"reservation_id" json:"reservation_id"`
+}
+
+func (ip *PublicIP) Valid() error {
+	if len(ip.Address.IP) == 0 || len(ip.Address.Mask) == 0 {
+		return fmt.Errorf("invalid public ip address")
+	}
+
+	if len(ip.Gateway) == 0 {
+		return fmt.Errorf("invalid public ip gateway")
+	}
+
+	return nil
 }
