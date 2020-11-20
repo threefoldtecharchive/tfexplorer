@@ -1,53 +1,11 @@
 <template>
   <v-app dark>
-    <v-navigation-drawer mini-variant app class="primary rounded" dark>
-      <v-layout column fill-height justify-end>
-        <div>
-          <v-toolbar color="secondary darken-2 " class="py-3">
-            <v-badge bottom right overlap color="primary">
-              <template v-slot:badge>
-                <v-icon size="12" dark>{{$route.meta.icon}}</v-icon>
-              </template>
-              <!--slot can be any component-->
-              <v-avatar>
-                <v-img src="./assets/logo.jpg" />
-              </v-avatar>
-            </v-badge>
-          </v-toolbar>
-        </div>
-        <div>
-          <v-list-item
-            v-for="(route, i) in routes.filter(r => r.meta.position == 'top')"
-            :key="i"
-            :to="route"
-            active-class="secondary--text"
-          >
-            <v-list-item-icon>
-              <v-icon>{{ route.meta.icon }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title class="title text-capitalize">{{route.meta.displayName}}</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </div>
-        <v-spacer></v-spacer>
-        <div>
-          <v-list-item
-            v-for="(route, i) in routes.filter(r => r.meta.position == 'bottom')"
-            :key="i"
-            :to="route"
-            active-class="secondary--text"
-          >
-            <v-list-item-icon>
-              <v-icon>{{ route.meta.icon }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title class="title text-capitalize">{{route.meta.displayName}}</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </div>
-      </v-layout>
-    </v-navigation-drawer>
+    <v-toolbar class="toolbar" dark>
+      <v-app-bar-nav-icon>
+        <v-img class="logo" src="./assets/3fold_icon.png" />
+      </v-app-bar-nav-icon>
+      <v-toolbar-title>ThreeFold Capacity Explorer</v-toolbar-title>
+    </v-toolbar>
 
     <v-content class="content">
       <v-col>
@@ -199,5 +157,18 @@ export default {
   right: 25px !important;
   top: 30px !important;
   font-size: 30px !important;
+}
+.actions {
+  height: 60px;
+}
+.logo {
+  width: 40px;
+  height: 40px;
+  margin-left: 10px;
+  margin-bottom: 3px;
+}
+.toolbar {
+  background-color: #2d4052 !important;
+  max-height: 60px;
 }
 </style>
