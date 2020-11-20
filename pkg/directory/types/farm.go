@@ -110,7 +110,7 @@ func (f FarmFilter) WithOwner(tid int64) FarmFilter {
 
 // WithIP filter farm ipaddresses by ipaddress (including reservation id)
 func (f FarmFilter) WithIP(ip schema.IPCidr, reservation schema.ID) FarmFilter {
-	return append(f, bson.E{Key: "ipaddresses", Value: ip})
+	return append(f, bson.E{Key: "ipaddresses.address", Value: ip}, bson.E{Key: "ipaddresses.reservation_id", Value: reservation})
 }
 
 // WithFarmQuery filter based on FarmQuery
