@@ -491,24 +491,16 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 	)
 
 	db := mw.Database(r)
-	workloads, err := a.queued(r.Context(), db, nodeID, maxPageSize)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-	log.Debug().Msgf("%d queue", len(workloads))
+	var workloads []types.WorkloaderType
 
-	if len(workloads) > maxPageSize {
-		return workloads, nil
-	}
-
-	from, err := a.parseID(r.FormValue("from"))
+	lastID, err := a.parseID(r.FormValue("from"))
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	var lastID schema.ID
+	//var lastID schema.ID
 
-	rfilter := types.ReservationFilter{}.WithIDGE(from)
+	rfilter := types.ReservationFilter{}.WithIDGE(lastID)
 	rfilter = rfilter.WithNodeID(nodeID)
 
 	cur, err := rfilter.Find(r.Context(), db)
@@ -554,7 +546,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 	}
 
-	filter := types.WorkloadFilter{}.WithIDGE(from)
+	filter := types.WorkloadFilter{}.WithIDGE(lastID)
 	filter = filter.WithNodeID(nodeID)
 
 	cur, err = filter.FindCursor(r.Context(), db)
@@ -590,6 +582,24 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 
 		if len(workloads) >= maxPageSize {
 			break
+		}
+	}
+
+	// if we have sufficient data return
+	if len(workloads) >= maxPageSize {
+		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+	}
+
+	queued, err := a.queued(r.Context(), db, nodeID, maxPageSize)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	log.Debug().Msgf("%d queue", len(queued))
+	for _, workload := range queued {
+		workloads = append(workloads, workload)
+		if id := workload.GetID(); id > lastID {
+			lastID = id
 		}
 	}
 
