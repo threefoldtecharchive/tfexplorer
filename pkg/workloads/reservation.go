@@ -506,69 +506,12 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
-	// store last reservation ID
-	lastReservationID, err := types.ReservationLastID(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
-	lastWorkloadID, err := types.WorkloadsLastID(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-
-	lastID := lastReservationID
-	if lastWorkloadID > lastID {
-		lastID = lastWorkloadID
-	}
-
-	filter := types.WorkloadFilter{}.WithIDGE(from)
-	filter = filter.WithNodeID(nodeID)
-
-	cur, err := filter.FindCursor(r.Context(), db)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
-	defer cur.Close(r.Context())
-
-	for cur.Next(r.Context()) {
-		var workloader types.WorkloaderType
-		if err := cur.Decode(&workloader); err != nil {
-			return nil, mw.Error(err)
-		}
-
-		workloader, err = a.workloadpipeline(workloader, nil)
-		if err != nil {
-			log.Error().Err(err).Int64("id", int64(workloader.GetID())).Msg("failed to process workload")
-			continue
-		}
-
-		if workloader.GetNextAction() == types.Delete {
-			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.GetID(), generated.NextActionDelete); err != nil {
-				return nil, mw.Error(err)
-			}
-		}
-
-		if !workloader.IsAny(types.Deploy, types.Delete) {
-			continue
-		}
-
-		workloads = append(workloads, workloader)
-
-		if len(workloads) >= maxPageSize {
-			break
-		}
-	}
-
-	// if we have sufficient data return
-	if len(workloads) >= maxPageSize {
-		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
-	}
+	var lastID schema.ID
 
 	rfilter := types.ReservationFilter{}.WithIDGE(from)
 	rfilter = rfilter.WithNodeID(nodeID)
 
-	cur, err = rfilter.Find(r.Context(), db)
+	cur, err := rfilter.Find(r.Context(), db)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
@@ -600,8 +543,60 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 
 		workloads = append(workloads, reservation.Workloads(nodeID)...)
 
+		lastID = reservation.ID
 		if len(workloads) >= maxPageSize {
 			break
+		}
+	}
+
+	// if we have sufficient data return
+	if len(workloads) >= maxPageSize {
+		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
+	}
+
+	filter := types.WorkloadFilter{}.WithIDGE(from)
+	filter = filter.WithNodeID(nodeID)
+
+	cur, err = filter.FindCursor(r.Context(), db)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+	defer cur.Close(r.Context())
+
+	for cur.Next(r.Context()) {
+		var workloader types.WorkloaderType
+		if err := cur.Decode(&workloader); err != nil {
+			return nil, mw.Error(err)
+		}
+
+		workloader, err = a.workloadpipeline(workloader, nil)
+		if err != nil {
+			log.Error().Err(err).Int64("id", int64(workloader.GetID())).Msg("failed to process workload")
+			continue
+		}
+
+		if workloader.GetNextAction() == types.Delete {
+			if err := types.WorkloadSetNextAction(r.Context(), db, workloader.GetID(), generated.NextActionDelete); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
+
+		if !workloader.IsAny(types.Deploy, types.Delete) {
+			continue
+		}
+
+		workloads = append(workloads, workloader)
+		lastID = workloader.GetID()
+
+		if len(workloads) >= maxPageSize {
+			break
+		}
+	}
+
+	if len(workloads) == 0 {
+		lastID, err = types.WorkloadsLastID(r.Context(), db)
+		if err != nil {
+			return nil, mw.Error(err)
 		}
 	}
 
