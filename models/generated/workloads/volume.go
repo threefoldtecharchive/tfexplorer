@@ -15,18 +15,18 @@ type Volume struct {
 	Type VolumeTypeEnum `bson:"type" json:"type"`
 }
 
-func (v *Volume) GetRSU() RSU {
+func (v *Volume) GetRSU() (RSU, error) {
 	switch v.Type {
 	case VolumeTypeHDD:
 		return RSU{
 			HRU: float64(v.Size),
-		}
+		}, nil
 	case VolumeTypeSSD:
 		return RSU{
 			SRU: float64(v.Size),
-		}
+		}, nil
 	}
-	return RSU{}
+	return RSU{}, fmt.Errorf("volume type %s not supported", v.Type.String())
 }
 
 func (v *Volume) SignatureChallenge() ([]byte, error) {

@@ -17,8 +17,8 @@ type GatewayProxy struct {
 	PortTLS uint32 `bson:"port_tls" json:"port_tls"`
 }
 
-func (g *GatewayProxy) GetRSU() RSU {
-	return RSU{}
+func (g *GatewayProxy) GetRSU() (RSU, error) {
+	return RSU{}, nil
 }
 
 func (p *GatewayProxy) SignatureChallenge() ([]byte, error) {
@@ -54,8 +54,8 @@ type GatewayReverseProxy struct {
 	Secret string `bson:"secret" json:"secret"`
 }
 
-func (g *GatewayReverseProxy) GetRSU() RSU {
-	return RSU{}
+func (g *GatewayReverseProxy) GetRSU() (RSU, error) {
+	return RSU{}, nil
 }
 
 func (p *GatewayReverseProxy) SignatureChallenge() ([]byte, error) {
@@ -85,8 +85,8 @@ type GatewaySubdomain struct {
 	IPs    []string `bson:"ips" json:"ips"`
 }
 
-func (g *GatewaySubdomain) GetRSU() RSU {
-	return RSU{}
+func (g *GatewaySubdomain) GetRSU() (RSU, error) {
+	return RSU{}, nil
 }
 
 func (s *GatewaySubdomain) SignatureChallenge() ([]byte, error) {
@@ -117,8 +117,8 @@ type GatewayDelegate struct {
 	Domain string `bson:"domain" json:"domain"`
 }
 
-func (g *GatewayDelegate) GetRSU() RSU {
-	return RSU{}
+func (g *GatewayDelegate) GetRSU() (RSU, error) {
+	return RSU{}, nil
 }
 
 func (d *GatewayDelegate) SignatureChallenge() ([]byte, error) {
@@ -144,8 +144,8 @@ type Gateway4To6 struct {
 	PublicKey string `bson:"public_key" json:"public_key"`
 }
 
-func (g *Gateway4To6) GetRSU() RSU {
-	return RSU{}
+func (g *Gateway4To6) GetRSU() (RSU, error) {
+	return RSU{}, nil
 }
 
 func (g *Gateway4To6) SignatureChallenge() ([]byte, error) {

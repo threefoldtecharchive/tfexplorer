@@ -3,6 +3,7 @@ package capacity
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 )
@@ -538,7 +539,9 @@ func Test_usesExpiredResources(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := usesExpiredResources(tt.args.pool, tt.args.workload); got != tt.want {
+			got, err := usesExpiredResources(tt.args.pool, tt.args.workload)
+			require.NoError(t, err)
+			if got != tt.want {
 				t.Errorf("usesExpiredResources() = %v, want %v", got, tt.want)
 			}
 		})

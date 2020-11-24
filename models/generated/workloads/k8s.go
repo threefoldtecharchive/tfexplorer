@@ -21,94 +21,100 @@ type K8S struct {
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 }
 
-func (k *K8S) GetRSU() RSU {
-	switch k.Size {
-	case 1:
-		return RSU{
-			CRU: 1,
-			MRU: 2,
-			SRU: 50,
-		}
-	case 2:
-		return RSU{
-			CRU: 2,
-			MRU: 4,
-			SRU: 100,
-		}
-	case 3:
-		return RSU{
-			CRU: 2,
-			MRU: 8,
-			SRU: 25,
-		}
-	case 4:
-		return RSU{
-			CRU: 2,
-			MRU: 5,
-			SRU: 50,
-		}
-	case 5:
-		return RSU{
-			CRU: 2,
-			MRU: 8,
-			SRU: 200,
-		}
-	case 6:
-		return RSU{
-			CRU: 4,
-			MRU: 16,
-			SRU: 50,
-		}
-	case 7:
-		return RSU{
-			CRU: 4,
-			MRU: 16,
-			SRU: 100,
-		}
-	case 8:
-		return RSU{
-			CRU: 4,
-			MRU: 16,
-			SRU: 400,
-		}
-	case 9:
-		return RSU{
-			CRU: 8,
-			MRU: 32,
-			SRU: 100,
-		}
-	case 10:
-		return RSU{
-			CRU: 8,
-			MRU: 32,
-			SRU: 200,
-		}
-	case 11:
-		return RSU{
-			CRU: 8,
-			MRU: 32,
-			SRU: 800,
-		}
-	case 12:
-		return RSU{
-			CRU: 1,
-			MRU: 64,
-			SRU: 200,
-		}
-	case 13:
-		return RSU{
-			CRU: 1,
-			MRU: 64,
-			SRU: 400,
-		}
-	case 14:
-		return RSU{
-			CRU: 1,
-			MRU: 64,
-			SRU: 800,
-		}
+var k8sSize = map[int64]RSU{
+	1: {
+		CRU: 1,
+		MRU: 2,
+		SRU: 50,
+	},
+	2: {
+		CRU: 2,
+		MRU: 4,
+		SRU: 100,
+	},
+	3: {
+		CRU: 2,
+		MRU: 8,
+		SRU: 25,
+	},
+	4: {
+		CRU: 2,
+		MRU: 5,
+		SRU: 50,
+	},
+	5: {
+		CRU: 2,
+		MRU: 8,
+		SRU: 200,
+	},
+	6: {
+		CRU: 4,
+		MRU: 16,
+		SRU: 50,
+	},
+	7: {
+		CRU: 4,
+		MRU: 16,
+		SRU: 100,
+	},
+	8: {
+		CRU: 4,
+		MRU: 16,
+		SRU: 400,
+	},
+	9: {
+		CRU: 8,
+		MRU: 32,
+		SRU: 100,
+	},
+	10: {
+		CRU: 8,
+		MRU: 32,
+		SRU: 200,
+	},
+	11: {
+		CRU: 8,
+		MRU: 32,
+		SRU: 800,
+	},
+	12: {
+		CRU: 1,
+		MRU: 64,
+		SRU: 200,
+	},
+	13: {
+		CRU: 1,
+		MRU: 64,
+		SRU: 400,
+	},
+	14: {
+		CRU: 1,
+		MRU: 64,
+		SRU: 800,
+	},
+	15: {
+		CRU: 1,
+		MRU: 2,
+		SRU: 25,
+	},
+	16: {
+		CRU: 2,
+		MRU: 4,
+		SRU: 50,
+	},
+	17: {
+		CRU: 4,
+		MRU: 8,
+		SRU: 50,
+	},
+}
+
+func (k *K8S) GetRSU() (RSU, error) {
+	rsu, ok := k8sSize[k.Size]
+	if !ok {
+		return RSU{}, fmt.Errorf("K8S VM size %d is not supported", k.Size)
 	}
-	return RSU{}
+	return rsu, nil
 }
 
 func (k *K8S) SignatureChallenge() ([]byte, error) {
