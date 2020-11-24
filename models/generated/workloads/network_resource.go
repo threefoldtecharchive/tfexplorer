@@ -23,8 +23,8 @@ type NetworkResource struct {
 	StatsAggregator              []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 }
 
-func (n *NetworkResource) GetRSU() RSU {
-	return RSU{}
+func (n *NetworkResource) GetRSU() (RSU, error) {
+	return RSU{}, nil
 }
 
 func (n *NetworkResource) SignatureChallenge() ([]byte, error) {

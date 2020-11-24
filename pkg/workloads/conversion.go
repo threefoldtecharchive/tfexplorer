@@ -224,7 +224,12 @@ func (a *API) postConversionList(r *http.Request) (interface{}, mw.Response) {
 			continue
 		}
 		secondsLeft := math.Floor(time.Until(reservation.DataReservation.ExpirationReservation.Time).Seconds())
-		cu, su := capacity.CloudUnitsFromResourceUnits(wl.GetRSU())
+
+		rsu, err := wl.GetRSU()
+		if err != nil {
+			return nil, mw.BadRequest(err)
+		}
+		cu, su := capacity.CloudUnitsFromResourceUnits(rsu)
 		poolID := wl.GetPoolID()
 
 		log.Info().Msgf("pool %d cu %v su %v %+v", poolID, cu, su, wl.GetWorkloadType().String())

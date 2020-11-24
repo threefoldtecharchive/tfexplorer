@@ -19,18 +19,18 @@ type ZDB struct {
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
 }
 
-func (z *ZDB) GetRSU() RSU {
+func (z *ZDB) GetRSU() (RSU, error) {
 	switch z.DiskType {
 	case DiskTypeHDD:
 		return RSU{
 			HRU: float64(z.Size),
-		}
+		}, nil
 	case DiskTypeSSD:
 		return RSU{
 			SRU: float64(z.Size),
-		}
+		}, nil
 	}
-	return RSU{}
+	return RSU{}, fmt.Errorf("ZDB disk type %s not supported", z.DiskType.String())
 }
 
 func (z *ZDB) SignatureChallenge() ([]byte, error) {

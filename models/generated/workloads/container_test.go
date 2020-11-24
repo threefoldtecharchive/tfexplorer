@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestContainer_GetRSU(t *testing.T) {
@@ -83,7 +84,8 @@ func TestContainer_GetRSU(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt.capcity), func(t *testing.T) {
-			rsu := tt.capcity.GetRSU()
+			rsu, err := tt.capcity.GetRSU()
+			require.NoError(t, err)
 			assert.Equal(t, tt.rsu, rsu)
 		})
 	}

@@ -61,7 +61,7 @@ type (
 	}
 
 	Capaciter interface {
-		GetRSU() RSU
+		GetRSU() (RSU, error)
 	}
 
 	RSU struct {

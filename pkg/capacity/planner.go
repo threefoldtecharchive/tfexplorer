@@ -375,7 +375,11 @@ func (p *NaivePlanner) hasCapacity(w workloads.Workloader, seconds uint) (bool, 
 		return false, errors.Wrap(err, "could not load pool")
 	}
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
+	rsu, err := w.GetRSU()
+	if err != nil {
+		return false, err
+	}
+	cu, su := CloudUnitsFromResourceUnits(rsu)
 	pool.AddWorkload(w.GetID(), cu, su)
 
 	return time.Now().Add(time.Second*time.Duration(seconds)).Unix() < pool.EmptyAt, nil
@@ -458,7 +462,11 @@ func (p *NaivePlanner) updateUsedCapacity(w workloads.Workloader, used bool) err
 		return errors.Wrap(err, "could not load pool")
 	}
 
-	cu, su := CloudUnitsFromResourceUnits(w.GetRSU())
+	rsu, err := w.GetRSU()
+	if err != nil {
+		return err
+	}
+	cu, su := CloudUnitsFromResourceUnits(rsu)
 	if used {
 		pool.AddWorkload(w.GetID(), cu, su)
 	} else {
@@ -509,7 +517,11 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 				return errors.Wrap(err, "could not load workloads to expire")
 			}
 			for j := range workloads {
-				if !usesExpiredResources(expiredPools[i], workloads[j]) {
+				ok, err := usesExpiredResources(expiredPools[i], workloads[j])
+				if err != nil {
+					return err
+				}
+				if !ok {
 					// not using an expired resource, workload can stay
 					log.Debug().Int64("Pool ID", int64(expiredPools[i].ID)).Int64("Workload", int64(workloads[j].GetID())).Msg("workload is not using expired resources, don't delete it")
 					continue
@@ -567,17 +579,21 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 // No checks are done to make sure the workload is actually part of the pool. This
 // method only checks if a workload is using a non zero amount of a resource which
 // is no longer present in the pool.
-func usesExpiredResources(pool types.Pool, workload workloads.Workloader) bool {
+func usesExpiredResources(pool types.Pool, workload workloads.Workloader) (bool, error) {
 	// Only delete workloads we actually need to delete
 	// In other words, only delete the workload if it consumes resources
 	// which are empty
 
-	cu, su := CloudUnitsFromResourceUnits(workload.GetRSU())
+	rsu, err := workload.GetRSU()
+	if err != nil {
+		return false, err
+	}
+	cu, su := CloudUnitsFromResourceUnits(rsu)
 	if cu > 0 && pool.Cus <= 0 {
-		return true
+		return true, nil
 	}
 	if su > 0 && pool.Sus <= 0 {
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }

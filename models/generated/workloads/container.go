@@ -29,7 +29,7 @@ type Container struct {
 	Capacity          ContainerCapacity   `bson:"capcity" json:"capacity"`
 }
 
-func (c *Container) GetRSU() RSU {
+func (c *Container) GetRSU() (RSU, error) {
 	return c.Capacity.GetRSU()
 }
 
@@ -116,7 +116,7 @@ func (c ContainerCapacity) SigningEncode(w io.Writer) error {
 	return nil
 }
 
-func (c ContainerCapacity) GetRSU() RSU {
+func (c ContainerCapacity) GetRSU() (RSU, error) {
 	rsu := RSU{
 		CRU: c.Cpu,
 		// round mru to 4 digits precision
@@ -131,7 +131,7 @@ func (c ContainerCapacity) GetRSU() RSU {
 		rsu.SRU = storageSize
 	}
 
-	return rsu
+	return rsu, nil
 }
 
 type Logs struct {
