@@ -61,7 +61,7 @@ const minCapacitySeconds = 120 // 2 min
 // workload version is used to notify the nodes about the version of the workload it receives
 // version 1 introduce a breaking change in the way the secret are encrypted in the workloads
 // 			 with version 1, secret are encrypted with nacl.SecretBox using a share secret derived from the node public key and the user private key
-const lastestWorkloadVersion = 1
+const lastestWorkloadVersion = 2
 
 func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
