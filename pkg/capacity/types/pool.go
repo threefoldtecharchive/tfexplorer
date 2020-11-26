@@ -255,6 +255,24 @@ func UpdatePool(ctx context.Context, db *mongo.Database, pool Pool) error {
 	return nil
 }
 
+// GetPools gets all pools from the database
+func GetPools(ctx context.Context, db *mongo.Database) ([]Pool, error) {
+	col := db.Collection(CapacityPoolCollection)
+
+	cur, err := col.Find(ctx, options.FindOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load pool list")
+	}
+
+	defer cur.Close(ctx)
+	out := []Pool{}
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, errors.Wrap(err, "failed to load pool list")
+	}
+
+	return out, err
+}
+
 // GetPool from the database with the given ID
 func GetPool(ctx context.Context, db *mongo.Database, id schema.ID) (Pool, error) {
 	col := db.Collection(CapacityPoolCollection)
