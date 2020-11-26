@@ -69,5 +69,8 @@ export default {
   },
   getExplorerBlockByHeight (height) {
     return axios.get(`${config.tfExplorerUrl}/blocks/${height}`)
+  },
+  prices () {
+    return axios.get(`${config.tfApiUrl}/prices`)
   }
 }

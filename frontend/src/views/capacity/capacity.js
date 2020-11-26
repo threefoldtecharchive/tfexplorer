@@ -29,16 +29,28 @@ export default {
       'nodeSpecs',
       'registeredNodes',
       'registeredGateways',
-      'gatewaySpecs'
-    ])
+      'gatewaySpecs',
+      'prices'
+    ]),
+    SuPrice: function () {
+      return `$ ${this.prices.SuPriceDollarMonth}`
+    },
+    CuPrice: function () {
+      return `$ ${this.prices.CuPriceDollarMonth}`
+    },
+    TftPrice: function () {
+      return `$ ${this.prices.TftPriceMill / 1000}`
+    }
   },
   mounted () {
+    this.getPrices()
     this.refresh()
   },
 
   methods: {
     ...mapActions({
-      refresh: 'refreshData'
+      refresh: 'refreshData',
+      getPrices: 'getPrices'
     }),
     changeSelectedNode (data) {
       this.selectedNode = data
