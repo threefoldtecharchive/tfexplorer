@@ -602,6 +602,8 @@ func (p *NaivePlanner) updateUsedCapacityPool(poolID schema.ID) error {
 		return errors.Wrap(err, "could not load pool")
 	}
 
+	pool.SyncCurrentCapacity()
+
 	pool.ActiveCU = 0
 	pool.ActiveSU = 0
 	for _, wid := range pool.ActiveWorkloadIDs {
@@ -609,7 +611,7 @@ func (p *NaivePlanner) updateUsedCapacityPool(poolID schema.ID) error {
 		filter = filter.WithID(wid)
 		w, err := filter.Get(p.ctx, p.db)
 		if err != nil {
-			return errors.Wrap(err, "could not load pool")
+			return errors.Wrap(err, "could not pool's workload")
 		}
 		rsu, err := w.GetRSU()
 		if err != nil {
@@ -619,8 +621,6 @@ func (p *NaivePlanner) updateUsedCapacityPool(poolID schema.ID) error {
 		pool.ActiveCU += cu
 		pool.ActiveSU += su
 	}
-
-	pool.SyncCurrentCapacity()
 
 	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
 		errors.Wrap(err, "could not save updated pool")
