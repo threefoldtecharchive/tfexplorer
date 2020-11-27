@@ -590,16 +590,22 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		return workloads, mw.Ok().WithHeader("x-last-id", fmt.Sprint(lastID))
 	}
 
-	queued, err := a.queued(r.Context(), db, nodeID, maxPageSize)
-	if err != nil {
-		return nil, mw.Error(err)
-	}
+	if len(workloads) == 0 {
+		// only if the workloads list is empty
+		// we can check the queues
+		// queues usually have the workloads with older ids that
+		// are now possible to process.
+		queued, err := a.queued(r.Context(), db, nodeID, maxPageSize)
+		if err != nil {
+			return nil, mw.Error(err)
+		}
 
-	log.Debug().Msgf("%d queue", len(queued))
-	for _, workload := range queued {
-		workloads = append(workloads, workload)
-		if id := workload.GetID(); id > lastID {
-			lastID = id
+		log.Debug().Msgf("%d queue", len(queued))
+		for _, workload := range queued {
+			workloads = append(workloads, workload)
+			if id := workload.GetID(); id > lastID {
+				lastID = id
+			}
 		}
 	}
 
