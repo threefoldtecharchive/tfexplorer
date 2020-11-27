@@ -581,13 +581,21 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 }
 
 func (p *NaivePlanner) syncPools() error {
-	pools, err := types.GetPools(p.ctx, p.db)
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	pools, err := types.GetPools(ctx, p.db)
 	if err != nil {
 		return err
 	}
 
-	for _, pool := range pools {
-		err := p.updateUsedCapacityPool(pool.ID)
+	for pool := range pools {
+		if pool.Err != nil {
+			log.Error().Err(err).Msg("failed to process pool")
+			continue
+		}
+
+		err := p.updateUsedCapacityPool(pool.Pool)
 		if err != nil {
 			return err
 		}
@@ -596,12 +604,7 @@ func (p *NaivePlanner) syncPools() error {
 	return nil
 }
 
-func (p *NaivePlanner) updateUsedCapacityPool(poolID schema.ID) error {
-	pool, err := types.GetPool(p.ctx, p.db, poolID)
-	if err != nil {
-		return errors.Wrap(err, "could not load pool")
-	}
-
+func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
 	pool.SyncCurrentCapacity()
 
 	pool.ActiveCU = 0
@@ -622,8 +625,8 @@ func (p *NaivePlanner) updateUsedCapacityPool(poolID schema.ID) error {
 		pool.ActiveSU += su
 	}
 
-	if err = types.UpdatePool(p.ctx, p.db, pool); err != nil {
-		errors.Wrap(err, "could not save updated pool")
+	if err := types.UpdatePool(p.ctx, p.db, pool); err != nil {
+		return errors.Wrap(err, "could not save updated pool")
 	}
 
 	return nil

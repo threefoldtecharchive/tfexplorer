@@ -255,8 +255,14 @@ func UpdatePool(ctx context.Context, db *mongo.Database, pool Pool) error {
 	return nil
 }
 
+// PoolResult wrapper object that holds errors
+type PoolResult struct {
+	Pool
+	Err error
+}
+
 // GetPools gets all pools from the database
-func GetPools(ctx context.Context, db *mongo.Database) ([]Pool, error) {
+func GetPools(ctx context.Context, db *mongo.Database) (<-chan PoolResult, error) {
 	col := db.Collection(CapacityPoolCollection)
 
 	cur, err := col.Find(ctx, options.FindOptions{})
@@ -264,13 +270,27 @@ func GetPools(ctx context.Context, db *mongo.Database) ([]Pool, error) {
 		return nil, errors.Wrap(err, "failed to load pool list")
 	}
 
-	defer cur.Close(ctx)
-	out := []Pool{}
-	if err := cur.All(ctx, &out); err != nil {
-		return nil, errors.Wrap(err, "failed to load pool list")
-	}
+	ch := make(chan PoolResult)
 
-	return out, err
+	go func() {
+		defer close(ch)
+		defer cur.Close(ctx)
+
+		for cur.Next(ctx) {
+			var pool PoolResult
+			if err := cur.Decode(&pool.Pool); err != nil {
+				pool.Err = err
+			}
+
+			select {
+			case ch <- pool:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return ch, err
 }
 
 // GetPool from the database with the given ID
