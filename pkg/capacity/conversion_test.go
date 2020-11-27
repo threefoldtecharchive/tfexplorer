@@ -20,7 +20,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 1,
 				MRU: 1,
 			},
-			cu: 0,
+			cu: 0.25,
 			su: 0,
 		},
 		{
@@ -28,7 +28,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 2,
 				MRU: 4,
 			},
-			cu: 0.75,
+			cu: 1,
 			su: 0,
 		},
 		{
@@ -36,7 +36,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 4,
 				MRU: 8,
 			},
-			cu: 1.75,
+			cu: 2,
 			su: 0,
 		},
 		{
@@ -44,7 +44,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 4,
 				MRU: 64,
 			},
-			cu: 8,
+			cu: 2,
 			su: 0,
 		},
 		{
@@ -52,7 +52,7 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				CRU: 4,
 				MRU: 32,
 			},
-			cu: 7.75,
+			cu: 2,
 			su: 0,
 		},
 		{
@@ -60,29 +60,29 @@ func TestCloudUnitsFromResourceUnits(t *testing.T) {
 				SRU: 120,
 				HRU: 1200,
 			},
-			cu: -0.25,
-			su: 1.5,
+			cu: 0,
+			su: 1.4,
 		},
 		{
 			rsu: workloads.RSU{
 				SRU: 40,
 				HRU: 1000,
 			},
-			cu: -0.25,
-			su: 1,
+			cu: 0,
+			su: 0.967,
 		},
 		{
 			rsu: workloads.RSU{
 				SRU: 1200,
 			},
-			cu: -0.25,
-			su: 5,
+			cu: 0,
+			su: 4,
 		},
 		{
 			rsu: workloads.RSU{
 				HRU: 12000,
 			},
-			cu: -0.25,
+			cu: 0,
 			su: 10,
 		},
 	}
