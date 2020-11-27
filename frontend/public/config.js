@@ -1,5 +1,5 @@
 export default ({
-  tfApiUrl: 'http://localhost:8080/api/v1',
+  tfApiUrl: '/explorer',
   tfExplorerUrl: 'https://explorer.threefoldtoken.com/explorer'
 
 })
