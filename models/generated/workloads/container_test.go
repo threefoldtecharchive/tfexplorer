@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestContainer_GetRSU(t *testing.T) {
@@ -22,7 +23,7 @@ func TestContainer_GetRSU(t *testing.T) {
 			rsu: RSU{
 				CRU: 1,
 				MRU: 1,
-				SRU: 0.25,
+				SRU: 0,
 			},
 		},
 		{
@@ -35,7 +36,7 @@ func TestContainer_GetRSU(t *testing.T) {
 			rsu: RSU{
 				CRU: 1,
 				MRU: 1,
-				SRU: 1,
+				SRU: 0,
 			},
 		},
 		{
@@ -49,7 +50,7 @@ func TestContainer_GetRSU(t *testing.T) {
 				CRU: 4,
 				MRU: 2,
 				SRU: 0,
-				HRU: 10,
+				HRU: 0,
 			},
 		},
 		{
@@ -63,13 +64,28 @@ func TestContainer_GetRSU(t *testing.T) {
 				CRU: 1,
 				MRU: 0.1953,
 				SRU: 0,
-				HRU: 9.7656,
+				HRU: 0,
+			},
+		},
+		{
+			capcity: ContainerCapacity{
+				Cpu:      1,
+				Memory:   200,
+				DiskSize: 52224,
+				DiskType: DiskTypeSSD,
+			},
+			rsu: RSU{
+				CRU: 1,
+				MRU: 0.1953,
+				SRU: 1,
+				HRU: 0,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt.capcity), func(t *testing.T) {
-			rsu := tt.capcity.GetRSU()
+			rsu, err := tt.capcity.GetRSU()
+			require.NoError(t, err)
 			assert.Equal(t, tt.rsu, rsu)
 		})
 	}

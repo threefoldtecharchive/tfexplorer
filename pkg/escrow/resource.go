@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stellar/go/amount"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
@@ -29,20 +28,20 @@ type (
 	}
 )
 
-// cost price of cloud units per hour:
-// - 0.04 for a compute unit
-// - 0.03 for a storage unit
-// TFT price is fixed at $0.15 / TFT
-// since this means neither compute unit nor cloud unit returns a nice value when
-// expressed in TFT, we fix this to 3 digit precision.
+// Price for 1 CU or SU for 1 month is 10$
+// TFT price is fixed at 0.05
+// CU and SU price per second is
+// CU -> (10 / 0.15) / (3600 *24*30) = 257.2
+// SU -> (8 / 0.15) / (3600 *24*30) = 257.2
 const (
-	computeUnitTFTCost = 0.266 //  0.04 / 0.15
-	storageUnitTFTCost = 0.200 // 0.03 / 0.15
+	cuPriceDollarMonth = 10
+	suPriceDollarMonth = 8
+	tftPriceMill       = 50 // 0.05 * 1000 (1mill = 1/1000 of a dollar)
 
 	// express as stropes, to simplify things a bit
 	// TODO: check if the rounding errors here matter
-	computeUnitSecondTFTStropesCost = 741 //  0.04 / 0.15 / 3600 * 10_000_000
-	storageUnitSecondTFTStropesCost = 556 // 0.03 / 0.15 / 3600 * 10_000_000
+	computeUnitSecondTFTStropesCost = (cuPriceDollarMonth * 10_000_000_000 / tftPriceMill) / (3600 * 24 * 30)
+	storageUnitSecondTFTStropesCost = (suPriceDollarMonth * 10_000_000_000 / tftPriceMill) / (3600 * 24 * 30)
 )
 
 const (
@@ -67,48 +66,6 @@ func getDiscount(d time.Duration) float64 {
 		return 1
 	}
 
-}
-
-// calculateReservationCost calculates the cost of reservation based on a resource per farmer map
-func (e Stellar) calculateReservationCost(rsuPerFarmerMap rsuPerFarmer, duration time.Duration) (map[int64]xdr.Int64, error) {
-	cloudUnitsPerFarmer := make(map[int64]cloudUnits)
-	for id, rsu := range rsuPerFarmerMap {
-		cloudUnitsPerFarmer[id] = rsuToCu(rsu)
-	}
-
-	costPerFarmerMap := make(map[int64]xdr.Int64)
-	for id, cu := range cloudUnitsPerFarmer {
-		// stellar does not have a nice type for currency, so use big.Float's during
-		// calculation to avoid floating point errors. Since both the price and
-		// cloud units are 3 digit precision floats, the result will be at most a 6
-		// digit precision float.  Stellar has 7 digits precision, so we can use this
-		// result as is.
-		// TODO: do we round this to 3 digits precision as well?
-		// NOTE: yes we need 3 big.Floats for the final calculation, or it screws up
-		total := big.NewFloat(0)
-		a := big.NewFloat(0)
-		b := big.NewFloat(0)
-		total = total.Add(
-			a.Mul(big.NewFloat(computeUnitTFTCost), big.NewFloat(cu.cu)),
-			b.Mul(big.NewFloat(storageUnitTFTCost), big.NewFloat(cu.su)),
-		)
-
-		// lock the duration to the hour above
-		ceiledDuration := math.Ceil(duration.Hours())
-		// compute the total amount of token to pay
-		total = a.Mul(total, big.NewFloat(ceiledDuration))
-
-		// apply the discount
-		discount := getDiscount(duration)
-		total = a.Mul(total, big.NewFloat(discount))
-
-		cost, err := amount.Parse(total.String())
-		if err != nil {
-			return nil, errors.Wrap(err, "could not parse calculated cost")
-		}
-		costPerFarmerMap[id] = cost
-	}
-	return costPerFarmerMap, nil
 }
 
 // calculateCapacityReservationCost calculates the cost of a capacity reservation
@@ -226,12 +183,12 @@ func (r rsu) add(other rsu) rsu {
 	}
 }
 
-// rsuToCu converts resource units to cloud units. Cloud units are rounded to 3
-// decimal places
+// rsuToCu converts resource units to cloud units. Cloud units are rounded to 3 decimal places
+// Values taken from https://github.com/threefoldfoundation/info_foundation/commit/517855d2b6dd673567f8494462326ca0d24fb818#diff-9daca117ae814b405e7ecde62e8c83ac5108bd64fe4ed6de0eb592724fb0421aR41
 func rsuToCu(r rsu) cloudUnits {
 	cloudUnits := cloudUnits{
-		cu: math.Round(math.Min(r.mru/4*0.95, float64(r.cru)*2)*1000) / 1000,
-		su: math.Round((float64(r.hru)/1093+float64(r.sru)/91)*1000) / 1000,
+		cu: math.Round(math.Min(r.mru/4, float64(r.cru)*2)*1000) / 1000,
+		su: math.Round((float64(r.hru)/1200+float64(r.sru)/300)*1000) / 1000,
 	}
 	return cloudUnits
 }

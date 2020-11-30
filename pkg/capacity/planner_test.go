@@ -3,6 +3,7 @@ package capacity
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 )
@@ -28,7 +29,7 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -153,7 +154,7 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -278,7 +279,7 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -393,7 +394,7 @@ func Test_usesExpiredResources(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "pool empty SU container",
+			name: "pool empty SU container free disk",
 			args: args{
 				pool: types.Pool{
 					Cus: 10_000,
@@ -403,7 +404,25 @@ func Test_usesExpiredResources(t *testing.T) {
 					Capacity: workloads.ContainerCapacity{
 						Cpu:      2,
 						Memory:   2048,
-						DiskSize: 5,
+						DiskSize: 5 * 1024,
+						DiskType: workloads.DiskTypeSSD,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "pool empty SU container paying disk",
+			args: args{
+				pool: types.Pool{
+					Cus: 10_000,
+					Sus: 0,
+				},
+				workload: &workloads.Container{
+					Capacity: workloads.ContainerCapacity{
+						Cpu:      2,
+						Memory:   2048,
+						DiskSize: 51 * 1024,
 						DiskType: workloads.DiskTypeSSD,
 					},
 				},
@@ -520,7 +539,9 @@ func Test_usesExpiredResources(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := usesExpiredResources(tt.args.pool, tt.args.workload); got != tt.want {
+			got, err := usesExpiredResources(tt.args.pool, tt.args.workload)
+			require.NoError(t, err)
+			if got != tt.want {
 				t.Errorf("usesExpiredResources() = %v, want %v", got, tt.want)
 			}
 		})

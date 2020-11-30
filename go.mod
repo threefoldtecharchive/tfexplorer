@@ -3,6 +3,7 @@ module github.com/threefoldtech/tfexplorer
 go 1.14
 
 require (
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dave/jennifer v1.3.0
 	github.com/emicklei/dot v0.10.1
 	github.com/gorilla/handlers v1.4.2
