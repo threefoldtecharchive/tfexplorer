@@ -167,7 +167,12 @@ func (f *FarmAPI) addFarmIPs(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, entry := range info {
-		err := f.PushIP(r.Context(), db, farmID, entry.IP, entry.GW)
+		ip, err := entry.IP.Validate()
+		if err != nil {
+			return nil, mw.BadRequest(err)
+		}
+
+		err = f.PushIP(r.Context(), db, farmID, ip, entry.GW)
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}
@@ -186,7 +191,12 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 	for _, ip := range info {
-		err := f.RemoveIP(r.Context(), db, farmID, ip)
+		ip, err := ip.Validate()
+		if err != nil {
+			return nil, mw.BadRequest(err)
+		}
+
+		err = f.RemoveIP(r.Context(), db, farmID, ip)
 		if err != nil {
 			return nil, mw.BadRequest(err)
 		}

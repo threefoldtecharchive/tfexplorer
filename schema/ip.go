@@ -95,6 +95,20 @@ func MustParseIPCidr(txt string) IPCidr {
 	return r
 }
 
+// Validate validates the IPCidr range and returns a
+// corrected copy, or error
+func (i *IPCidr) Validate() (IPCidr, error) {
+	if len(i.IP) == 0 || i.IP.IsUnspecified() {
+		return IPCidr{}, fmt.Errorf("invalid cider address")
+	}
+
+	if ones, _ := i.Mask.Size(); ones == 0 {
+		return IPCidr{}, fmt.Errorf("invalid netmask")
+	}
+
+	return IPCidr{IPNet: i.IPNet}, nil
+}
+
 // UnmarshalText loads IPRange from string
 func (i *IPCidr) UnmarshalText(text []byte) error {
 	v, err := ParseIPCidr(string(text))
