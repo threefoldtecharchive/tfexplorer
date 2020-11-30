@@ -611,11 +611,14 @@ func (p *NaivePlanner) syncPools() error {
 func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
 	pool.SyncCurrentCapacity()
 
+	// reset pool
 	pool.ActiveCU = 0
 	pool.ActiveSU = 0
 	pool.ActiveIPv4U = 0
+	workloads := pool.ActiveWorkloadIDs
+	pool.ActiveWorkloadIDs = nil
 
-	for _, wid := range pool.ActiveWorkloadIDs {
+	for _, wid := range workloads {
 		var filter workloadtypes.WorkloadFilter
 		filter = filter.WithID(wid)
 		w, err := filter.Get(p.ctx, p.db)
