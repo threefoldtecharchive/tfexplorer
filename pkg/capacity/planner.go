@@ -613,6 +613,8 @@ func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
 
 	pool.ActiveCU = 0
 	pool.ActiveSU = 0
+	pool.ActiveIPv4U = 0
+
 	for _, wid := range pool.ActiveWorkloadIDs {
 		var filter workloadtypes.WorkloadFilter
 		filter = filter.WithID(wid)
@@ -625,9 +627,8 @@ func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
 			return err
 		}
 		cu, su, ipu := CloudUnitsFromResourceUnits(rsu)
-		pool.ActiveCU += cu
-		pool.ActiveSU += su
-		pool.ActiveIPv4U += ipu
+
+		pool.AddWorkload(wid, cu, su, ipu)
 	}
 
 	if err := types.UpdatePool(p.ctx, p.db, pool); err != nil {
