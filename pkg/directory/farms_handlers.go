@@ -66,7 +66,7 @@ func (f *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 	info.ID = farmID
 
 	db := mw.Database(r)
-	err := f.Update(r.Context(), db, info.ID, info)
+	err := f.Update(r.Context(), db, farmID, info)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
