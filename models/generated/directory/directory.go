@@ -18,6 +18,7 @@ type Farm struct {
 	Email           schema.Email        `bson:"email" json:"email"`
 	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	IPAddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
 }
 
 func NewFarm() (Farm, error) {
@@ -294,4 +295,23 @@ type Gateway struct {
 	TcpRouterPort  int64          `bson:"tcp_router_port" json:"tcp_router_port"`
 	DnsNameserver  []string       `bson:"dns_nameserver" json:"dns_nameserver"`
 	FreeToUse      bool           `bson:"free_to_use" json:"free_to_use"`
+}
+
+// PublicIP structure
+type PublicIP struct {
+	Address       schema.IPCidr `bson:"address" json:"address"`
+	Gateway       schema.IP     `bson:"gateway" json:"gateway"`
+	ReservationID schema.ID     `bson:"reservation_id" json:"reservation_id"`
+}
+
+func (ip *PublicIP) Valid() error {
+	if len(ip.Address.IP) == 0 || len(ip.Address.Mask) == 0 {
+		return fmt.Errorf("invalid public ip address")
+	}
+
+	if len(ip.Gateway.IP) == 0 {
+		return fmt.Errorf("invalid public ip gateway")
+	}
+
+	return nil
 }

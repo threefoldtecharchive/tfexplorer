@@ -192,7 +192,8 @@ func (r *Reservation) Validate() error {
 		len(r.DataReservation.ReverseProxy) +
 		len(r.DataReservation.Subdomains) +
 		len(r.DataReservation.DomainDelegates) +
-		len(r.DataReservation.Gateway4To6s)
+		len(r.DataReservation.Gateway4To6s) +
+		len(r.DataReservation.PublicIPs)
 
 	// all workloads are supposed to implement this interface
 	type workloader interface{ WorkloadID() int64 }
@@ -233,6 +234,9 @@ func (r *Reservation) Validate() error {
 		workloaders = append(workloaders, &w)
 	}
 	for _, w := range r.DataReservation.Gateway4To6s {
+		workloaders = append(workloaders, &w)
+	}
+	for _, w := range r.DataReservation.PublicIPs {
 		workloaders = append(workloaders, &w)
 	}
 
@@ -417,6 +421,14 @@ func (r *Reservation) Workloads(nodeID string) []WorkloaderType {
 		wl.WorkloadType = generated.WorkloadTypeGateway4To6
 		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
 	}
+	for i := range data.PublicIPs {
+		wl := data.PublicIPs[i]
+		if len(nodeID) > 0 && wl.NodeId != nodeID {
+			continue
+		}
+		wl.WorkloadType = generated.WorkloadTypePublicIP
+		wrklds = append(wrklds, newWrkl(&wl, wl.WorkloadId, r))
+	}
 	for i := range data.Networks {
 		wl := data.Networks[i]
 		networkResources := wl.ToNetworkResources()
@@ -484,6 +496,10 @@ func (r *Reservation) NodeIDs() []string {
 	}
 
 	for _, w := range r.DataReservation.Kubernetes {
+		ids[w.NodeId] = struct{}{}
+	}
+
+	for _, w := range r.DataReservation.PublicIPs {
 		ids[w.NodeId] = struct{}{}
 	}
 

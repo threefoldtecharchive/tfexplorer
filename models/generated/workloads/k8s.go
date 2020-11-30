@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+
+	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
 var _ Workloader = (*K8S)(nil)
@@ -19,6 +21,7 @@ type K8S struct {
 	MasterIps       []net.IP          `bson:"master_ips" json:"master_ips"`
 	SshKeys         []string          `bson:"ssh_keys" json:"ssh_keys"`
 	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
+	PublicIP        schema.ID         `bson:"public_ip" json:"public_ip"`
 }
 
 var k8sSize = map[int64]RSU{
@@ -145,6 +148,9 @@ func (k *K8S) SignatureChallenge() ([]byte, error) {
 		if _, err := fmt.Fprintf(b, "%s", key); err != nil {
 			return nil, err
 		}
+	}
+	if _, err := fmt.Fprintf(b, "%d", k.PublicIP); err != nil {
+		return nil, err
 	}
 
 	return b.Bytes(), nil

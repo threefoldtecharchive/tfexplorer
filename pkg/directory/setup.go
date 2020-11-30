@@ -27,14 +27,18 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	// versionned endpoints
 	api := parent.PathPrefix("/api/v1").Subrouter()
 	farms := api.PathPrefix("/farms").Subrouter()
-	farmsAuthenticated := api.PathPrefix("/farms").Subrouter()
-	farmsAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
 
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.registerFarm)).Methods("POST").Name("farm-register-v1")
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list-v1")
 	farms.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.getFarm)).Methods("GET").Name("farm-get-v1")
-	farmsAuthenticated.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update-v1")
-	farmsAuthenticated.HandleFunc("/{farm_id}/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
+
+	farmsAuthenticated := farms.PathPrefix("/{farm_id}").Subrouter()
+	farmsAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
+	farmsAuthenticated.Use(LoadFarmMiddleware)
+	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.addFarmIPs)).Methods("POST").Name("farm-add-ip-v1")
+	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.deleteFarmIps)).Methods("DELETE").Name("farm-delete-ip-v1")
+	farmsAuthenticated.HandleFunc("", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update-v1")
+	farmsAuthenticated.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
 
 	nodes := api.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := api.PathPrefix("/nodes").Subrouter()

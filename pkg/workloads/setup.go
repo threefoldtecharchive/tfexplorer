@@ -45,7 +45,7 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	apiReservation.HandleFunc("/workloads", mw.AsHandlerFunc(service.listWorkload)).Methods(http.MethodGet).Name("versionned-workloadreservation-list")
 	apiReservation.HandleFunc("/workloads/{res_id:\\d+}", mw.AsHandlerFunc(service.getWorkload)).Methods(http.MethodGet).Name("versionned-workloadreservation-get")
 	apiReservation.HandleFunc("/workloads/{res_id:\\d+}/sign/provision", mw.AsHandlerFunc(service.signProvision)).Methods(http.MethodPost).Name("versionned-reservation-sign-provision")
-	apiReservation.HandleFunc("/workloads/{res_id:\\d+}/sign/delete", mw.AsHandlerFunc(service.signDelete)).Methods(http.MethodPost).Name("versionned-reservation-sign-delete")
+	apiReservation.HandleFunc("/workloads/{res_id:\\d+}/sign/delete", mw.AsHandlerFunc(service.newSignDelete)).Methods(http.MethodPost).Name("versionned-reservation-sign-delete")
 
 	conversionAuthenticated := apiReservation.PathPrefix("/convert").Subrouter()
 	conversionAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)

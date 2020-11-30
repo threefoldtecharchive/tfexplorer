@@ -35,9 +35,9 @@ type (
 		// These values represent the amount left in the pool when it was last
 		// updated, and do not represent current values (unless the pool just
 		// got updated)
-		Cus float64 `bson:"cus" json:"cus"`
-		Sus float64 `bson:"sus" json:"sus"`
-
+		Cus    float64 `bson:"cus" json:"cus"`
+		Sus    float64 `bson:"sus" json:"sus"`
+		IPv4us float64 `bson:"ipv4us" json:"ipv4us"`
 		// node ids on which this pool is applicable, only workloads deployed
 		// on these nodes must be deployed in the pool.
 		NodeIDs []string `bson:"node_ids" json:"node_ids"`
@@ -49,9 +49,9 @@ type (
 
 		// amount of active CU and SU tied to this pool. This is the amount of
 		// CU and SU that needs to be deducted from the pool.
-		ActiveCU float64 `bson:"active_cu" json:"active_cu"`
-		ActiveSU float64 `bson:"active_su" json:"active_su"`
-
+		ActiveCU    float64 `bson:"active_cu" json:"active_cu"`
+		ActiveSU    float64 `bson:"active_su" json:"active_su"`
+		ActiveIPv4U float64 `bson:"active_ipv4" json:"active_ipv4"`
 		// timestamp when either CU or SU expires according to the current capacity
 		// still left and the capacity being used.
 		EmptyAt int64 `bson:"empty_at" json:"empty_at"`
@@ -92,7 +92,7 @@ func NewPool(id schema.ID, ownerID int64, nodeIDs []string) Pool {
 }
 
 // AddCapacity adds new capacity to the pool
-func (p *Pool) AddCapacity(CUs float64, SUs float64) {
+func (p *Pool) AddCapacity(CUs float64, SUs float64, IPUs float64) {
 	p.SyncCurrentCapacity()
 	if CUs > 0 {
 		p.Cus += CUs
@@ -100,12 +100,16 @@ func (p *Pool) AddCapacity(CUs float64, SUs float64) {
 	if SUs > 0 {
 		p.Sus += SUs
 	}
+	if IPUs > 0 {
+		p.IPv4us += IPUs
+	}
+
 	p.syncPoolExpiration()
 }
 
 // AddWorkload adds the used CU and SU of a deployed workload to the currently
 // active CU and SU of the pool, and adds the id to the actively used ids.
-func (p *Pool) AddWorkload(id schema.ID, CU float64, SU float64) {
+func (p *Pool) AddWorkload(id schema.ID, CU float64, SU float64, IPv4U float64) {
 	var found bool
 	for i := range p.ActiveWorkloadIDs {
 		if p.ActiveWorkloadIDs[i] == id {
@@ -124,13 +128,16 @@ func (p *Pool) AddWorkload(id schema.ID, CU float64, SU float64) {
 	if SU > 0 {
 		p.ActiveSU += SU
 	}
+	if IPv4U > 0 {
+		p.ActiveIPv4U += IPv4U
+	}
 	p.ActiveWorkloadIDs = append(p.ActiveWorkloadIDs, id)
 	p.syncPoolExpiration()
 }
 
 // RemoveWorkload remove the used CU and SU of a deployed workload to the currently
 // active CU and SU of the pool, and removes the id from the actively used id's.
-func (p *Pool) RemoveWorkload(id schema.ID, CU float64, SU float64) {
+func (p *Pool) RemoveWorkload(id schema.ID, CU float64, SU float64, IPv4U float64) {
 	var found bool
 	for i := range p.ActiveWorkloadIDs {
 		if p.ActiveWorkloadIDs[i] == id {
@@ -167,6 +174,13 @@ func (p *Pool) RemoveWorkload(id schema.ID, CU float64, SU float64) {
 			p.ActiveSU = 0
 		}
 	}
+	if IPv4U > 0 {
+		p.ActiveIPv4U -= IPv4U
+		// floats are annoying
+		if p.ActiveIPv4U < 0.00001 {
+			p.ActiveIPv4U = 0
+		}
+	}
 	p.syncPoolExpiration()
 }
 
@@ -191,6 +205,10 @@ func (p *Pool) SyncCurrentCapacity() {
 	}
 	p.Sus -= p.ActiveSU * float64(timePassed)
 	if p.Sus < 0 {
+		p.Sus = 0
+	}
+	p.IPv4us -= p.ActiveIPv4U * float64(timePassed)
+	if p.IPv4us < 0 {
 		p.Sus = 0
 	}
 	p.LastUpdated = now
@@ -221,9 +239,20 @@ func (p *Pool) syncPoolExpiration() {
 		timeToSuEmpty.Quo(big.NewFloat(p.Sus), big.NewFloat(p.ActiveSU))
 	}
 
+	timeToIpv4uEmpty := big.NewFloat(0)
+	timeToIpv4uEmpty.SetPrec(64)
+	if p.ActiveIPv4U == 0 {
+		timeToIpv4uEmpty.Sub(big.NewFloat(math.MaxInt64), big.NewFloat(float64(p.LastUpdated)))
+	} else {
+		timeToIpv4uEmpty.Quo(big.NewFloat(p.IPv4us), big.NewFloat(p.ActiveIPv4U))
+	}
+
 	shortestExpiration := timeToCuEmpty
 	if timeToSuEmpty.Cmp(shortestExpiration) == -1 {
 		shortestExpiration = timeToSuEmpty
+	}
+	if timeToIpv4uEmpty.Cmp(shortestExpiration) == -1 {
+		shortestExpiration = timeToIpv4uEmpty
 	}
 
 	expiration := shortestExpiration.Add(shortestExpiration, big.NewFloat(float64(p.LastUpdated)))

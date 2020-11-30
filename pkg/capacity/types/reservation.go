@@ -56,6 +56,7 @@ type (
 		PoolID     int64    `bson:"pool_id" json:"pool_id"`
 		CUs        uint64   `bson:"cus" json:"cus"`
 		SUs        uint64   `bson:"sus" json:"sus"`
+		IPv4Us     uint64   `bson:"ipv4us" json:"ipv4us"`
 		NodeIDs    []string `bson:"node_ids" json:"node_ids"`
 		Currencies []string `bson:"currencies" json:"currencies"`
 	}

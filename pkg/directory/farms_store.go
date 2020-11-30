@@ -2,6 +2,7 @@ package directory
 
 import (
 	"context"
+	"net"
 
 	"github.com/pkg/errors"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
@@ -62,6 +63,16 @@ func (s *FarmAPI) Add(ctx context.Context, db *mongo.Database, farm directory.Fa
 // Update farm information
 func (s *FarmAPI) Update(ctx context.Context, db *mongo.Database, id schema.ID, farm directory.Farm) error {
 	return directory.FarmUpdate(ctx, db, id, farm)
+}
+
+// PushIP push ip
+func (s *FarmAPI) PushIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPCidr, gw net.IP) error {
+	return directory.FarmPushIP(ctx, db, id, ip, gw)
+}
+
+// RemoveIP removes ip
+func (s *FarmAPI) RemoveIP(ctx context.Context, db *mongo.Database, id schema.ID, ip schema.IPCidr) error {
+	return directory.FarmRemoveIP(ctx, db, id, ip)
 }
 
 // Delete deletes a farm by ID
