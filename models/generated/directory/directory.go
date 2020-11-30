@@ -18,7 +18,6 @@ type Farm struct {
 	Email           schema.Email        `bson:"email" json:"email"`
 	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	GatewayIP       net.IP              `bson:"gateway_ip" json:"gateway_ip"`
 	IPAddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
 }
 

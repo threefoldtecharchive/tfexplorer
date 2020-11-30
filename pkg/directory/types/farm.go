@@ -217,7 +217,6 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 		Email           schema.Email                  `bson:"email" json:"email"`
 		ResourcePrices  []generated.NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 		PrefixZero      schema.IPRange                `bson:"prefix_zero" json:"prefix_zero"`
-		GatewayIP       net.IP                        `bson:"gateway_ip" json:"gateway_ip"`
 	}{
 		ThreebotID:      farm.ThreebotId,
 		IyoOrganization: farm.IyoOrganization,
@@ -227,7 +226,6 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 		Email:           farm.Email,
 		ResourcePrices:  farm.ResourcePrices,
 		PrefixZero:      farm.PrefixZero,
-		GatewayIP:       farm.GatewayIP,
 	}
 
 	col := db.Collection(FarmCollection)
