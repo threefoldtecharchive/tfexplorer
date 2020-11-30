@@ -624,9 +624,10 @@ func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
 		if err != nil {
 			return err
 		}
-		cu, su := CloudUnitsFromResourceUnits(rsu)
+		cu, su, ipu := CloudUnitsFromResourceUnits(rsu)
 		pool.ActiveCU += cu
 		pool.ActiveSU += su
+		pool.ActiveIPv4U += ipu
 	}
 
 	if err := types.UpdatePool(p.ctx, p.db, pool); err != nil {

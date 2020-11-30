@@ -17,8 +17,8 @@ type PublicIP struct {
 	IPaddress schema.IPCidr `bson:"ipaddress" json:"ipaddress"`
 }
 
-func (z *PublicIP) GetRSU() RSU {
-	return RSU{IPV4U: 1}
+func (z *PublicIP) GetRSU() (RSU, error) {
+	return RSU{IPV4U: 1}, nil
 }
 
 func (z *PublicIP) SignatureChallenge() ([]byte, error) {
