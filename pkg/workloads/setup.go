@@ -27,6 +27,8 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 
 	// versionned endpoints
 	api := parent.PathPrefix("/api/v1").Subrouter()
+	api.HandleFunc("/prices", mw.AsHandlerFunc(getPrices)).Methods(http.MethodGet).Name("prices-get")
+
 	apiReservation := api.PathPrefix("/reservations").Subrouter()
 
 	apiReservation.HandleFunc("/pools", mw.AsHandlerFunc(service.setupPool)).Methods(http.MethodPost).Name("versionned-pool-create")
@@ -90,4 +92,16 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	legacyReservations.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutDeleted)).Methods(http.MethodDelete).Name("nodes-workloads-deleted")
 
 	return nil
+}
+
+func getPrices(r *http.Request) (interface{}, mw.Response) {
+	return struct {
+		CuPriceDollarMonth int
+		SuPriceDollarMonth int
+		TftPriceMill       int
+	}{
+		CuPriceDollarMonth: escrow.CuPriceDollarMonth,
+		SuPriceDollarMonth: escrow.SuPriceDollarMonth,
+		TftPriceMill:       escrow.TftPriceMill,
+	}, nil
 }

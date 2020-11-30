@@ -33,7 +33,13 @@ const getDefaultState = () => {
       container: 0,
       zdb_namespace: 0,
       k8s_vm: 0
+    },
+    prices: {
+      CuPriceDollarMonth: 0,
+      SuPriceDollarMonth: 0,
+      TftPriceMill: 0
     }
+
   }
 }
 
@@ -135,6 +141,11 @@ export default ({
         context.commit('setFarms', response.data)
       })
     },
+    getPrices: context => {
+      tfService.prices().then(response => {
+        context.commit('setPrices', response.data)
+      })
+    },
     resetNodes: context => {
       context.commit('setNodes', undefined)
     },
@@ -183,6 +194,9 @@ export default ({
     },
     setUser: (state, user) => {
       state.user = user
+    },
+    setPrices: (state, prices) => {
+      state.prices = prices
     },
     setAmountOfFarms (state, value) {
       if (value.length === 0) {
@@ -235,7 +249,8 @@ export default ({
     gatewaySpecs: state => state.gatewaySpecs,
     nodesLoading: state => state.nodesLoading,
     farmsLoading: state => state.farmsLoading,
-    gatewaysLoading: state => state.gatewaysLoading
+    gatewaysLoading: state => state.gatewaysLoading,
+    prices: state => state.prices
   }
 })
 

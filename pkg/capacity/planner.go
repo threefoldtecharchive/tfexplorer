@@ -143,6 +143,12 @@ func NewNaivePlanner(escrow escrow.Escrow, db *mongo.Database) *NaivePlanner {
 func (p *NaivePlanner) Run(ctx context.Context) {
 	p.ctx = ctx
 
+	// first make sure we sync all pools
+	log.Info().Msg("syncing pools")
+	if err := p.syncPools(); err != nil {
+		log.Error().Err(err).Msg("failed to sync capacity pools")
+	}
+
 	// first make sure we decomission workloads from expired pools
 	log.Info().Msg("setting up capacity planner expiration timer")
 	if err := p.handlePoolExpiration(true); err != nil {
@@ -574,6 +580,58 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 	log.Debug().Time("ExpireAt", time.Unix(nextPoolToExpire.EmptyAt, 0)).Msg("next pool to expire")
 
 	p.timer = time.NewTimer(time.Until(time.Unix(nextPoolToExpire.EmptyAt, 0)))
+
+	return nil
+}
+
+func (p *NaivePlanner) syncPools() error {
+	ctx, cancel := context.WithCancel(p.ctx)
+	defer cancel()
+
+	pools, err := types.GetPools(ctx, p.db)
+	if err != nil {
+		return err
+	}
+
+	for pool := range pools {
+		if pool.Err != nil {
+			log.Error().Err(err).Msg("failed to process pool")
+			continue
+		}
+
+		err := p.updateUsedCapacityPool(pool.Pool)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
+	pool.SyncCurrentCapacity()
+
+	pool.ActiveCU = 0
+	pool.ActiveSU = 0
+	for _, wid := range pool.ActiveWorkloadIDs {
+		var filter workloadtypes.WorkloadFilter
+		filter = filter.WithID(wid)
+		w, err := filter.Get(p.ctx, p.db)
+		if err != nil {
+			return errors.Wrap(err, "could not pool's workload")
+		}
+		rsu, err := w.GetRSU()
+		if err != nil {
+			return err
+		}
+		cu, su := CloudUnitsFromResourceUnits(rsu)
+		pool.ActiveCU += cu
+		pool.ActiveSU += su
+	}
+
+	if err := types.UpdatePool(p.ctx, p.db, pool); err != nil {
+		return errors.Wrap(err, "could not save updated pool")
+	}
 
 	return nil
 }
