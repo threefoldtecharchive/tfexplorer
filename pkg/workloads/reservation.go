@@ -533,7 +533,7 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 		}
 
 		if reservation.NextAction == types.Delete {
-			if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
+			if err := a.setReservationDeleted(r.Context(), db, &reservation); err != nil {
 				return nil, mw.Error(err)
 			}
 		}
@@ -765,7 +765,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if result.State == generated.ResultStateError {
-		if err := a.setReservationDeleted(r.Context(), db, rid); err != nil {
+		if err := a.setReservationDeleted(r.Context(), db, &reservation); err != nil {
 			return nil, mw.Error(err)
 		}
 	} else if result.State == generated.ResultStateOK {
@@ -1144,21 +1144,12 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Created()
 	}
 
-	if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
+	if err := a.setReservationDeleted(r.Context(), db, &reservation); err != nil {
 		return nil, mw.Error(err)
 	}
 
 	if err := types.WorkloadPush(r.Context(), db, reservation.Workloads("")...); err != nil {
 		return nil, mw.Error(err)
-	}
-
-	workloads := reservation.Workloads("")
-	for _, workload := range workloads {
-		if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
-			if err = a.setFarmIPFree(r.Context(), db, workload); err != nil {
-				return nil, mw.Error(err)
-			}
-		}
 	}
 
 	return nil, mw.Created()
@@ -1226,13 +1217,24 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Created()
 }
 
-func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id schema.ID) error {
+func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, reservation *types.Reservation) error {
 	// cancel reservation escrow in case the reservation has not yet been deployed
-	a.escrow.ReservationCanceled(id)
+	a.escrow.ReservationCanceled(reservation.ID)
 	// No longer set the reservation as deleted. This means a workload which managed
 	// to deploy will stay allive. This code path should not happen (it can only
 	// happen just after the upgrade, for reservations with a pending escrow), and
 	// its not worth the hassle to manually figure out where to send the tokens.
+
+	// if there are any public ip workloads defined, free up public ip's for the farmer
+	workloads := reservation.Workloads("")
+	for _, workload := range workloads {
+		if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
+			if err := a.setFarmIPFree(ctx, db, workload); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
