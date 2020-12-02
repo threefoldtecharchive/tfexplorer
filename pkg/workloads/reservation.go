@@ -180,12 +180,12 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		if err := a.handlePublicIPReservation(r.Context(), db, workload); err != nil {
 			return nil, err
 		}
-	} else {
-		// immediately deploy the workload
-		if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
-			log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
-			return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
-		}
+	}
+
+	// immediately deploy the workload
+	if err := types.WorkloadToDeploy(r.Context(), db, workload); err != nil {
+		log.Error().Err(err).Msg("failed to schedule the reservation to deploy")
+		return nil, mw.Error(errors.New("could not schedule reservation to deploy"))
 	}
 
 	return ReservationCreateResponse{ID: id}, mw.Created()
@@ -1332,10 +1332,8 @@ func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Databas
 	_, err = workloadFiler.Get(ctx, db)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			// If there is no match, this means this is a valid reservation, continue to save it and set the result
-			if err := a.updateReservationResult(db, nil, workload); err != nil {
-				return mw.Error(err)
-			}
+			// If there is no match, this means this is a valid reservation
+			return nil
 		}
 		return mw.Error(err)
 	}
