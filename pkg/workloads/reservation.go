@@ -765,7 +765,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if result.State == generated.ResultStateError {
-		if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
+		if err := a.setReservationDeleted(r.Context(), db, rid); err != nil {
 			return nil, mw.Error(err)
 		}
 	} else if result.State == generated.ResultStateOK {
