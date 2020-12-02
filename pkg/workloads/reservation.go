@@ -1311,19 +1311,6 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 		return mw.Error(err)
 	}
 
-	if ipWorkload.GetWorkloadType() != generated.WorkloadTypePublicIP {
-		return mw.Error(fmt.Errorf("unexpected error occured"))
-	}
-
-	ipWorkloadType := workload.Workloader.(*generated.PublicIP)
-	if ipWorkloadType.NrName == "" {
-		customErr := fmt.Errorf("ipworkload with id: %d, does not contain a valid network resource name", ipWorkload.WorkloadID())
-		if err := a.updateReservationResult(db, customErr, workload); err != nil {
-			return mw.Error(err)
-		}
-		return nil
-	}
-
 	if ipWorkload.GetNextAction() != generated.NextActionDeploy {
 		customErr := fmt.Errorf("ip reservation: %d, is not valid anymore", ipWorkload.WorkloadID())
 		if err := a.updateReservationResult(db, customErr, workload); err != nil {
