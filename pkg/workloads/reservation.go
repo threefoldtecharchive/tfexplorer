@@ -1330,15 +1330,16 @@ func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Databas
 		WithPublicIP(k8sWorkload.PublicIP)
 
 	_, err = workloadFiler.Get(ctx, db)
+	if err == mongo.ErrNoDocuments {
+		// If there is no match, this means this is a valid reservation
+		return nil
+	}
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			// If there is no match, this means this is a valid reservation
-			return nil
-		}
 		return mw.Error(err)
 	}
 
-	return nil
+	// Means there is no error, so the workload with a public ip is found, return an error here
+	return mw.Conflict(fmt.Errorf("public ip is in use"))
 }
 
 func (a *API) updateReservationResult(db *mongo.Database, err error, workload types.WorkloaderType) error {
