@@ -1327,7 +1327,7 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 		return nil
 	}
 
-	workloadFiler = workloadFiler.WithCustomerID(int(userID))
+	workloadFiler = workloadFiler.WithCustomerID(userID)
 	workloadFiler = workloadFiler.WithNextAction(generated.NextActionDeploy)
 	workloads, err := workloadFiler.Find(context.Background(), db)
 	if err != nil {
