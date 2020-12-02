@@ -71,6 +71,6 @@ export default {
     return axios.get(`${config.tfExplorerUrl}/blocks/${height}`)
   },
   prices () {
-    return axios.get(`${config.tfApiUrl}/prices`)
+    return axios.get(`${config.tfApiUrlV1}/prices`)
   }
 }
