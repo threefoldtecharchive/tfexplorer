@@ -816,6 +816,11 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 			log.Error().Err(err).Msg("failed to decrease used capacity in pool")
 			return nil, mw.Error(err)
 		}
+		if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
+			if err := a.setFarmIPFree(ctx, db, workload); err != nil {
+				return nil, mw.Error(err)
+			}
+		}
 		if err := types.WorkloadSetNextAction(ctx, db, globalID, generated.NextActionDelete); err != nil {
 			return nil, mw.Error(err)
 		}
@@ -954,6 +959,12 @@ func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid
 
 	if err := types.WorkloadSetNextAction(ctx, db, workload.GetID(), generated.NextActionDeleted); err != nil {
 		return nil, mw.Error(err)
+	}
+
+	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
+		if err := a.setFarmIPFree(ctx, db, workload); err != nil {
+			return nil, mw.Error(err)
+		}
 	}
 
 	return nil, nil
