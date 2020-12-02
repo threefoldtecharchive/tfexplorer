@@ -173,11 +173,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
-		if err := a.handleKubernetesReservation(db, workload, requestUserID); err != nil {
+		if err := a.handleKubernetesReservation(r.Context(), db, workload, requestUserID); err != nil {
 			return nil, err
 		}
 	} else if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
-		if err := a.handlePublicIPReservation(db, workload); err != nil {
+		if err := a.handlePublicIPReservation(r.Context(), db, workload); err != nil {
 			return nil, err
 		}
 	} else {
@@ -1155,7 +1155,7 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 	workloads := reservation.Workloads("")
 	for _, workload := range workloads {
 		if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
-			if err = a.setFarmIPFree(db, workload); err != nil {
+			if err = a.setFarmIPFree(r.Context(), db, workload); err != nil {
 				return nil, mw.Error(err)
 			}
 		}
@@ -1218,7 +1218,7 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
-		if err = a.setFarmIPFree(db, workload); err != nil {
+		if err = a.setFarmIPFree(r.Context(), db, workload); err != nil {
 			return nil, mw.Error(err)
 		}
 	}
@@ -1246,24 +1246,24 @@ func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types
 	return w, errors.Wrap(types.WorkloadPush(ctx, db, w), "could not push workload to delete in queue")
 }
 
-func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.WorkloaderType) mw.Response {
+func (a *API) handlePublicIPReservation(ctx context.Context, db *mongo.Database, workload types.WorkloaderType) mw.Response {
 	ipWorkload := workload.Workloader.(*generated.PublicIP)
 
 	var nodeFilter directory.NodeFilter
 	nodeFilter = nodeFilter.WithNodeID(ipWorkload.NodeId)
-	node, err := nodeFilter.Get(context.Background(), db, false)
+	node, err := nodeFilter.Get(ctx, db, false)
 	if err != nil {
 		return mw.BadRequest(errors.Wrap(err, "failed to retrieve node id for ip"))
 	}
 
 	var farmFilter directory.FarmFilter
 	farmFilter = farmFilter.WithID(schema.ID(node.FarmId))
-	farm, err := farmFilter.Get(context.Background(), db)
+	farm, err := farmFilter.Get(ctx, db)
 	if err != nil {
 		return mw.BadRequest(errors.Wrap(err, "failed to retrieve farm"))
 	}
 
-	err = directory.FarmIPReserve(context.Background(), db, farm.ID, ipWorkload.IPaddress, workload.GetID())
+	err = directory.FarmIPReserve(ctx, db, farm.ID, ipWorkload.IPaddress, workload.GetID())
 	if err := a.updateReservationResult(db, err, workload); err != nil {
 		return mw.Error(err)
 	}
@@ -1271,7 +1271,7 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	return nil
 }
 
-func (a *API) setFarmIPFree(db *mongo.Database, workload types.WorkloaderType) error {
+func (a *API) setFarmIPFree(ctx context.Context, db *mongo.Database, workload types.WorkloaderType) error {
 	ipWorkload := workload.Workloader.(*generated.PublicIP)
 
 	var nodeFilter directory.NodeFilter
@@ -1295,7 +1295,7 @@ func (a *API) setFarmIPFree(db *mongo.Database, workload types.WorkloaderType) e
 	return nil
 }
 
-func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
+func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
 	k8sWorkload := workload.Workloader.(*generated.K8S)
 
 	if k8sWorkload.PublicIP == 0 {
@@ -1306,17 +1306,13 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 
 	var workloadFiler types.WorkloadFilter
 	workloadFiler = workloadFiler.WithID(k8sWorkload.PublicIP)
-	ipWorkload, err := workloadFiler.Get(context.Background(), db)
+	ipWorkload, err := workloadFiler.Get(ctx, db)
 	if err != nil {
-		return mw.Error(err)
+		return mw.NotFound(errors.Wrapf(err, "ip workload %d not found", k8sWorkload.ID))
 	}
 
 	if ipWorkload.GetNextAction() != generated.NextActionDeploy {
-		customErr := fmt.Errorf("ip reservation: %d, is not valid anymore", ipWorkload.WorkloadID())
-		if err := a.updateReservationResult(db, customErr, workload); err != nil {
-			return mw.Error(err)
-		}
-		return nil
+		return mw.Error(fmt.Errorf("ip reservation: %d, is not valid anymore", ipWorkload.WorkloadID()))
 	}
 
 	if ipWorkload.GetCustomerTid() != userID {
@@ -1327,29 +1323,20 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 		return nil
 	}
 
-	workloadFiler = workloadFiler.WithCustomerID(userID)
-	workloadFiler = workloadFiler.WithNextAction(generated.NextActionDeploy)
-	workloads, err := workloadFiler.Find(context.Background(), db)
-	if err != nil {
-		return mw.Error(err)
-	}
+	// Check if there is already a k8s workload with this public ip reservation in the database
+	workloadFiler = workloadFiler.
+		WithCustomerID(userID).
+		WithNextAction(generated.NextActionDeploy).
+		WithPublicIP(k8sWorkload.PublicIP)
 
-	// Try to find a kubernetes reservation that already references the public IP reservation that the user wants to provision
-	// with his new kubernetes reservation
-	for _, workload := range workloads {
-		if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
-			savedK8sWorkload := workload.Workloader.(*generated.K8S)
-			if savedK8sWorkload.PublicIP == k8sWorkload.PublicIP {
-				customErr := fmt.Errorf("ip reservation %d, is already in use by kubernetes reservation: %d", k8sWorkload.PublicIP, savedK8sWorkload.ID)
-				if err := a.updateReservationResult(db, customErr, workload); err != nil {
-					return mw.Error(err)
-				}
-				return nil
+	_, err = workloadFiler.Get(ctx, db)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			// If there is no match, this means this is a valid reservation, continue to save it and set the result
+			if err := a.updateReservationResult(db, nil, workload); err != nil {
+				return mw.Error(err)
 			}
 		}
-	}
-
-	if err := a.updateReservationResult(db, nil, workload); err != nil {
 		return mw.Error(err)
 	}
 

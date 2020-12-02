@@ -91,6 +91,20 @@ func (f WorkloadFilter) WithReference(ref string) WorkloadFilter {
 	})
 }
 
+// WithWorkloadType filter workloads with workload type
+func (f WorkloadFilter) WithWorkloadType(workloadType generated.WorkloadTypeEnum) WorkloadFilter {
+	return append(f, bson.E{
+		Key: "workload_type", Value: workloadType,
+	})
+}
+
+// WithPublicIP filter workloads with a certain public ip
+func (f WorkloadFilter) WithPublicIP(publicIP schema.ID) WorkloadFilter {
+	return append(f, bson.E{
+		Key: "public_ip", Value: publicIP,
+	})
+}
+
 // Or returns filter that reads as (f or o)
 func (f WorkloadFilter) Or(o WorkloadFilter) WorkloadFilter {
 	return WorkloadFilter{
