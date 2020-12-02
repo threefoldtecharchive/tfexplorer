@@ -1310,22 +1310,14 @@ func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Databas
 	var err error
 
 	var workloadFiler types.WorkloadFilter
-	workloadFiler = workloadFiler.WithID(k8sWorkload.PublicIP)
-	ipWorkload, err := workloadFiler.Get(ctx, db)
+	workloadFiler = workloadFiler.
+		WithID(k8sWorkload.PublicIP).
+		WithNextAction(generated.NextActionDeploy).
+		WithCustomerID(userID)
+
+	_, err = workloadFiler.Get(ctx, db)
 	if err != nil {
 		return mw.NotFound(errors.Wrapf(err, "ip workload %d not found", k8sWorkload.ID))
-	}
-
-	if ipWorkload.GetNextAction() != generated.NextActionDeploy {
-		return mw.Error(fmt.Errorf("ip reservation: %d, is not valid anymore", ipWorkload.WorkloadID()))
-	}
-
-	if ipWorkload.GetCustomerTid() != userID {
-		customErr := fmt.Errorf("user does not own this IP reservation: %d, for this kubernetes cluster", ipWorkload.WorkloadID())
-		if err := a.updateReservationResult(db, customErr, workload); err != nil {
-			return mw.Error(err)
-		}
-		return nil
 	}
 
 	// Check if there is already a k8s workload with this public ip reservation in the database
