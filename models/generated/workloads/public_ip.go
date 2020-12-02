@@ -15,6 +15,7 @@ type PublicIP struct {
 	ReservationInfo `bson:",inline"`
 
 	IPaddress schema.IPCidr `bson:"ipaddress" json:"ipaddress"`
+	NrName    string        `bson:"nr_name" json:"nr_name"`
 }
 
 func (z *PublicIP) GetRSU() (RSU, error) {
@@ -28,6 +29,7 @@ func (z *PublicIP) SignatureChallenge() ([]byte, error) {
 	}
 	b := bytes.NewBuffer(ric)
 	fmt.Fprintf(b, "%v", z.IPaddress)
+	fmt.Fprintf(b, "%s", z.NrName)
 
 	return b.Bytes(), nil
 }
