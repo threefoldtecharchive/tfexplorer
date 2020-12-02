@@ -1264,7 +1264,7 @@ func (a *API) handlePublicIPReservation(db *mongo.Database, workload types.Workl
 	}
 
 	err = directory.FarmIPReserve(context.Background(), db, farm.ID, ipWorkload.IPaddress, workload.GetID())
-	if err := a.updateReservationResult(db, nil, workload); err != nil {
+	if err := a.updateReservationResult(db, err, workload); err != nil {
 		return mw.Error(err)
 	}
 
@@ -1317,7 +1317,7 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 
 	ipWorkloadType := workload.Workloader.(*generated.PublicIP)
 	if ipWorkloadType.NrName == "" {
-		customErr := fmt.Errorf("Ipworkload with id: %d, does not contain a valid network resource name", ipWorkload.WorkloadID())
+		customErr := fmt.Errorf("ipworkload with id: %d, does not contain a valid network resource name", ipWorkload.WorkloadID())
 		if err := a.updateReservationResult(db, customErr, workload); err != nil {
 			return mw.Error(err)
 		}
@@ -1325,7 +1325,7 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 	}
 
 	if ipWorkload.GetNextAction() != generated.NextActionDeploy {
-		customErr := fmt.Errorf("IP reservation: %d, is not valid anymore", ipWorkload.WorkloadID())
+		customErr := fmt.Errorf("ip reservation: %d, is not valid anymore", ipWorkload.WorkloadID())
 		if err := a.updateReservationResult(db, customErr, workload); err != nil {
 			return mw.Error(err)
 		}
@@ -1333,7 +1333,7 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 	}
 
 	if ipWorkload.GetCustomerTid() != userID {
-		customErr := fmt.Errorf("User does not own this IP reservation: %d, for this kubernetes cluster", ipWorkload.WorkloadID())
+		customErr := fmt.Errorf("user does not own this IP reservation: %d, for this kubernetes cluster", ipWorkload.WorkloadID())
 		if err := a.updateReservationResult(db, customErr, workload); err != nil {
 			return mw.Error(err)
 		}
@@ -1353,7 +1353,7 @@ func (a *API) handleKubernetesReservation(db *mongo.Database, workload types.Wor
 		if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
 			savedK8sWorkload := workload.Workloader.(*generated.K8S)
 			if savedK8sWorkload.PublicIP == k8sWorkload.PublicIP {
-				customErr := fmt.Errorf("IP reservation %d, is already in use by kubernetes reservation: %d", k8sWorkload.PublicIP, savedK8sWorkload.ID)
+				customErr := fmt.Errorf("ip reservation %d, is already in use by kubernetes reservation: %d", k8sWorkload.PublicIP, savedK8sWorkload.ID)
 				if err := a.updateReservationResult(db, customErr, workload); err != nil {
 					return mw.Error(err)
 				}
