@@ -35,7 +35,7 @@ func ApplyQueryFilterWorkload(r *http.Request, filter WorkloadFilter) (WorkloadF
 		return nil, errors.Wrap(err, "customer_tid should be an integer")
 	}
 	if customerid != 0 {
-		filter = filter.WithCustomerID(int(customerid))
+		filter = filter.WithCustomerID(customerid)
 	}
 	sNextAction := r.FormValue("next_action")
 	if len(sNextAction) != 0 {
@@ -71,7 +71,7 @@ func (f WorkloadFilter) WithNextAction(action generated.NextActionEnum) Workload
 }
 
 // WithCustomerID filter workload on customer
-func (f WorkloadFilter) WithCustomerID(customerID int) WorkloadFilter {
+func (f WorkloadFilter) WithCustomerID(customerID int64) WorkloadFilter {
 	return append(f, bson.E{
 		Key: "customer_tid", Value: customerID,
 	})
@@ -88,6 +88,20 @@ func (f WorkloadFilter) WithNodeID(id string) WorkloadFilter {
 func (f WorkloadFilter) WithReference(ref string) WorkloadFilter {
 	return append(f, bson.E{
 		Key: "reference", Value: ref,
+	})
+}
+
+// WithWorkloadType filter workloads with workload type
+func (f WorkloadFilter) WithWorkloadType(workloadType generated.WorkloadTypeEnum) WorkloadFilter {
+	return append(f, bson.E{
+		Key: "workload_type", Value: workloadType,
+	})
+}
+
+// WithPublicIP filter workloads with a certain public ip
+func (f WorkloadFilter) WithPublicIP(publicIP schema.ID) WorkloadFilter {
+	return append(f, bson.E{
+		Key: "public_ip", Value: publicIP,
 	})
 }
 
