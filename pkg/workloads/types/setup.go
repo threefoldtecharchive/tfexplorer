@@ -67,6 +67,9 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		{
 			Keys: bson.M{"next_action": 1},
 		},
+		{
+			Keys: bson.M{"workload_type": 1},
+		},
 	}
 
 	if _, err := col.Indexes().CreateMany(ctx, indexes); err != nil {
