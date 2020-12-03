@@ -1321,7 +1321,7 @@ func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Databas
 
 	_, err = workloadFiler.Get(ctx, db)
 	if err != nil {
-		return mw.NotFound(errors.Wrapf(err, "ip workload %d not found", k8sWorkload.ID))
+		return mw.NotFound(errors.Wrapf(err, "ip workload '%d' not found", k8sWorkload.PublicIP))
 	}
 
 	// Check if there is already a k8s workload with this public ip reservation in the database
