@@ -739,7 +739,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return a.newworkloadPutResult(r.Context(), db, gwid, rid, result)
+		return a.newStyleWorkloadPutResult(r.Context(), db, gwid, rid, result)
 	}
 
 	workloads := reservation.Workloads(nodeID)
@@ -784,7 +784,7 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 	return nil, mw.Created()
 }
 
-func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid string, globalID schema.ID, result types.Result) (interface{}, mw.Response) {
+func (a *API) newStyleWorkloadPutResult(ctx context.Context, db *mongo.Database, gwid string, globalID schema.ID, result types.Result) (interface{}, mw.Response) {
 	var filter types.WorkloadFilter
 	filter = filter.WithID(globalID)
 
@@ -816,13 +816,15 @@ func (a *API) newworkloadPutResult(ctx context.Context, db *mongo.Database, gwid
 			log.Error().Err(err).Msg("failed to decrease used capacity in pool")
 			return nil, mw.Error(err)
 		}
+
+		if err := types.WorkloadSetNextAction(ctx, db, globalID, generated.NextActionDelete); err != nil {
+			return nil, mw.Error(err)
+		}
+
 		if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
 			if err := a.setFarmIPFree(ctx, db, workload); err != nil {
 				return nil, mw.Error(err)
 			}
-		}
-		if err := types.WorkloadSetNextAction(ctx, db, globalID, generated.NextActionDelete); err != nil {
-			return nil, mw.Error(err)
 		}
 	} else if result.State == generated.ResultStateOK {
 		// add capacity to pool
@@ -859,7 +861,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	reservation, err := a.pipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return a.newworkloadPutDeleted(r.Context(), db, rid, gwid, nodeID)
+		return a.newStyleWorkloadPutDeleted(r.Context(), db, rid, gwid, nodeID)
 	}
 
 	workloads := reservation.Workloads(nodeID)
@@ -913,7 +915,7 @@ func (a *API) workloadPutDeleted(r *http.Request) (interface{}, mw.Response) {
 	return nil, nil
 }
 
-func (a *API) newworkloadPutDeleted(ctx context.Context, db *mongo.Database, wid schema.ID, gwid string, nodeID string) (interface{}, mw.Response) {
+func (a *API) newStyleWorkloadPutDeleted(ctx context.Context, db *mongo.Database, wid schema.ID, gwid string, nodeID string) (interface{}, mw.Response) {
 	rid, err := a.parseID(strings.Split(gwid, "-")[0])
 	if err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
@@ -1268,16 +1270,18 @@ func (a *API) handlePublicIPReservation(ctx context.Context, db *mongo.Database,
 		return mw.BadRequest(errors.Wrap(err, "failed to retrieve farm"))
 	}
 
-	err = directory.FarmIPReserve(ctx, db, farm.ID, ipWorkload.IPaddress, workload.GetID())
-	if err := a.updateReservationResult(db, err, workload); err != nil {
-		return mw.Error(err)
+	if err := directory.FarmIPReserve(ctx, db, farm.ID, ipWorkload.IPaddress, workload.GetID()); err != nil {
+		return mw.Conflict(err)
 	}
 
 	return nil
 }
 
 func (a *API) setFarmIPFree(ctx context.Context, db *mongo.Database, workload types.WorkloaderType) error {
-	ipWorkload := workload.Workloader.(*generated.PublicIP)
+	ipWorkload, ok := workload.Workloader.(*generated.PublicIP)
+	if !ok {
+		return fmt.Errorf("invalid workload type was expecting PublicIP got '%T'", workload)
+	}
 
 	var nodeFilter directory.NodeFilter
 	nodeFilter = nodeFilter.WithNodeID(ipWorkload.NodeId)
@@ -1324,49 +1328,19 @@ func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Databas
 	workloadFiler = workloadFiler.
 		WithCustomerID(userID).
 		WithNextAction(generated.NextActionDeploy).
+		WithWorkloadType(generated.WorkloadTypeKubernetes).
 		WithPublicIP(k8sWorkload.PublicIP)
 
 	_, err = workloadFiler.Get(ctx, db)
 	if err == mongo.ErrNoDocuments {
 		// If there is no match, this means this is a valid reservation
 		return nil
-	}
-	if err != nil {
+	} else if err != nil {
 		return mw.Error(err)
 	}
 
 	// Means there is no error, so the workload with a public ip is found, return an error here
 	return mw.Conflict(fmt.Errorf("public ip is in use"))
-}
-
-func (a *API) updateReservationResult(db *mongo.Database, err error, workload types.WorkloaderType) error {
-	var message string
-	state := generated.ResultStateOK
-	nextAction := types.Deploy
-	if err != nil {
-		message = err.Error()
-		state = generated.ResultStateError
-		nextAction = types.Deleted
-	}
-
-	result := types.Result{
-		Category:   generated.WorkloadTypePublicIP,
-		WorkloadId: fmt.Sprintf("%d-1", workload.GetID()),
-		Message:    message,
-		State:      state,
-		Epoch:      schema.Date{Time: time.Now()},
-	}
-
-	if err := types.WorkloadResultPush(context.Background(), db, workload.GetID(), result); err != nil {
-		return err
-	}
-
-	// update workload
-	if err := types.WorkloadSetNextAction(context.Background(), db, workload.GetID(), nextAction); err != nil {
-		return errors.Wrap(err, "failed to set workload to DEPLOY state")
-	}
-
-	return nil
 }
 
 // userCanSign checks if a specific user has right to push a deletion or provision signature to the reservation/workload

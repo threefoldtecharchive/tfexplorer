@@ -268,6 +268,7 @@ func FarmIPRelease(ctx context.Context, db *mongo.Database, farm schema.ID, ip s
 		return err
 	}
 
+	//TODO: should we care ?
 	if results.ModifiedCount != 1 {
 		return fmt.Errorf("failed to release ip address")
 	}
