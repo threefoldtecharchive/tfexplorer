@@ -192,7 +192,9 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		_, err = client.SubmitTransaction(tx)
 		if err != nil {
 			hError := err.(*horizonclient.Error)
-			log.Error().Msgf("horizon problem: %s", hError.Problem.Error())
+			log.Debug().
+				Err(fmt.Errorf("%+v", hError.Problem.Extras)).
+				Msg("error submitting transaction")
 			if hError.Problem.Status == 504 {
 				return err
 			}
