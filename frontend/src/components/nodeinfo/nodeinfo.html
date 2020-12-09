@@ -124,6 +124,9 @@
               <v-row v-if="key === 'sru' || key === 'hru'" dense>
                 100 GB can be reserved for Zos cache
               </v-row>
+              <v-row v-if="key === 'mru'" dense>
+                2 GB is reserved for zos
+              </v-row>
             </span>
           </v-tooltip>
         </v-flex>
