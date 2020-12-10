@@ -38,6 +38,9 @@ const (
 	CuPriceDollarMonth = 10
 	// SuPriceDollarMonth SU price per month in dollar
 	SuPriceDollarMonth = 8
+	// IP4uPriceDollarMonth IPv4U price per month in dollar
+	IP4uPriceDollarMonth = 20
+
 	// TftPriceMill tft price in millies
 	TftPriceMill = 50 // 0.05 * 1000 (1mill = 1/1000 of a dollar)
 
@@ -45,6 +48,7 @@ const (
 	// TODO: check if the rounding errors here matter
 	computeUnitSecondTFTStropesCost = (CuPriceDollarMonth * 10_000_000_000 / TftPriceMill) / (3600 * 24 * 30)
 	storageUnitSecondTFTStropesCost = (SuPriceDollarMonth * 10_000_000_000 / TftPriceMill) / (3600 * 24 * 30)
+	ipv4UnitSecondTFTStropesCost    = (IP4uPriceDollarMonth * 10_000_000_000 / TftPriceMill) / (3600 * 24 * 30)
 )
 
 const (
@@ -72,16 +76,17 @@ func getDiscount(d time.Duration) float64 {
 }
 
 // calculateCapacityReservationCost calculates the cost of a capacity reservation
-func (e Stellar) calculateCapacityReservationCost(CUs, SUs uint64, farmID int64) (xdr.Int64, error) {
+func (e Stellar) calculateCapacityReservationCost(CUs, SUs, IPv4Us uint64, farmID int64) (xdr.Int64, error) {
 	total := big.NewInt(0)
 	cuCost := big.NewInt(0)
 	suCost := big.NewInt(0)
+	ipuCost := big.NewInt(0)
 
 	cuCost = cuCost.Mul(big.NewInt(computeUnitSecondTFTStropesCost), big.NewInt(int64(CUs)))
 	suCost = suCost.Mul(big.NewInt(storageUnitSecondTFTStropesCost), big.NewInt(int64(SUs)))
-
+	ipuCost = ipuCost.Mul(big.NewInt(ipv4UnitSecondTFTStropesCost), big.NewInt(int64(IPv4Us)))
 	// TODO: Discount??
-	total = total.Add(cuCost, suCost)
+	total = total.Add(total.Add(cuCost, suCost), ipuCost)
 
 	return xdr.Int64(total.Int64()), nil
 }
