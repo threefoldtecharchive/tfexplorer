@@ -482,7 +482,7 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 		return customerInfo, errors.Wrap(err, "failed to get escrow address for customer")
 	}
 
-	amount, err := e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, node.FarmId)
+	amount, err := e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to calculate capacity cost")
 	}
