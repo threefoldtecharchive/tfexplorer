@@ -169,31 +169,36 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		Amount:      minimumBalance,
 	}
 	ops := []txnbuild.Operation{&createAccountOp}
-	tx, err := txnbuild.NewTransaction(
-		txnbuild.TransactionParams{
-			SourceAccount:        &sourceAccount,
-			Operations:           ops,
-			Timebounds:           txnbuild.NewTimeout(300),
-			IncrementSequenceNum: true,
-			BaseFee:              txnbuild.MinBaseFee * int64(len(ops)),
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed to build transaction")
-	}
 
-	tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
-	if err != nil {
-		return errors.Wrap(err, "failed to sign transaction")
-	}
-
+	feeFactor := 1
 	submitTransactionBackof := func() error {
+		tx, err := txnbuild.NewTransaction(
+			txnbuild.TransactionParams{
+				SourceAccount:        &sourceAccount,
+				Operations:           ops,
+				Timebounds:           txnbuild.NewTimeout(300),
+				IncrementSequenceNum: true,
+				BaseFee:              (txnbuild.MinBaseFee * int64(len(ops))) * int64(feeFactor),
+			},
+		)
+		if err != nil {
+			return backoff.Permanent(errors.Wrap(err, "failed to build transaction"))
+		}
+
+		tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
+		if err != nil {
+			return backoff.Permanent(errors.Wrap(err, "failed to sign transaction"))
+		}
+
 		log.Info().Msg("trying to submit activate escrow account transaction")
 		_, err = client.SubmitTransaction(tx)
 		if err != nil {
 			hError := err.(*horizonclient.Error)
 			log.Error().Msgf("horizon problem: %s", hError.Problem.Error())
 			if hError.Problem.Status == 504 {
+				if feeFactor < 5 {
+					feeFactor++
+				}
 				return err
 			}
 			return backoff.Permanent(err)
@@ -202,10 +207,10 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 	}
 
 	bo := backoff.NewExponentialBackOff()
-	bo.MaxElapsedTime = time.Second * 20 // retry for 20 seconds maximum
+	bo.MaxElapsedTime = time.Minute // retry for 20 seconds maximum
 	bo.MaxInterval = time.Second * 1
 
-	err = backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
+	err := backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
 		log.Error().
 			Err(err).
 			Str("sleep", d.String()).
