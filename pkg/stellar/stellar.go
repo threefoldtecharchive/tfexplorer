@@ -170,7 +170,7 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 	}
 	ops := []txnbuild.Operation{&createAccountOp}
 
-	multiplyFee := 1
+	feeFactor := 1
 	submitTransactionBackof := func() error {
 		tx, err := txnbuild.NewTransaction(
 			txnbuild.TransactionParams{
@@ -178,16 +178,16 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 				Operations:           ops,
 				Timebounds:           txnbuild.NewTimeout(300),
 				IncrementSequenceNum: true,
-				BaseFee:              (txnbuild.MinBaseFee * int64(len(ops))) * int64(multiplyFee),
+				BaseFee:              (txnbuild.MinBaseFee * int64(len(ops))) * int64(feeFactor),
 			},
 		)
 		if err != nil {
-			return errors.Wrap(err, "failed to build transaction")
+			return backoff.Permanent(errors.Wrap(err, "failed to build transaction"))
 		}
 
 		tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
 		if err != nil {
-			return errors.Wrap(err, "failed to sign transaction")
+			return backoff.Permanent(errors.Wrap(err, "failed to sign transaction"))
 		}
 
 		log.Info().Msg("trying to submit activate escrow account transaction")
@@ -196,10 +196,9 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 			hError := err.(*horizonclient.Error)
 			log.Error().Msgf("horizon problem: %s", hError.Problem.Error())
 			if hError.Problem.Status == 504 {
-				if multiplyFee == 5 {
-					return backoff.Permanent(fmt.Errorf("failed to submit transaction after increasing fees 5 times"))
+				if feeFactor < 5 {
+					feeFactor++
 				}
-				multiplyFee++
 				return err
 			}
 			return backoff.Permanent(err)
