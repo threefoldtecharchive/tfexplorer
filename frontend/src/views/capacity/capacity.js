@@ -40,6 +40,9 @@ export default {
     },
     TftPrice: function () {
       return `$ ${this.prices.TftPriceMill / 1000}`
+    },
+    IP4Price: function () {
+      return `$ ${this.prices.IP4uPriceDollarMonth}`
     }
   },
   mounted () {

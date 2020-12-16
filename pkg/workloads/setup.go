@@ -96,12 +96,14 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 
 func getPrices(r *http.Request) (interface{}, mw.Response) {
 	return struct {
-		CuPriceDollarMonth int
-		SuPriceDollarMonth int
-		TftPriceMill       int
+		CuPriceDollarMonth   int
+		SuPriceDollarMonth   int
+		TftPriceMill         int
+		IP4uPriceDollarMonth int
 	}{
-		CuPriceDollarMonth: escrow.CuPriceDollarMonth,
-		SuPriceDollarMonth: escrow.SuPriceDollarMonth,
-		TftPriceMill:       escrow.TftPriceMill,
+		CuPriceDollarMonth:   escrow.CuPriceDollarMonth,
+		SuPriceDollarMonth:   escrow.SuPriceDollarMonth,
+		TftPriceMill:         escrow.TftPriceMill,
+		IP4uPriceDollarMonth: escrow.IP4uPriceDollarMonth,
 	}, nil
 }
