@@ -37,7 +37,8 @@ const getDefaultState = () => {
     prices: {
       CuPriceDollarMonth: 0,
       SuPriceDollarMonth: 0,
-      TftPriceMill: 0
+      TftPriceMill: 0,
+      IP4uPriceDollarMonth: 0
     }
 
   }
