@@ -110,6 +110,11 @@ var k8sSize = map[int64]RSU{
 		MRU: 8,
 		SRU: 50,
 	},
+	18: {
+		CRU: 1,
+		MRU: 1,
+		SRU: 25,
+	},
 }
 
 func (k *K8S) GetRSU() (RSU, error) {
