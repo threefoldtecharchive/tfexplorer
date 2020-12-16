@@ -39,7 +39,7 @@ const (
 	// SuPriceDollarMonth SU price per month in dollar
 	SuPriceDollarMonth = 8
 	// IP4uPriceDollarMonth IPv4U price per month in dollar
-	IP4uPriceDollarMonth = 20
+	IP4uPriceDollarMonth = 6
 
 	// TftPriceMill tft price in millies
 	TftPriceMill = 50 // 0.05 * 1000 (1mill = 1/1000 of a dollar)
