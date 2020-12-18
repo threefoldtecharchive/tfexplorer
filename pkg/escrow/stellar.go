@@ -102,27 +102,27 @@ var (
 
 var (
 	totalReservationsProcessed = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "escrow.total_reservations_processed",
+		Name: "total_reservations_processed",
 		Help: "The total number of reservations processed",
 	})
 	totalReservationsExpires = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "escrow.total_reservations_expired",
+		Name: "total_reservations_expired",
 		Help: "The total number of reservations expired",
 	})
 	totalStellarTransactions = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "escrow.total_transactions",
+		Name: "total_transactions",
 		Help: "The total number of stellar transactions made",
 	})
 	totalNewEscrows = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "escrow.new_escrows",
+		Name: "new_escrows",
 		Help: "The total number of new escrows",
 	})
 	totalActiveEscrows = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "escrow.active_escrows",
+		Name: "active_escrows",
 		Help: "The total number of escrows active",
 	})
 	totalEscrowsPaid = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "escrow.paid_escrows",
+		Name: "paid_escrows",
 		Help: "The total number of escrows paid",
 	})
 )
