@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/xdr"
 	gdirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
@@ -101,31 +100,40 @@ var (
 )
 
 var (
-	totalReservationsProcessed = promauto.NewCounter(prometheus.CounterOpts{
+	totalReservationsProcessed = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "total_reservations_processed",
 		Help: "The total number of reservations processed",
 	})
-	totalReservationsExpires = promauto.NewCounter(prometheus.CounterOpts{
+	totalReservationsExpires = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "total_reservations_expired",
 		Help: "The total number of reservations expired",
 	})
-	totalStellarTransactions = promauto.NewCounter(prometheus.CounterOpts{
+	totalStellarTransactions = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "total_transactions",
 		Help: "The total number of stellar transactions made",
 	})
-	totalNewEscrows = promauto.NewCounter(prometheus.CounterOpts{
+	totalNewEscrows = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "new_escrows",
 		Help: "The total number of new escrows",
 	})
-	totalActiveEscrows = promauto.NewGauge(prometheus.GaugeOpts{
+	totalActiveEscrows = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "active_escrows",
 		Help: "The total number of escrows active",
 	})
-	totalEscrowsPaid = promauto.NewCounter(prometheus.CounterOpts{
+	totalEscrowsPaid = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "paid_escrows",
 		Help: "The total number of escrows paid",
 	})
 )
+
+func init() {
+	prometheus.MustRegister(totalReservationsProcessed)
+	prometheus.MustRegister(totalReservationsExpires)
+	prometheus.MustRegister(totalStellarTransactions)
+	prometheus.MustRegister(totalNewEscrows)
+	prometheus.MustRegister(totalActiveEscrows)
+	prometheus.MustRegister(totalEscrowsPaid)
+}
 
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
 func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string) *Stellar {
