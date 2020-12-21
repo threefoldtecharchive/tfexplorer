@@ -209,7 +209,7 @@ func (p *Pool) SyncCurrentCapacity() {
 	}
 	p.IPv4us -= p.ActiveIPv4U * float64(timePassed)
 	if p.IPv4us < 0 {
-		p.Sus = 0
+		p.IPv4us = 0
 	}
 	p.LastUpdated = now
 }
