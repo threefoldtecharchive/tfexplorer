@@ -26,6 +26,10 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		return nil, mw.BadRequest(err)
 	}
 
+	if err := gw.Validate(); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
 	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, gw); err != nil {
 		return nil, mw.Error(err)

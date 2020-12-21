@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/jbenet/go-base58"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
@@ -45,6 +46,12 @@ func (n *Gateway) Validate() error {
 
 	if n.NodeId != base58.Encode(pk) {
 		return fmt.Errorf("nodeID and public key does not match")
+	}
+
+	for _, domain := range n.ManagedDomains {
+		if !govalidator.IsDNSName(domain) {
+			return fmt.Errorf("domain name '%s' is invalid", domain)
+		}
 	}
 
 	// Unfortunately, jsx schema does not support nil types
