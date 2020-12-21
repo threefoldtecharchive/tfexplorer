@@ -52,6 +52,7 @@ type flags struct {
 	flushEscrows       bool
 	backupSigners      stellar.Signers
 	enablePProf        bool
+	prometheusPort     int64
 }
 
 func main() {
@@ -69,6 +70,7 @@ func main() {
 	flag.Var(&f.backupSigners, "backupsigner", "reusable flag which adds a signer to the escrow accounts, we need atleast 5 signers to activate multisig")
 	flag.BoolVar(&f.flushEscrows, "flush-escrows", false, "flush all escrows in the database, including currently active ones, and their associated addressses")
 	flag.BoolVar(&f.enablePProf, "pprof", false, "enable pprof")
+	flag.Int64Var(&f.prometheusPort, "prometheus-port", 3200, "port the run the prometheus server on")
 
 	flag.Parse()
 
@@ -228,6 +230,13 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 		handlers.AllowedHeaders([]string{"Content-Type"}),
 		handlers.ExposedHeaders([]string{"Pages"}),
 	)(r)
+
+	http.Handle("/metrics", promhttp.Handler())
+	promPort := fmt.Sprintf(":%d", f.prometheusPort)
+	log.Debug().Msg("starting prometheus server")
+	if err = http.ListenAndServe(promPort, nil); err != nil {
+		log.Error().Err(err).Msg("failed to start prometheus server")
+	}
 
 	return &http.Server{
 		Addr:    f.listen,

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/xdr"
 	gdirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
@@ -98,6 +99,48 @@ var (
 	ErrNoCurrencyShared = errors.New("none of the provided currencies is supported by all farmers")
 )
 
+var (
+	totalReservationsProcessed = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "escrow",
+		Name:      "total_reservations_processed",
+		Help:      "The total number of reservations processed",
+	})
+	totalReservationsExpires = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "escrow",
+		Name:      "total_reservations_expired",
+		Help:      "The total number of reservations expired",
+	})
+	totalStellarTransactions = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "escrow",
+		Name:      "total_transactions",
+		Help:      "The total number of stellar transactions made",
+	})
+	totalNewEscrows = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "escrow",
+		Name:      "new_escrows",
+		Help:      "The total number of new escrows",
+	})
+	totalActiveEscrows = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "escrow",
+		Name:      "active_escrows",
+		Help:      "The total number of escrows active",
+	})
+	totalEscrowsPaid = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "escrow",
+		Name:      "paid_escrows",
+		Help:      "The total number of escrows paid",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(totalReservationsProcessed)
+	prometheus.MustRegister(totalReservationsExpires)
+	prometheus.MustRegister(totalStellarTransactions)
+	prometheus.MustRegister(totalNewEscrows)
+	prometheus.MustRegister(totalActiveEscrows)
+	prometheus.MustRegister(totalEscrowsPaid)
+}
+
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
 func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string) *Stellar {
 	addr := foundationAddress
@@ -136,6 +179,7 @@ func (e *Stellar) Run(ctx context.Context) error {
 			return nil
 
 		case <-ticker.C:
+			totalActiveEscrows.Set(0)
 			log.Info().Msg("scanning active escrow accounts balance")
 			if err := e.checkReservations(); err != nil {
 				log.Error().Err(err).Msgf("failed to check reservations")
@@ -183,6 +227,7 @@ func (e *Stellar) Run(ctx context.Context) error {
 				err:  err,
 				data: details,
 			}
+			totalReservationsProcessed.Inc()
 
 		case id := <-e.deployedChannel:
 			log.Info().Int64("reservation_id", int64(id)).Msg("trying to pay farmer for deployed reservation")
@@ -201,6 +246,7 @@ func (e *Stellar) Run(ctx context.Context) error {
 					Int64("reservation_id", int64(id)).
 					Msgf("could not refund clients")
 			}
+			totalReservationsExpires.Inc()
 		}
 	}
 }
@@ -264,6 +310,7 @@ func (e *Stellar) checkReservations() error {
 				Msg("failed to check reservation escrow funding status")
 			continue
 		}
+		totalActiveEscrows.Inc()
 	}
 	return nil
 }
@@ -286,6 +333,8 @@ func (e *Stellar) checkCapacityReservations() error {
 				Msg("failed to check reservation escrow funding status")
 			continue
 		}
+		totalActiveEscrows.Inc()
+		totalNewEscrows.Inc()
 	}
 	return nil
 }
@@ -357,6 +406,7 @@ func (e *Stellar) checkReservationPaid(escrowInfo types.ReservationPaymentInform
 	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
 		return errors.Wrap(err, "failed to mark reservation escrow info as paid")
 	}
+	totalEscrowsPaid.Inc()
 
 	slog.Debug().Msg("escrow marked as paid")
 
@@ -508,6 +558,7 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to create reservation payment information")
 	}
+
 	if amount == 0 {
 		// Now that the info is successfully saved, notify that it has been paid
 		log.Debug().Int64("id", int64(reservation.ID)).Msg("pushing reservation id on paid reservations channel")
@@ -534,6 +585,7 @@ func (e *Stellar) refundClients(id schema.ID) error {
 		log.Error().Err(err).Msg("failed to refund escrow")
 		return errors.Wrap(err, "could not refund escrow")
 	}
+
 	rpi.Canceled = true
 	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
 		return errors.Wrapf(err, "could not mark escrows for %d as canceled", rpi.ReservationID)
@@ -628,11 +680,15 @@ func (e *Stellar) payoutFarmers(id schema.ID) error {
 		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, id)
 		return errors.Wrap(err, "could not pay farmer")
 	}
+	totalStellarTransactions.Inc()
+
 	// now refund any possible overpayment
 	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(id), rpi.Asset); err != nil {
 		log.Error().Msgf("failed to refund overpayment farmer: %s", err)
 		return errors.Wrap(err, "could not refund overpayment")
 	}
+	totalStellarTransactions.Inc()
+
 	log.Info().
 		Str("escrow address", rpi.Address).
 		Int64("reservation id", int64(rpi.ReservationID)).
@@ -714,11 +770,15 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, rpi.ReservationID)
 		return errors.Wrap(err, "could not pay farmer")
 	}
+	totalStellarTransactions.Inc()
+
 	// now refund any possible overpayment
 	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(rpi.ReservationID), rpi.Asset); err != nil {
 		log.Error().Msgf("failed to refund overpayment farmer: %s", err)
 		return errors.Wrap(err, "could not refund overpayment")
 	}
+	totalStellarTransactions.Inc()
+
 	log.Info().
 		Str("escrow address", rpi.Address).
 		Int64("reservation id", int64(rpi.ReservationID)).
@@ -747,6 +807,7 @@ func (e *Stellar) refundEscrow(escrowInfo types.ReservationPaymentInformation) e
 	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
+	totalStellarTransactions.Inc()
 
 	slog.Info().Msgf("refunded client for escrow")
 	return nil
@@ -768,6 +829,7 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
+	totalStellarTransactions.Inc()
 
 	escrowInfo.Canceled = true
 	if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
@@ -832,6 +894,8 @@ func (e *Stellar) createOrLoadAccount(customerTID int64) (string, error) {
 			if err != nil {
 				return "", errors.Wrapf(err, "failed to create a new account for customer %d", customerTID)
 			}
+			totalStellarTransactions.Inc()
+
 			err = types.CustomerAddressCreate(context.Background(), e.db, types.CustomerAddress{
 				CustomerTID: customerTID,
 				Address:     address,
@@ -844,6 +908,7 @@ func (e *Stellar) createOrLoadAccount(customerTID int64) (string, error) {
 				Int64("customer", int64(customerTID)).
 				Str("address", address).
 				Msgf("created new escrow address for customer")
+
 			return address, nil
 		}
 		return "", errors.Wrap(err, "failed to get customer address")
