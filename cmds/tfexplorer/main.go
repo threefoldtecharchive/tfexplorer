@@ -231,13 +231,6 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 		handlers.ExposedHeaders([]string{"Pages"}),
 	)(r)
 
-	http.Handle("/metrics", promhttp.Handler())
-	promPort := fmt.Sprintf(":%d", f.prometheusPort)
-	log.Debug().Msg("starting prometheus server")
-	if err = http.ListenAndServe(promPort, nil); err != nil {
-		log.Error().Err(err).Msg("failed to start prometheus server")
-	}
-
 	return &http.Server{
 		Addr:    f.listen,
 		Handler: r,
