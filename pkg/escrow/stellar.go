@@ -101,27 +101,27 @@ var (
 
 var (
 	totalReservationsProcessed = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "total_reservations_processed",
+		Name: "escrow_total_reservations_processed",
 		Help: "The total number of reservations processed",
 	})
 	totalReservationsExpires = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "total_reservations_expired",
+		Name: "escrow_total_reservations_expired",
 		Help: "The total number of reservations expired",
 	})
 	totalStellarTransactions = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "total_transactions",
+		Name: "escrow_total_transactions",
 		Help: "The total number of stellar transactions made",
 	})
 	totalNewEscrows = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "new_escrows",
+		Name: "escrow_new_escrows",
 		Help: "The total number of new escrows",
 	})
 	totalActiveEscrows = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "active_escrows",
+		Name: "escrow_active_escrows",
 		Help: "The total number of escrows active",
 	})
 	totalEscrowsPaid = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "paid_escrows",
+		Name: "escrow_paid_escrows",
 		Help: "The total number of escrows paid",
 	})
 )
