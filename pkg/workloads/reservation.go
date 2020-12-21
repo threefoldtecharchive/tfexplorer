@@ -1221,12 +1221,6 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
-		if err = a.setFarmIPFree(r.Context(), db, workload); err != nil {
-			return nil, mw.Error(err)
-		}
-	}
-
 	return nil, mw.Created()
 }
 
