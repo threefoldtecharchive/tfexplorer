@@ -36,8 +36,9 @@ type (
 
 		paidCapacityInfoChannel chan schema.ID
 
-		nodeAPI NodeAPI
-		farmAPI FarmAPI
+		nodeAPI    NodeAPI
+		gatewayAPI GatewayAPI
+		farmAPI    FarmAPI
 
 		ctx context.Context
 	}
@@ -46,6 +47,12 @@ type (
 	NodeAPI interface {
 		// Get a node from the database using its ID
 		Get(ctx context.Context, db *mongo.Database, id string, proofs bool) (directorytypes.Node, error)
+	}
+
+	// GatewayAPI operations for gateway database
+	GatewayAPI interface {
+		// Get a gateway from the database using its ID
+		Get(ctx context.Context, db *mongo.Database, id string) (directorytypes.Gateway, error)
 	}
 
 	// FarmAPI operations on farm database
@@ -153,6 +160,7 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 		db:                 db,
 		foundationAddress:  addr,
 		nodeAPI:            &directory.NodeAPI{},
+		gatewayAPI:         &directory.GatewayAPI{},
 		farmAPI:            &directory.FarmAPI{},
 		reservationChannel: make(chan reservationRegisterJob),
 		deployedChannel:    make(chan schema.ID),
@@ -496,14 +504,26 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	// Get the farm ID. For now a pool must span only a single farm, therefore
 	// all nodeID's must belong to the same farm. This must have been checked
 	// already in a higher lvl handler.
+	farmIDs := make([]int64, 1)
 	node, err := e.nodeAPI.Get(e.ctx, e.db, reservation.DataReservation.NodeIDs[0], false)
 	if err != nil {
-		return customerInfo, errors.Wrap(err, "could not get node")
+		// TODO: proper abstraction
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			// check if the ID is actually a gateway
+			gw, err := e.gatewayAPI.Get(e.ctx, e.db, reservation.DataReservation.NodeIDs[0])
+			if err != nil {
+				return customerInfo, errors.Wrap(err, "could not get gateway")
+			}
+			farmIDs[0] = gw.FarmId
+		} else {
+			return customerInfo, errors.Wrap(err, "could not get node")
+		}
+	} else {
+		farmIDs[0] = node.FarmId
 	}
 
 	// check which currencies are accepted by all farmers
 	// the farm ids have conveniently been provided when checking the used rsu
-	farmIDs := []int64{node.FarmId}
 	var asset stellar.Asset
 	for _, currency := range currencies {
 		// if the farmer does not receive anything in the first place, they always
