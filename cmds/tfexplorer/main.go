@@ -63,7 +63,8 @@ func main() {
 	flag.StringVar(&f.dbConf, "mongo", "mongodb://localhost:27017", "connection string to mongo database")
 	flag.StringVar(&f.dbName, "name", "explorer", "database name")
 	flag.StringVar(&f.seed, "seed", "", "wallet seed")
-	flag.StringVar(&config.Config.Network, "network", "", "tfchain network")
+	flag.StringVar(&config.Config.WalletNetwork, "network", "", "tfchain stellar network")
+	flag.StringVar(&config.Config.TFNetwork, "tfnetwork", "", "Threefold grid network")
 	flag.StringVar(&f.foundationAddress, "foundation-address", "", "foundation address for the escrow foundation payment cut, if not set and the foundation should receive a cut from a resersvation payment, the wallet seed will receive the payment instead")
 	flag.StringVar(&f.threebotConnectURL, "threebot-connect", "", "URL to the 3bot Connect app API. if specified, new user will be check against it and ensure public key are the same")
 	flag.BoolVar(&f.ver, "v", false, "show version and exit")
@@ -181,17 +182,17 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 
 	var e escrow.Escrow
 	if f.seed != "" {
-		log.Info().Msgf("escrow enabled on %s", config.Config.Network)
+		log.Info().Msgf("escrow enabled on %s", config.Config.WalletNetwork)
 		if err := escrowdb.Setup(context.Background(), db.Database()); err != nil {
 			log.Fatal().Err(err).Msg("failed to create escrow database indexes")
 		}
 
-		wallet, err := stellar.New(f.seed, config.Config.Network, f.backupSigners)
+		wallet, err := stellar.New(f.seed, config.Config.WalletNetwork, f.backupSigners)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to create stellar wallet")
 		}
 
-		e = escrow.NewStellar(wallet, db.Database(), f.foundationAddress)
+		e = escrow.NewStellar(wallet, db.Database(), f.foundationAddress, config.Config.TFNetwork)
 
 	} else {
 		log.Info().Msg("escrow disabled")

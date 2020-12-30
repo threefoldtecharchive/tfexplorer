@@ -5,6 +5,7 @@ import (
 
 	"github.com/stellar/go/xdr"
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 )
 
@@ -46,7 +47,7 @@ func TestPayoutDistribution(t *testing.T) {
 	w, err := stellar.New("", stellar.NetworkTest, nil)
 	assert.NoError(t, err)
 
-	e := NewStellar(w, nil, "")
+	e := NewStellar(w, nil, "", gridnetworks.GridNetworkMainnet)
 
 	// check rounding in some trivial cases
 	farmer, burn, fd := e.splitPayout(10, pds[0])

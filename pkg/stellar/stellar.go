@@ -99,10 +99,6 @@ func (w *Wallet) AssetFromCode(code string) (Asset, error) {
 	return "", ErrAssetCodeNotSupported
 }
 
-func (w *Wallet) GetNetwork() string {
-	return w.network
-}
-
 // PrecisionDigits of the underlying currencies on chain
 func (w *Wallet) PrecisionDigits() int {
 	return stellarPrecisionDigits
