@@ -173,6 +173,11 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 	}
 }
 
+// GetNetwork gets the explorer network
+func (e *Stellar) GetNetwork() string {
+	return e.wallet.GetNetwork()
+}
+
 // Run the escrow until the context is done
 func (e *Stellar) Run(ctx context.Context) error {
 	ticker := time.NewTicker(balanceCheckInterval)

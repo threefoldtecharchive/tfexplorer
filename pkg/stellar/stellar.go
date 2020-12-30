@@ -67,12 +67,8 @@ var (
 func New(seed, network string, signers []string) (*Wallet, error) {
 	assets := mainnetAssets
 
-	if network == NetworkTest {
-		assets = testnetAssets
-	}
-
 	if len(signers) < 3 && seed != "" {
-		log.Warn().Msg("to enable escrow account recovery, provide atleast 3 signers")
+		log.Warn().Msg("to enable escrow account recovery, provide at least 3 signers")
 	}
 
 	w := &Wallet{
@@ -101,6 +97,10 @@ func (w *Wallet) AssetFromCode(code string) (Asset, error) {
 		}
 	}
 	return "", ErrAssetCodeNotSupported
+}
+
+func (w *Wallet) GetNetwork() string {
+	return w.network
 }
 
 // PrecisionDigits of the underlying currencies on chain

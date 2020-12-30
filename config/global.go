@@ -16,7 +16,7 @@ var (
 	// Config is global explorer config
 	Config Settings
 
-	possibleNetworks = []string{stellar.NetworkProduction, stellar.NetworkTest}
+	possibleNetworks = []string{stellar.NetworkProduction}
 )
 
 // Valid checks if Config is filled with valid data
