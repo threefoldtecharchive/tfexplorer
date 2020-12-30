@@ -42,7 +42,7 @@ const (
 	IP4uPriceDollarMonth = 6
 
 	// TftPriceMill tft price in millies
-	TftPriceMill = 50 // 0.05 * 1000 (1mill = 1/1000 of a dollar)
+	TftPriceMill = 100 // 0.01 * 1000 (1mill = 1/1000 of a dollar)
 
 	// express as stropes, to simplify things a bit
 	// TODO: check if the rounding errors here matter
