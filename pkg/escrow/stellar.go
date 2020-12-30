@@ -16,6 +16,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
+	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -28,6 +29,7 @@ type (
 		foundationAddress string
 		wallet            *stellar.Wallet
 		db                *mongo.Database
+		gridNetwork       string
 
 		reservationChannel         chan reservationRegisterJob
 		capacityReservationChannel chan capacityReservationRegisterJob
@@ -149,7 +151,7 @@ func init() {
 }
 
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
-func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string) *Stellar {
+func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string, gridNetwork string) *Stellar {
 	addr := foundationAddress
 	if addr == "" {
 		addr = wallet.PublicAddress()
@@ -159,6 +161,7 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 		wallet:             wallet,
 		db:                 db,
 		foundationAddress:  addr,
+		gridNetwork:        gridNetwork,
 		nodeAPI:            &directory.NodeAPI{},
 		gatewayAPI:         &directory.GatewayAPI{},
 		farmAPI:            &directory.FarmAPI{},
@@ -171,11 +174,6 @@ func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress st
 		paidCapacityInfoChannel:    make(chan schema.ID, 100),
 		capacityReservationChannel: make(chan capacityReservationRegisterJob),
 	}
-}
-
-// GetNetwork gets the explorer network
-func (e *Stellar) GetNetwork() string {
-	return e.wallet.GetNetwork()
 }
 
 // Run the escrow until the context is done
@@ -1011,6 +1009,22 @@ func (e *Stellar) checkAssetSupport(farmIDs []int64, asset stellar.Asset) (bool,
 		}
 	}
 	return true, nil
+}
+
+// getNetworkDivisor gets a divisor for the fee to be paid based on the current
+// grid network
+func (e *Stellar) getNetworkDivisor() int64 {
+	switch e.gridNetwork {
+	case gridnetworks.GridNetworkMainnet:
+		return 1
+	case gridnetworks.GridNetworkTestnet:
+		return 10
+	case gridnetworks.GridNetworkDevnet:
+		return 100
+	default:
+		log.Error().Msgf("unknown gridnetwork \"%s\", defaulting to base fee", e.gridNetwork)
+		return 1
+	}
 }
 
 func addressByAsset(addrs []gdirectory.WalletAddress, asset stellar.Asset) (string, error) {

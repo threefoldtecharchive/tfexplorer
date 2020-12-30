@@ -46,10 +46,10 @@ func (f *Farm) Validate() error {
 		return fmt.Errorf("invalid wallet_addresses, is required")
 	}
 
-	if config.Config.Network != "" {
+	if config.Config.WalletNetwork != "" {
 		found := false
 		for _, a := range f.WalletAddresses {
-			validator, err := stellar.NewAddressValidator(config.Config.Network, a.Asset)
+			validator, err := stellar.NewAddressValidator(config.Config.WalletNetwork, a.Asset)
 			if err != nil {
 				if errors.Is(err, stellar.ErrAssetCodeNotSupported) {
 					continue

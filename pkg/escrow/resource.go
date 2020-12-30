@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
-	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 )
 
 type (
@@ -89,15 +88,8 @@ func (e Stellar) calculateCapacityReservationCost(CUs, SUs, IPv4Us uint64, farmI
 	// TODO: Discount??
 	total = total.Add(total.Add(cuCost, suCost), ipuCost)
 
-	// in case of testnet explorer divide by 10
-	// in case of devnet explorer divide by 100
-	switch e.GetNetwork() {
-	case stellar.NetworkTest:
-		total = total.Div(total, big.NewInt(10))
-	case stellar.NetworkDebug:
-		total = total.Div(total, big.NewInt(100))
+	total = total.Div(total, big.NewInt(e.getNetworkDivisor()))
 
-	}
 	return xdr.Int64(total.Int64()), nil
 }
 
