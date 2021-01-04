@@ -293,7 +293,7 @@ func (e *Stellar) refundExpiredCapacityReservations() error {
 	for _, escrowInfo := range reservationEscrows {
 		log.Info().Int64("id", int64(escrowInfo.ReservationID)).Msg("expired escrow")
 
-		if err := e.refundCapacityEscrow(escrowInfo); err != nil {
+		if err := e.refundCapacityEscrow(escrowInfo, "expired"); err != nil {
 			log.Error().Err(err).Msgf("failed to refund reservation escrow")
 			continue
 		}
@@ -457,7 +457,7 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 
 	if err = e.payoutFarmersCap(escrowInfo); err != nil {
 		slog.Debug().Msgf("farmer payout for capacity reservation %d failed, refund client", escrowInfo.ReservationID)
-		if err2 := e.refundCapacityEscrow(escrowInfo); err2 != nil {
+		if err2 := e.refundCapacityEscrow(escrowInfo, err.Error()); err2 != nil {
 			// just log the error and return the main error
 			log.Error().Err(err2).Msg("could not refund client")
 		}
@@ -836,7 +836,7 @@ func (e *Stellar) refundEscrow(escrowInfo types.ReservationPaymentInformation) e
 	return nil
 }
 
-func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPaymentInformation) error {
+func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPaymentInformation, cause string) error {
 	slog := log.With().
 		Str("address", escrowInfo.Address).
 		Int64("reservation_id", int64(escrowInfo.ReservationID)).
@@ -855,6 +855,7 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 	totalStellarTransactions.Inc()
 
 	escrowInfo.Canceled = true
+	escrowInfo.Cause = cause
 	if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
 		return errors.Wrap(err, "failed to mark expired reservation escrow info as cancelled")
 	}

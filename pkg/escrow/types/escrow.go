@@ -71,6 +71,8 @@ type (
 		// Canceled means the escrow got canceled, i.e. client refunded. This can
 		// only happen in case the reservation expires.
 		Canceled bool `bson:"canceled"`
+		// Cause of cancellation
+		Cause string `bson:"cause"`
 	}
 
 	// EscrowDetail hold the details of an escrow address
