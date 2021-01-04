@@ -190,7 +190,10 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		_, err = client.SubmitTransaction(tx)
 		if err != nil {
 			hError := err.(*horizonclient.Error)
-			log.Error().Msgf("horizon problem: %s", hError.Problem.Error())
+			log.Error().
+				Err(err).
+				Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
+				Msg("error submitting transaction")
 			if hError.Problem.Status == 504 {
 				if feeFactor < 5 {
 					feeFactor++
@@ -567,8 +570,9 @@ func (w *Wallet) signAndSubmitTx(keypair *keypair.Full, tx *txnbuild.Transaction
 	_, err = client.SubmitTransaction(tx)
 	if err != nil {
 		hError := err.(*horizonclient.Error)
-		log.Debug().
-			Err(fmt.Errorf("%+v", hError.Problem.Extras)).
+		log.Error().
+			Err(err).
+			Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
 			Msg("error submitting transaction")
 		return errors.Wrap(hError.Problem, "error submitting transaction")
 	}
