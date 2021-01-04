@@ -56,23 +56,23 @@ type (
 
 	// CapacityReservationPaymentInformation stores the reservation payment information
 	CapacityReservationPaymentInformation struct {
-		ReservationID schema.ID     `bson:"_id"`
-		FarmerID      schema.ID     `bson:"farmer_id"`
-		Address       string        `bson:"address"`
-		Expiration    schema.Date   `bson:"expiration"`
-		Asset         stellar.Asset `bson:"asset"`
-		Amount        xdr.Int64     `bson:"amount"`
+		ReservationID schema.ID     `json:"id" bson:"_id"`
+		FarmerID      schema.ID     `json:"farmer_id" bson:"farmer_id"`
+		Address       string        `json:"address" bson:"address"`
+		Expiration    schema.Date   `json:"expiration" bson:"expiration"`
+		Asset         stellar.Asset `json:"asset" bson:"asset"`
+		Amount        xdr.Int64     `json:"amount" bson:"amount"`
 		// Paid indicates the capacity reservation escrows have been fully funded,
 		// resulting in the new funds being allocated into the pool (creating
 		// the pool in case it did not exist yet)
-		Paid bool `bson:"paid"`
+		Paid bool `json:"paid" bson:"paid"`
 		// Released means we tried to pay the farmer
-		Released bool `bson:"released"`
+		Released bool `json:"released" bson:"released"`
 		// Canceled means the escrow got canceled, i.e. client refunded. This can
 		// only happen in case the reservation expires.
-		Canceled bool `bson:"canceled"`
+		Canceled bool `json:"canceled" bson:"canceled"`
 		// Cause of cancellation
-		Cause string `bson:"cause"`
+		Cause string `json:"cause" bson:"cause"`
 	}
 
 	// EscrowDetail hold the details of an escrow address

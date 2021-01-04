@@ -1126,6 +1126,41 @@
         }
       }
     },
+    "/api/v1/pools/payment/{reservationID}": {
+      "get": {
+        "tags": [
+          "pools"
+        ],
+        "parameters": [
+          {
+            "name": "reservationID",
+            "in": "path",
+            "description": "ID of the capacity reservation",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "summary": "Get payment information for that reservation",
+        "description": "Get the current status of all the pools belonging to a user",
+        "operationId": "getpaymentinfo",
+        "responses": {
+          "200": {
+            "description": "payment information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PoolPaymentInformation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workloads": {
       "get": {
         "tags": [
@@ -1187,13 +1222,13 @@
                 "schema": {
                   "type": "array",
                   "items": {
-					"$ref": "#/components/schemas/GenericWorkload"
-					 }
-				  }
+                    "$ref": "#/components/schemas/GenericWorkload"
+                  }
                 }
               }
             }
           }
+        }
       },
       "post": {
         "tags": [
@@ -1206,7 +1241,7 @@
           "content": {
             "application/json": {
               "schema": {
-				"$ref":"#/components/schemas/GenericWorkload"
+                "$ref": "#/components/schemas/GenericWorkload"
               }
             }
           },
@@ -1256,7 +1291,7 @@
             "content": {
               "application/json": {
                 "schema": {
-					"$ref": "#/components/schemas/GenericWorkload"
+                  "$ref": "#/components/schemas/GenericWorkload"
                 }
               }
             }
@@ -1359,7 +1394,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-					  "$ref": "#/components/schemas/GenericWorkload"
+                    "$ref": "#/components/schemas/GenericWorkload"
                   }
                 }
               }
@@ -1380,7 +1415,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-					"$ref":"#/components/schemas/GenericWorkload"
+                  "$ref": "#/components/schemas/GenericWorkload"
                 }
               }
             }
@@ -2117,6 +2152,41 @@
           }
         }
       },
+      "PoolPaymentInformation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "expiration": {
+            "type": "integer"
+          },
+          "address": {
+            "type": "string"
+          },
+          "asset": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "farmer_id": {
+            "type": "integer"
+          },
+          "paid": {
+            "type": "boolean"
+          },
+          "released": {
+            "type": "boolean"
+          },
+          "canceled": {
+            "type": "boolean"
+          },
+          "cause": {
+            "type": "string"
+          }
+        }
+      },
       "Pool": {
         "type": "object",
         "properties": {
@@ -2499,8 +2569,8 @@
           }
         ]
       },
-	  "GenericWorkload": {
-		"type": "object",
+      "GenericWorkload": {
+        "type": "object",
         "discriminator": {
           "propertyName": "workload_type"
         },
@@ -2536,7 +2606,7 @@
             "$ref": "#/components/schemas/ZdbWorkload"
           }
         ]
-	  }
+      }
     }
   }
 }
