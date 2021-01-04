@@ -288,6 +288,24 @@ func (a *API) getPool(r *http.Request) (interface{}, mw.Response) {
 	return pool, nil
 }
 
+func (a *API) getPaymentInfo(r *http.Request) (interface{}, mw.Response) {
+	idstr := mux.Vars(r)["id"]
+
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(errors.New("id must be an integer"))
+	}
+	db := mw.Database(r)
+	info, err := escrowtypes.CapacityReservationPaymentInfoGet(r.Context(), db, schema.ID(id))
+	if err == escrowtypes.ErrEscrowNotFound {
+		return nil, mw.NotFound(err)
+	} else if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return info, nil
+}
+
 func (a *API) listPools(r *http.Request) (interface{}, mw.Response) {
 	ownerstr := mux.Vars(r)["owner"]
 

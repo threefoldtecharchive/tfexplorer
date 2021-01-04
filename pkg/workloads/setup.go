@@ -34,7 +34,7 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	apiReservation.HandleFunc("/pools", mw.AsHandlerFunc(service.setupPool)).Methods(http.MethodPost).Name("versionned-pool-create")
 	apiReservation.HandleFunc("/pools/{id:\\d+}", mw.AsHandlerFunc(service.getPool)).Methods(http.MethodGet).Name("versionned-pool-get")
 	apiReservation.HandleFunc("/pools/owner/{owner:\\d+}", mw.AsHandlerFunc(service.listPools)).Methods(http.MethodGet).Name("versionned-pool-get-by-owner")
-
+	apiReservation.HandleFunc("/pools/payment/{id:\\d+}", mw.AsHandlerFunc(service.getPaymentInfo)).Methods(http.MethodGet).Name("versionned-pool-get-payment-info")
 	// only create reservation call requires authentication to make sure
 	// the user identity associated with the request is the same exact
 	// one associated with the signed reservation object.
