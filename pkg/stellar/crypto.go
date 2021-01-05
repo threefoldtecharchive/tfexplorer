@@ -17,7 +17,7 @@ type (
 
 // encryptionKey of the wallet, which is based on the keypair used to create
 // this wallet
-func (w *Wallet) encryptionKey() key {
+func (w *stellarWallet) encryptionKey() key {
 	// Annoyingly, we can't get the bytes of the private key, only a string form
 	// of the seed. So we might as well hash it again to generate the key.
 	return blake2b.Sum256([]byte(w.keypair.Seed()))

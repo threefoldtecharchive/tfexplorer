@@ -29,13 +29,27 @@ type (
 		Amount  xdr.Int64
 	}
 
-	// Wallet is the foundation wallet
+	// stellarWallet is the foundation wallet
 	// Payments will be funded and fees will be taken with this wallet
-	Wallet struct {
+	stellarWallet struct {
 		keypair *keypair.Full
 		network string
 		assets  map[Asset]struct{}
 		signers Signers
+	}
+
+	// Wallet interface
+	Wallet interface {
+		AssetFromCode(code string) (Asset, error)
+		PrecisionDigits() int
+		PublicAddress() string
+		CreateAccount() (encSeed string, address string, err error)
+		GetBalance(address string, memo string, asset Asset) (xdr.Int64, []string, error)
+		Refund(encryptedSeed string, memo string, asset Asset) error
+		PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) error
+		GetAccountDetails(address string) (account hProtocol.Account, err error)
+		GetHorizonClient() (*horizonclient.Client, error)
+		GetNetworkPassPhrase() string
 	}
 )
 
@@ -64,14 +78,14 @@ var (
 // New stellar wallet from an optional seed. If no seed is given (i.e. empty string),
 // the wallet will panic on all actions which need to be signed, or otherwise require
 // a key to be loaded.
-func New(seed, network string, signers []string) (*Wallet, error) {
+func New(seed, network string, signers []string) (Wallet, error) {
 	assets := mainnetAssets
 
 	if len(signers) < 3 && seed != "" {
 		log.Warn().Msg("to enable escrow account recovery, provide at least 3 signers")
 	}
 
-	w := &Wallet{
+	w := &stellarWallet{
 		network: network,
 		assets:  assets,
 		signers: signers,
@@ -85,12 +99,12 @@ func New(seed, network string, signers []string) (*Wallet, error) {
 		}
 	}
 
-	return w, nil
+	return &retryWallet{w}, nil
 }
 
 // AssetFromCode loads the full asset from a code, provided the wallet supports
 // the asset code
-func (w *Wallet) AssetFromCode(code string) (Asset, error) {
+func (w *stellarWallet) AssetFromCode(code string) (Asset, error) {
 	for asset := range w.assets {
 		if asset.Code() == code {
 			return asset, nil
@@ -100,12 +114,12 @@ func (w *Wallet) AssetFromCode(code string) (Asset, error) {
 }
 
 // PrecisionDigits of the underlying currencies on chain
-func (w *Wallet) PrecisionDigits() int {
+func (w *stellarWallet) PrecisionDigits() int {
 	return stellarPrecisionDigits
 }
 
 // PublicAddress of this wallet
-func (w *Wallet) PublicAddress() string {
+func (w *stellarWallet) PublicAddress() string {
 	if w.keypair == nil {
 		return ""
 	}
@@ -114,7 +128,7 @@ func (w *Wallet) PublicAddress() string {
 
 // CreateAccount and activate it, so that it is ready to be used
 // The encrypted seed of the wallet is returned, together with the public address
-func (w *Wallet) CreateAccount() (string, string, error) {
+func (w *stellarWallet) CreateAccount() (string, string, error) {
 	client, err := w.GetHorizonClient()
 	if err != nil {
 		return "", "", err
@@ -136,15 +150,27 @@ func (w *Wallet) CreateAccount() (string, string, error) {
 
 	log.Info().Msg("escrow account activation succesful")
 
-	// Now fetch the escrow source account to perform operations on it
-	sourceAccount, err = w.GetAccountDetails(newKp.Address())
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get escrow source account")
-	}
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = time.Minute // retry for 1 min maximum
+	bo.MaxInterval = time.Second * 1
 
-	err = w.setupEscrow(newKp, sourceAccount, client)
+	err = backoff.Retry(func() error {
+		// Now fetch the escrow source account to perform operations on it
+		sourceAccount, err = w.GetAccountDetails(newKp.Address())
+		if err != nil {
+			return errors.Wrap(err, "failed to get escrow source account")
+		}
+
+		err = w.setupEscrow(newKp, sourceAccount, client)
+		if err != nil {
+			return errors.Wrapf(err, "failed to setup escrow account %s", newKp.Address())
+		}
+
+		return nil
+	}, bo)
+
 	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to setup escrow account %s", newKp.Address())
+		return "", "", err
 	}
 
 	// encrypt the seed before it is returned
@@ -154,10 +180,9 @@ func (w *Wallet) CreateAccount() (string, string, error) {
 	}
 
 	return encryptedSeed, newKp.Address(), nil
-
 }
 
-func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProtocol.Account, client *horizonclient.Client) error {
+func (w *stellarWallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProtocol.Account, client *horizonclient.Client) error {
 	currency := big.NewRat(int64(w.getMinumumBalance()), stellarPrecision)
 	minimumBalance := currency.FloatString(stellarPrecisionDigits)
 	createAccountOp := txnbuild.CreateAccount{
@@ -189,24 +214,26 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 		log.Info().Msg("trying to submit activate escrow account transaction")
 		_, err = client.SubmitTransaction(tx)
 		if err != nil {
-			hError := err.(*horizonclient.Error)
-			log.Error().
-				Err(err).
-				Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
-				Msg("error submitting transaction")
-			if hError.Problem.Status == 504 {
-				if feeFactor < 5 {
-					feeFactor++
+			if hError, ok := err.(*horizonclient.Error); ok {
+				log.Error().
+					Err(err).
+					Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
+					Msg("error submitting transaction")
+				if hError.Problem.Status == 504 {
+					if feeFactor < 5 {
+						feeFactor++
+					}
+					return err
 				}
-				return err
 			}
+
 			return backoff.Permanent(err)
 		}
 		return nil
 	}
 
 	bo := backoff.NewExponentialBackOff()
-	bo.MaxElapsedTime = time.Minute // retry for 20 seconds maximum
+	bo.MaxElapsedTime = time.Minute // retry for 1 min maximum
 	bo.MaxInterval = time.Second * 1
 
 	err := backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
@@ -225,7 +252,7 @@ func (w *Wallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProto
 
 // setupEscrow will setup a trustline to the correct asset and issuer
 // and also setup multisig on the escrow
-func (w *Wallet) setupEscrow(newKp *keypair.Full, sourceAccount hProtocol.Account, client *horizonclient.Client) error {
+func (w *stellarWallet) setupEscrow(newKp *keypair.Full, sourceAccount hProtocol.Account, client *horizonclient.Client) error {
 	var operations []txnbuild.Operation
 
 	trustlineOperation := w.setupTrustline(sourceAccount)
@@ -253,7 +280,7 @@ func (w *Wallet) setupEscrow(newKp *keypair.Full, sourceAccount hProtocol.Accoun
 	return nil
 }
 
-func (w *Wallet) setupTrustline(sourceAccount hProtocol.Account) []txnbuild.Operation {
+func (w *stellarWallet) setupTrustline(sourceAccount hProtocol.Account) []txnbuild.Operation {
 	ops := make([]txnbuild.Operation, 0, len(w.assets))
 	for asset := range w.assets {
 		ops = append(ops, &txnbuild.ChangeTrust{
@@ -267,7 +294,7 @@ func (w *Wallet) setupTrustline(sourceAccount hProtocol.Account) []txnbuild.Oper
 	return ops
 }
 
-func (w *Wallet) setupEscrowMultisig(sourceAccount hProtocol.Account) []txnbuild.Operation {
+func (w *stellarWallet) setupEscrowMultisig(sourceAccount hProtocol.Account) []txnbuild.Operation {
 	if len(w.signers) < 3 {
 		// not enough signers, don't add multisig
 		return nil
@@ -309,7 +336,7 @@ func (w *Wallet) setupEscrowMultisig(sourceAccount hProtocol.Account) []txnbuild
 
 // GetBalance gets balance for an address and a given reservation id. It also returns
 // a list of addresses which funded the given address.
-func (w *Wallet) GetBalance(address string, memo string, asset Asset) (xdr.Int64, []string, error) {
+func (w *stellarWallet) GetBalance(address string, memo string, asset Asset) (xdr.Int64, []string, error) {
 	if address == "" {
 		err := fmt.Errorf("trying to get the balance of an empty address. this should never happen")
 		log.Warn().Err(err).Send()
@@ -423,7 +450,7 @@ func (w *Wallet) GetBalance(address string, memo string, asset Asset) (xdr.Int64
 // Refund an escrow address for a reservation. This will transfer all funds
 // for this reservation that are currently on the address (if any), to (some of)
 // the addresses which these funds came from.
-func (w *Wallet) Refund(encryptedSeed string, memo string, asset Asset) error {
+func (w *stellarWallet) Refund(encryptedSeed string, memo string, asset Asset) error {
 	keypair, err := w.keypairFromEncryptedSeed(encryptedSeed)
 	if err != nil {
 		return errors.Wrap(err, "could not get keypair from encrypted seed")
@@ -477,7 +504,7 @@ func (w *Wallet) Refund(encryptedSeed string, memo string, asset Asset) error {
 
 // PayoutFarmers pays a group of farmers, from an escrow account. The escrow
 // account must be provided as the encrypted string of the seed.
-func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) error {
+func (w *stellarWallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) error {
 	keypair, err := w.keypairFromEncryptedSeed(encryptedSeed)
 	if err != nil {
 		return errors.Wrap(err, "could not get keypair from encrypted seed")
@@ -522,7 +549,7 @@ func (w *Wallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, 
 
 // fundTransaction funds a transaction with the foundation wallet
 // For every operation in the transaction, the fee will be paid by the foundation wallet
-func (w *Wallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbuild.Transaction, error) {
+func (w *stellarWallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbuild.Transaction, error) {
 	sourceAccount, err := w.GetAccountDetails(w.keypair.Address())
 	if err != nil {
 		return &txnbuild.Transaction{}, errors.Wrap(err, "failed to get source account")
@@ -554,7 +581,7 @@ func (w *Wallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbuild.Tra
 
 // signAndSubmitTx sings of on a transaction with a given keypair
 // and submits it to the network
-func (w *Wallet) signAndSubmitTx(keypair *keypair.Full, tx *txnbuild.Transaction) error {
+func (w *stellarWallet) signAndSubmitTx(keypair *keypair.Full, tx *txnbuild.Transaction) error {
 	client, err := w.GetHorizonClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to get horizon client")
@@ -569,18 +596,13 @@ func (w *Wallet) signAndSubmitTx(keypair *keypair.Full, tx *txnbuild.Transaction
 	// Submit the transaction
 	_, err = client.SubmitTransaction(tx)
 	if err != nil {
-		hError := err.(*horizonclient.Error)
-		log.Error().
-			Err(err).
-			Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
-			Msg("error submitting transaction")
-		return errors.Wrap(hError.Problem, "error submitting transaction")
+		return errors.Wrap(err, "error submitting transaction")
 	}
 	return nil
 }
 
 // GetAccountDetails gets account details based an a Stellar address
-func (w *Wallet) GetAccountDetails(address string) (account hProtocol.Account, err error) {
+func (w *stellarWallet) GetAccountDetails(address string) (account hProtocol.Account, err error) {
 	client, err := w.GetHorizonClient()
 	if err != nil {
 		return hProtocol.Account{}, err
@@ -594,7 +616,7 @@ func (w *Wallet) GetAccountDetails(address string) (account hProtocol.Account, e
 	return account, nil
 }
 
-func (w *Wallet) keypairFromEncryptedSeed(seed string) (keypair.Full, error) {
+func (w *stellarWallet) keypairFromEncryptedSeed(seed string) (keypair.Full, error) {
 	plainSeed, err := decrypt(seed, w.encryptionKey())
 	if err != nil {
 		return keypair.Full{}, errors.Wrap(err, "could not decrypt seed")
@@ -609,7 +631,7 @@ func (w *Wallet) keypairFromEncryptedSeed(seed string) (keypair.Full, error) {
 }
 
 // GetHorizonClient gets the horizon client based on the wallet's network
-func (w *Wallet) GetHorizonClient() (*horizonclient.Client, error) {
+func (w *stellarWallet) GetHorizonClient() (*horizonclient.Client, error) {
 	switch w.network {
 	case "testnet":
 		return horizonclient.DefaultTestNetClient, nil
@@ -621,7 +643,7 @@ func (w *Wallet) GetHorizonClient() (*horizonclient.Client, error) {
 }
 
 // GetNetworkPassPhrase gets the Stellar network passphrase based on the wallet's network
-func (w *Wallet) GetNetworkPassPhrase() string {
+func (w *stellarWallet) GetNetworkPassPhrase() string {
 	switch w.network {
 	case "testnet":
 		return network.TestNetworkPassphrase
@@ -635,7 +657,7 @@ func (w *Wallet) GetNetworkPassPhrase() string {
 // getMinumumBalance calculates minimum balance for an escrow account
 // following formula is used: minimum Balance = (2 + # of entries) * base reserve
 // entries is the amount of operations are required to setup the account
-func (w *Wallet) getMinumumBalance() int {
+func (w *stellarWallet) getMinumumBalance() int {
 	return (2 + len(w.assets) + len(w.signers)) * (stellarOneCoin / 2)
 }
 
