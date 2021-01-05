@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
-	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -140,7 +139,7 @@ func TestProcessReservation(t *testing.T) {
 	}
 
 	escrow := Stellar{
-		wallet:             &stellar.Wallet{},
+		//wallet:             &stellar.StellarWallet{},
 		db:                 nil,
 		reservationChannel: nil,
 		nodeAPI:            &nodeAPIMock{},

@@ -27,7 +27,7 @@ type (
 	// Stellar service manages a dedicate wallet for payments for reservations.
 	Stellar struct {
 		foundationAddress string
-		wallet            *stellar.Wallet
+		wallet            stellar.Wallet
 		db                *mongo.Database
 		gridNetwork       gridnetworks.GridNetwork
 
@@ -151,7 +151,7 @@ func init() {
 }
 
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
-func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string, gridNetwork gridnetworks.GridNetwork) *Stellar {
+func NewStellar(wallet stellar.Wallet, db *mongo.Database, foundationAddress string, gridNetwork gridnetworks.GridNetwork) *Stellar {
 	addr := foundationAddress
 	if addr == "" {
 		addr = wallet.PublicAddress()

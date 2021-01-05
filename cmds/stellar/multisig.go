@@ -36,7 +36,7 @@ func create(c *cli.Context) error {
 		return err
 	}
 	msWallet := multisigWallet{
-		wallet: *wallet,
+		wallet: wallet,
 		kp:     kp,
 	}
 
@@ -57,7 +57,7 @@ func signAndSubmit(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	msWallet := multisigWallet{wallet: *wallet}
+	msWallet := multisigWallet{wallet: wallet}
 
 	tx, err := msWallet.signAndSubmitMultisigTransaction(transaction)
 	if err != nil {
