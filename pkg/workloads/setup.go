@@ -8,26 +8,29 @@ import (
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/capacity"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
+	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Setup injects and initializes directory package
-func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner capacity.Planner) error {
+func Setup(parent *mux.Router, db *mongo.Database, network gridnetworks.GridNetwork, escrow escrow.Escrow, planner capacity.Planner) error {
 	if err := types.Setup(context.TODO(), db); err != nil {
 		return err
 	}
 
 	userVerifier := httpsig.NewVerifier(mw.NewUserKeyGetter(db))
 
-	var service API
-	service.escrow = escrow
-	service.capacityPlanner = planner
+	service := API{
+		escrow:          escrow,
+		capacityPlanner: planner,
+		network:         network,
+	}
 
 	// versionned endpoints
 	api := parent.PathPrefix("/api/v1").Subrouter()
-	api.HandleFunc("/prices", mw.AsHandlerFunc(getPrices)).Methods(http.MethodGet).Name("prices-get")
+	api.HandleFunc("/prices", mw.AsHandlerFunc(service.getPrices)).Methods(http.MethodGet).Name("prices-get")
 
 	apiReservation := api.PathPrefix("/reservations").Subrouter()
 
@@ -92,18 +95,4 @@ func Setup(parent *mux.Router, db *mongo.Database, escrow escrow.Escrow, planner
 	legacyReservations.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutDeleted)).Methods(http.MethodDelete).Name("nodes-workloads-deleted")
 
 	return nil
-}
-
-func getPrices(r *http.Request) (interface{}, mw.Response) {
-	return struct {
-		CuPriceDollarMonth   int
-		SuPriceDollarMonth   int
-		TftPriceMill         int
-		IP4uPriceDollarMonth int
-	}{
-		CuPriceDollarMonth:   escrow.CuPriceDollarMonth,
-		SuPriceDollarMonth:   escrow.SuPriceDollarMonth,
-		TftPriceMill:         escrow.TftPriceMill,
-		IP4uPriceDollarMonth: escrow.IP4uPriceDollarMonth,
-	}, nil
 }

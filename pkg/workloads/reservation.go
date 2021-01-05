@@ -24,6 +24,7 @@ import (
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowtypes "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
+	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
@@ -37,6 +38,7 @@ type (
 	API struct {
 		escrow          escrow.Escrow
 		capacityPlanner capacity.Planner
+		network         gridnetworks.GridNetwork
 	}
 
 	// ReservationCreateResponse wraps reservation create response

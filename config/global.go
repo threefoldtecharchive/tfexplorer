@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 )
@@ -19,8 +20,6 @@ var (
 	Config Settings
 
 	possibleWalletNetworks = []string{stellar.NetworkProduction}
-	possibleGridNetworks   = []string{gridnetworks.GridNetworkMainnet,
-		gridnetworks.GridNetworkTestnet, gridnetworks.GridNetworkDevnet}
 )
 
 // Valid checks if Config is filled with valid data
@@ -36,8 +35,9 @@ func Valid() error {
 	if Config.WalletNetwork != "" && !in(Config.WalletNetwork, possibleWalletNetworks) {
 		return fmt.Errorf("invalid network '%s'", Config.WalletNetwork)
 	}
-	if !in(Config.TFNetwork, possibleGridNetworks) {
-		return fmt.Errorf("invalid network '%s'", Config.TFNetwork)
+
+	if err := gridnetworks.GridNetwork(Config.TFNetwork).Valid(); err != nil {
+		return errors.Wrapf(err, "invalid network")
 	}
 
 	return nil
