@@ -53,14 +53,16 @@ func (r *retryWallet) error(op string, err error) error {
 	return backoff.Permanent(err)
 }
 
-func (r *retryWallet) CreateAccount() (encSeed string, address string, err error) {
-	err = r.backoff(func() error {
-		encSeed, address, err = r.Wallet.CreateAccount()
-		return r.error("CreateAccount", err)
-	})
+// NOTE: we don't retry the CreateAccount because it already has
+// custom retry logic.
+// func (r *retryWallet) CreateAccount() (encSeed string, address string, err error) {
+// 	err = r.backoff(func() error {
+// 		encSeed, address, err = r.Wallet.CreateAccount()
+// 		return r.error("CreateAccount", err)
+// 	})
 
-	return
-}
+// 	return
+// }
 
 func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset) (err error) {
 	err = r.backoff(func() error {
