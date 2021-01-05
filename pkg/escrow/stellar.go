@@ -29,7 +29,7 @@ type (
 		foundationAddress string
 		wallet            *stellar.Wallet
 		db                *mongo.Database
-		gridNetwork       string
+		gridNetwork       gridnetworks.GridNetwork
 
 		reservationChannel         chan reservationRegisterJob
 		capacityReservationChannel chan capacityReservationRegisterJob
@@ -151,7 +151,7 @@ func init() {
 }
 
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
-func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string, gridNetwork string) *Stellar {
+func NewStellar(wallet *stellar.Wallet, db *mongo.Database, foundationAddress string, gridNetwork gridnetworks.GridNetwork) *Stellar {
 	addr := foundationAddress
 	if addr == "" {
 		addr = wallet.PublicAddress()
@@ -1015,17 +1015,13 @@ func (e *Stellar) checkAssetSupport(farmIDs []int64, asset stellar.Asset) (bool,
 // getNetworkDivisor gets a divisor for the fee to be paid based on the current
 // grid network
 func (e *Stellar) getNetworkDivisor() int64 {
-	switch e.gridNetwork {
-	case gridnetworks.GridNetworkMainnet:
-		return 1
-	case gridnetworks.GridNetworkTestnet:
-		return 10
-	case gridnetworks.GridNetworkDevnet:
-		return 100
-	default:
+	divisor, err := e.gridNetwork.Divisor()
+	if err != nil {
 		log.Error().Msgf("unknown gridnetwork \"%s\", defaulting to base fee", e.gridNetwork)
 		return 1
 	}
+
+	return divisor
 }
 
 func addressByAsset(addrs []gdirectory.WalletAddress, asset stellar.Asset) (string, error) {

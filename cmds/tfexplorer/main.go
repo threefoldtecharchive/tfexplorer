@@ -33,6 +33,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow"
 	escrowdb "github.com/threefoldtech/tfexplorer/pkg/escrow/types"
+	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/phonebook"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/pkg/workloads"
@@ -192,7 +193,7 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 			log.Fatal().Err(err).Msg("failed to create stellar wallet")
 		}
 
-		e = escrow.NewStellar(wallet, db.Database(), f.foundationAddress, config.Config.TFNetwork)
+		e = escrow.NewStellar(wallet, db.Database(), f.foundationAddress, gridnetworks.GridNetwork(config.Config.TFNetwork))
 
 	} else {
 		log.Info().Msg("escrow disabled")
@@ -220,7 +221,7 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 
 	planner := capacity.NewNaivePlanner(e, db.Database())
 	go planner.Run(context.Background())
-	if err = workloads.Setup(router, db.Database(), e, planner); err != nil {
+	if err = workloads.Setup(router, db.Database(), gridnetworks.GridNetwork(config.Config.TFNetwork), e, planner); err != nil {
 		log.Error().Err(err).Msg("failed to register workloads package")
 	}
 
