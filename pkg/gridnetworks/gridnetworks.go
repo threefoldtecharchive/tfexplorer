@@ -31,6 +31,7 @@ func (g GridNetwork) Divisor() (int64, error) {
 	}
 }
 
+// Valid checks if the GridNetwork is known
 func (g GridNetwork) Valid() error {
 	_, err := g.Divisor()
 	return err
