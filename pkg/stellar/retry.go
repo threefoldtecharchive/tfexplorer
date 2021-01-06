@@ -32,7 +32,7 @@ func (r *retryWallet) error(op string, err error) error {
 
 	var hError horizonclient.Error
 	if !errors.As(err, &hError) {
-		log.Error().Err(err).Str("operation", op).Msg("operation failed permanently")
+		log.Error().Err(err).Str("reason", "unknown-error-typ").Str("operation", op).Msg("operation failed permanently")
 		return backoff.Permanent(err)
 	}
 
@@ -41,9 +41,11 @@ func (r *retryWallet) error(op string, err error) error {
 		Str("operation", op).
 		Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
 		Str("status", hError.Response.Status).
-		Msg("operation failed permanently")
+		Int("status-code", hError.Problem.Status).
+		Msg("operation failed")
 
-	if hError.Response.StatusCode == http.StatusBadRequest {
+	if hError.Response.StatusCode == http.StatusBadRequest ||
+		hError.Response.StatusCode == http.StatusGatewayTimeout {
 		// this error is 400 bad request is probably a problem
 		// with transaction sequence number. so it's okay we retry
 		return err

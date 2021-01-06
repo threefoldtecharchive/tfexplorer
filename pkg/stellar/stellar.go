@@ -218,7 +218,7 @@ func (w *stellarWallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount
 				log.Error().
 					Err(err).
 					Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
-					Msg("error submitting transaction")
+					Msg("error submitting transaction for account activation")
 				if hError.Problem.Status == 504 {
 					if feeFactor < 5 {
 						feeFactor++
