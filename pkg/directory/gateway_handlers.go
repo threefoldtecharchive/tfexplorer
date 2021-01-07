@@ -26,6 +26,11 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		return nil, mw.BadRequest(err)
 	}
 
+	keyID := httpsig.KeyIDFromContext(r.Context())
+	if gw.NodeId != keyID {
+		return nil, mw.Forbidden(fmt.Errorf("trying to register a gateway with nodeID %s while you are %s", gw.NodeId, keyID))
+	}
+
 	if err := gw.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
 	}

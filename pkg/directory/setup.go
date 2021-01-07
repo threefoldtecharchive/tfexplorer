@@ -67,7 +67,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	gwAuthMW := mw.NewAuthMiddleware(nodeVerifier)
 	gwAuthenticated.Use(gwAuthMW.Middleware)
 
-	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.registerGateway)).Methods("POST").Name("gateway-register-v1")
+	gwAuthenticated.HandleFunc("", mw.AsHandlerFunc(gwAPI.registerGateway)).Methods("POST").Name("gateway-register-v1")
 	gw.HandleFunc("", mw.AsHandlerFunc(gwAPI.listGateways)).Methods("GET").Name("gateway-list-v1")
 	gw.HandleFunc("/{node_id}", mw.AsHandlerFunc(gwAPI.gatewayDetail)).Methods("GET").Name(("gateway-get-v1"))
 	gwAuthenticated.HandleFunc("/{node_id}/uptime", mw.AsHandlerFunc(gwAPI.Requires("node_id", gwAPI.updateUptimeHandler))).Methods("POST").Name("gateway-uptime-v1")
