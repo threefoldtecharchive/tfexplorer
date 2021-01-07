@@ -569,8 +569,9 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 		Paid:          false,
 		Released:      false,
 		Canceled:      false,
-		FarmerID:      schema.ID(node.FarmId),
+		FarmerID:      schema.ID(farmIDs[0]),
 	}
+
 	if amount == 0 {
 		// mark this reservation as fully processed already
 		reservationPaymentInfo.Paid = true

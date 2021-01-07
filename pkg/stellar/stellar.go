@@ -66,6 +66,9 @@ const (
 	// NetworkDebug doesn't do validation, and always address validation is skipped
 	// Only supported by the AddressValidator
 	NetworkDebug = "debug"
+
+	// global multiplier for the base fee
+	baseFeeMultiplier = 2
 )
 
 var (
@@ -138,25 +141,47 @@ func (w *stellarWallet) CreateAccount() (string, string, error) {
 		return "", "", err
 	}
 
-	sourceAccount, err := w.GetAccountDetails(w.keypair.Address())
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get source account")
-	}
-
-	err = w.activateEscrowAccount(newKp, sourceAccount, client)
-	if err != nil {
-		return "", "", errors.Wrapf(err, "failed to activate escrow account %s", newKp.Address())
-	}
-
-	log.Info().Msg("escrow account activation succesful")
+	feeFactor := int64(1)
 
 	bo := backoff.NewExponentialBackOff()
 	bo.MaxElapsedTime = time.Minute // retry for 1 min maximum
 	bo.MaxInterval = time.Second * 1
 
+	err = backoff.RetryNotify(func() error {
+		sourceAccount, err := w.GetAccountDetails(w.keypair.Address())
+		if err != nil {
+			return backoff.Permanent(errors.Wrap(err, "failed to get source account"))
+		}
+
+		err = w.activateEscrowAccount(newKp, sourceAccount, client, feeFactor)
+		if err != nil {
+			return errors.Wrapf(err, "failed to activate escrow account %s", newKp.Address())
+		}
+
+		return nil
+	}, bo, func(err error, d time.Duration) {
+		if feeFactor < 5 {
+			feeFactor++
+		}
+		log.Error().
+			Err(err).
+			Str("sleep", d.String()).
+			Msgf("failed submit activate escrow account transaction for: %s", newKp.Address())
+	})
+
+	if err != nil {
+		return "", "", err
+	}
+
+	log.Info().Msg("escrow account activation successful")
+
+	bo = backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = time.Minute // retry for 1 min maximum
+	bo.MaxInterval = time.Second * 1
+
 	err = backoff.Retry(func() error {
 		// Now fetch the escrow source account to perform operations on it
-		sourceAccount, err = w.GetAccountDetails(newKp.Address())
+		sourceAccount, err := w.GetAccountDetails(newKp.Address())
 		if err != nil {
 			return errors.Wrap(err, "failed to get escrow source account")
 		}
@@ -182,7 +207,7 @@ func (w *stellarWallet) CreateAccount() (string, string, error) {
 	return encryptedSeed, newKp.Address(), nil
 }
 
-func (w *stellarWallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProtocol.Account, client *horizonclient.Client) error {
+func (w *stellarWallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount hProtocol.Account, client *horizonclient.Client, feeFactor int64) error {
 	currency := big.NewRat(int64(w.getMinumumBalance()), stellarPrecision)
 	minimumBalance := currency.FloatString(stellarPrecisionDigits)
 	createAccountOp := txnbuild.CreateAccount{
@@ -191,59 +216,34 @@ func (w *stellarWallet) activateEscrowAccount(newKp *keypair.Full, sourceAccount
 	}
 	ops := []txnbuild.Operation{&createAccountOp}
 
-	feeFactor := 1
-	submitTransactionBackof := func() error {
-		tx, err := txnbuild.NewTransaction(
-			txnbuild.TransactionParams{
-				SourceAccount:        &sourceAccount,
-				Operations:           ops,
-				Timebounds:           txnbuild.NewTimeout(300),
-				IncrementSequenceNum: true,
-				BaseFee:              (txnbuild.MinBaseFee * int64(len(ops))) * int64(feeFactor),
-			},
-		)
-		if err != nil {
-			return backoff.Permanent(errors.Wrap(err, "failed to build transaction"))
-		}
-
-		tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
-		if err != nil {
-			return backoff.Permanent(errors.Wrap(err, "failed to sign transaction"))
-		}
-
-		log.Info().Msg("trying to submit activate escrow account transaction")
-		_, err = client.SubmitTransaction(tx)
-		if err != nil {
-			if hError, ok := err.(*horizonclient.Error); ok {
-				log.Error().
-					Err(err).
-					Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
-					Msg("error submitting transaction")
-				if hError.Problem.Status == 504 {
-					if feeFactor < 5 {
-						feeFactor++
-					}
-					return err
-				}
-			}
-
-			return backoff.Permanent(err)
-		}
-		return nil
+	tx, err := txnbuild.NewTransaction(
+		txnbuild.TransactionParams{
+			SourceAccount:        &sourceAccount,
+			Operations:           ops,
+			Timebounds:           txnbuild.NewTimeout(300),
+			IncrementSequenceNum: true,
+			BaseFee:              (txnbuild.MinBaseFee * int64(len(ops))) * int64(feeFactor) * baseFeeMultiplier,
+		},
+	)
+	if err != nil {
+		return backoff.Permanent(errors.Wrap(err, "failed to build transaction"))
 	}
 
-	bo := backoff.NewExponentialBackOff()
-	bo.MaxElapsedTime = time.Minute // retry for 1 min maximum
-	bo.MaxInterval = time.Second * 1
-
-	err := backoff.RetryNotify(submitTransactionBackof, bo, func(err error, d time.Duration) {
-		log.Error().
-			Err(err).
-			Str("sleep", d.String()).
-			Msgf("failed submit activate escrow account transaction for: %s", newKp.Address())
-	})
-
+	tx, err = tx.Sign(w.GetNetworkPassPhrase(), w.keypair)
 	if err != nil {
+		return backoff.Permanent(errors.Wrap(err, "failed to sign transaction"))
+	}
+
+	log.Info().Msg("trying to submit activate escrow account transaction")
+	_, err = client.SubmitTransaction(tx)
+	if err != nil {
+		if hError, ok := err.(*horizonclient.Error); ok {
+			log.Error().
+				Err(err).
+				Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
+				Msg("error submitting transaction for account activation")
+		}
+
 		return err
 	}
 
@@ -563,7 +563,7 @@ func (w *stellarWallet) fundTransaction(txp *txnbuild.TransactionParams) (*txnbu
 	}
 
 	// calculate total fee based on the operations in the transaction
-	txp.BaseFee = txnbuild.MinBaseFee * int64(len(txp.Operations))
+	txp.BaseFee = txnbuild.MinBaseFee * int64(len(txp.Operations)) * baseFeeMultiplier
 	txp.IncrementSequenceNum = true
 
 	tx, err := txnbuild.NewTransaction(*txp)
