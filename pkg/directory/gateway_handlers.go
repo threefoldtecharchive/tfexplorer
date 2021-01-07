@@ -3,8 +3,10 @@ package directory
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
 
@@ -35,6 +37,12 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		return nil, mw.BadRequest(err)
 	}
 
+	for _, domain := range gw.ManagedDomains {
+		if err := s.isManagedDomain(gw.NodeId, domain); err != nil {
+			return nil, mw.Forbidden(err)
+		}
+	}
+
 	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, gw); err != nil {
 		return nil, mw.Error(err)
@@ -43,6 +51,38 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 	log.Info().Msgf("gateway registered: %+v\n", gw)
 
 	return nil, mw.Created()
+}
+
+func (s *GatewayAPI) isManagedDomain(identity, domain string) error {
+	const name = "__owner__"
+	host := fmt.Sprintf("%s.%s", name, domain)
+
+	records, err := net.LookupTXT(host)
+	if err != nil {
+		return errors.Wrapf(err, "failed to look up '%s' for TXT records", host)
+	}
+
+	var value struct {
+		Identity string `json:"identity"`
+		Owner    string `json:"owner"`
+	}
+
+	for _, record := range records {
+		if err := json.Unmarshal([]byte(record), &value); err != nil {
+			log.Error().Err(err).Str("host", host).Msg("txt record for host is not valid json")
+			continue
+		}
+
+		// record found
+		// we match both the identity (validate this domain is managed by the gateway)
+		// and also the owner (validate that this way is owned by the gateway not another user)
+		if value.Identity == identity &&
+			value.Owner == identity {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("failed to validate managed domain '%s'. no txt recrod with identity '%s' found", domain, identity)
 }
 
 func (s *GatewayAPI) gatewayDetail(r *http.Request) (interface{}, mw.Response) {
