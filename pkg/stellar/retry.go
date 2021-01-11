@@ -24,18 +24,18 @@ func (r *retryWallet) backoff(op backoff.Operation) error {
 	return backoff.Retry(op, bo)
 }
 
-func (r *retryWallet) error(op string, err error) error {
+func (r *retryWallet) error(op, memo string, err error) error {
 	if err == nil {
 		return nil
 	}
 
-	var hError horizonclient.Error
+	log := log.With().Err(err).Str("operation", op).Str("memo", memo).Logger()
+
+	var hError *horizonclient.Error
 	if !errors.As(err, &hError) {
-		log.Error().Err(err).Str("reason", "unknown-error-typ").Str("operation", op).Msg("operation failed")
+		log.Error().Str("reason", "unknown-error-typ").Msg("operation failed")
 	} else {
 		log.Error().
-			Err(err).
-			Str("operation", op).
 			Str("problem", fmt.Sprintf("%+v", hError.Problem.Extras)).
 			Str("status", hError.Response.Status).
 			Int("status-code", hError.Problem.Status).
@@ -68,7 +68,7 @@ func (r *retryWallet) error(op string, err error) error {
 func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset) (err error) {
 	err = r.backoff(func() error {
 		err = r.Wallet.Refund(encryptedSeed, memo, asset)
-		return r.error("Refund", err)
+		return r.error("Refund", memo, err)
 	})
 
 	return
@@ -77,7 +77,7 @@ func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset) (er
 func (r *retryWallet) PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) (err error) {
 	err = r.backoff(func() error {
 		err = r.Wallet.PayoutFarmers(encryptedSeed, destinations, memo, asset)
-		return r.error("PayoutFarmers", err)
+		return r.error("PayoutFarmers", memo, err)
 	})
 
 	return
