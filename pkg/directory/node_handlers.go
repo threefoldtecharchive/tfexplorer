@@ -42,7 +42,7 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 	var ff types.FarmFilter
 	ff = ff.WithID(schema.ID(n.FarmId))
 	_, err := ff.Get(r.Context(), db)
-	if err != mongo.ErrNoDocuments {
+	if err == mongo.ErrNoDocuments {
 		return nil, mw.NotFound(errors.Wrap(err, "farm not found"))
 	} else if err != nil {
 		return nil, mw.Error(err)
