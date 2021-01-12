@@ -9,11 +9,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	"github.com/threefoldtech/tfexplorer/schema"
 
 	"github.com/gorilla/mux"
 )
@@ -33,6 +36,17 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		return nil, mw.Forbidden(fmt.Errorf("trying to register a gateway with nodeID %s while you are %s", gw.NodeId, keyID))
 	}
 
+	db := mw.Database(r)
+
+	var ff types.FarmFilter
+	ff = ff.WithID(schema.ID(gw.FarmId))
+	_, err := ff.Get(r.Context(), db)
+	if err != mongo.ErrNoDocuments {
+		return nil, mw.NotFound(errors.Wrap(err, "farm not found"))
+	} else if err != nil {
+		return nil, mw.Error(err)
+	}
+
 	if err := gw.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -43,7 +57,6 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		}
 	}
 
-	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, gw); err != nil {
 		return nil, mw.Error(err)
 	}

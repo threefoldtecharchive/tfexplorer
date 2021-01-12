@@ -3,11 +3,11 @@ package directory
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -39,8 +39,17 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 	if err := q.Parse(r); err != nil {
 		return nil, err
 	}
+	var ff types.FarmFilter
+	ff = ff.WithID(schema.ID(n.FarmId))
+	_, err := ff.Get(r.Context(), db)
+	if err != mongo.ErrNoDocuments {
+		return nil, mw.NotFound(errors.Wrap(err, "farm not found"))
+	} else if err != nil {
+		return nil, mw.Error(err)
+	}
+
 	// check if the node already exists
-	_, err := s.Get(r.Context(), db, n.NodeId, q.Proofs)
+	_, err = s.Get(r.Context(), db, n.NodeId, q.Proofs)
 	if err == nil {
 		// if the node exists, this request must be authenticated
 		hNodeID := httpsig.KeyIDFromContext(r.Context())
