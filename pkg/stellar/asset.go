@@ -13,16 +13,12 @@ type Asset string
 // Supported assets for the wallet. Assets are different based on testnet/mainnet
 const (
 	TFTMainnet Asset = "TFT:GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47"
-	// TFTAMainnet    Asset = "TFTA:GBUT4GP5GJ6B3XW5PXENHQA7TXJI5GOPW3NF4W3ZIW6OOO4ISY6WNLN2"
-	// FreeTFTMainnet Asset = "FreeTFT:GCBGS5TFE2BPPUVY55ZPEMWWGR6CLQ7T6P46SOFGHXEBJ34MSP6HVEUT"
 )
 
 // internal vars to set up the wallet with supported assets
 var (
 	mainnetAssets = map[Asset]struct{}{
 		TFTMainnet: {},
-		// TFTAMainnet:    {},
-		// FreeTFTMainnet: {},
 	}
 )
 
