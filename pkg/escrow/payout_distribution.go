@@ -10,9 +10,7 @@ import (
 var assetDistributions = map[stellar.Asset]payoutDistribution{
 	// It's a bit annoying that we don't differntiate between mainnet and standard here,
 	// load all assets
-	stellar.TFTMainnet:     {farmer: 90, burned: 0, foundation: 10},
-	stellar.TFTAMainnet:    {farmer: 90, burned: 0, foundation: 10},
-	stellar.FreeTFTMainnet: {farmer: 0, burned: 100, foundation: 0},
+	stellar.TFTMainnet: {farmer: 90, burned: 0, foundation: 10},
 }
 
 // payoutDistribution for a reservation. This represents the percentage of the
