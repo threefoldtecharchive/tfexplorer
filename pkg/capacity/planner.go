@@ -581,7 +581,7 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 		nextCheck = maxDelay.Unix()
 	}
 
-	log.Debug().Time("ExpireAt", time.Unix(nextPoolToExpire.EmptyAt, 0)).Msg("next pool to expire")
+	log.Debug().Time("ExpireAt", time.Unix(nextCheck, 0)).Msg("next pool to expire")
 	p.timer = time.NewTimer(time.Unix(nextCheck, 0).Sub(now))
 
 	return nil
