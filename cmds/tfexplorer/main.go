@@ -193,6 +193,8 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 			log.Fatal().Err(err).Msg("failed to create stellar wallet")
 		}
 
+		log.Info().Str("address", wallet.PublicAddress()).Msg("explorer public address")
+
 		e = escrow.NewStellar(wallet, db.Database(), f.foundationAddress, gridnetworks.GridNetwork(config.Config.TFNetwork))
 
 	} else {

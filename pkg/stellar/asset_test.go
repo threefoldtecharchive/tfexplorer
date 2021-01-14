@@ -29,15 +29,15 @@ func TestTFTMainnetAsset(t *testing.T) {
 	assert.Equal(t, TFTMainnet.Issuer(), "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47")
 }
 
-func TestTFTAMainnetAsset(t *testing.T) {
-	assert.Equal(t, TFTAMainnet.Code(), "TFTA")
-	assert.Equal(t, TFTAMainnet.Issuer(), "GBUT4GP5GJ6B3XW5PXENHQA7TXJI5GOPW3NF4W3ZIW6OOO4ISY6WNLN2")
-}
+// func TestTFTAMainnetAsset(t *testing.T) {
+// 	assert.Equal(t, TFTAMainnet.Code(), "TFTA")
+// 	assert.Equal(t, TFTAMainnet.Issuer(), "GBUT4GP5GJ6B3XW5PXENHQA7TXJI5GOPW3NF4W3ZIW6OOO4ISY6WNLN2")
+// }
 
-func TestFreeTFTMainnetAsset(t *testing.T) {
-	assert.Equal(t, FreeTFTMainnet.Code(), "FreeTFT")
-	assert.Equal(t, FreeTFTMainnet.Issuer(), "GCBGS5TFE2BPPUVY55ZPEMWWGR6CLQ7T6P46SOFGHXEBJ34MSP6HVEUT")
-}
+// func TestFreeTFTMainnetAsset(t *testing.T) {
+// 	assert.Equal(t, FreeTFTMainnet.Code(), "FreeTFT")
+// 	assert.Equal(t, FreeTFTMainnet.Issuer(), "GCBGS5TFE2BPPUVY55ZPEMWWGR6CLQ7T6P46SOFGHXEBJ34MSP6HVEUT")
+// }
 
 func TestMainnetAssetsCodeUniqueness(t *testing.T) {
 	knownCodes := make(map[string]struct{})
