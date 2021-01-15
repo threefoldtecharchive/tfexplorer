@@ -115,7 +115,7 @@ type (
 )
 
 const (
-	unusedPoolExpiration = time.Hour * 24 * 365 * 280
+	maxPoolExpirationDelay = time.Hour //* 24 * 365 * 280
 )
 
 var (
@@ -509,7 +509,8 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 		p.timer.Stop()
 	}
 
-	ts := time.Now().Unix()
+	now := time.Now()
+	ts := now.Unix()
 
 	if cancelOld {
 		expiredPools, err := types.GetExpiredPools(p.ctx, p.db, ts)
@@ -549,10 +550,12 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 	}
 
 	nextPoolToExpire, err := types.GetNextExpiredPool(p.ctx, p.db, ts)
+	nextCheck := nextPoolToExpire.EmptyAt
 	if err != nil {
 		if !errors.Is(err, types.ErrPoolNotFound) {
 			return errors.Wrap(err, "could not get next pool to expire")
 		}
+
 		// ErrPoolNotFound could happen if there are no pools in the system yet.
 		// Since we only care for the EmptyAt field, set that to a max value of some sort
 		//
@@ -565,7 +568,7 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 		// than calculating exactly how far in the future we can set this, we simply
 		// add about 280 years to the current time.
 		log.Debug().Msg("next pool to expire not found, setting expiration at maximum")
-		nextPoolToExpire.EmptyAt = time.Now().Add(unusedPoolExpiration).Unix()
+		nextCheck = now.Add(maxPoolExpirationDelay).Unix()
 	}
 
 	// clamp max interval to prevent an overflow causing weird behavior later
@@ -573,13 +576,13 @@ func (p *NaivePlanner) handlePoolExpiration(cancelOld bool) error {
 	// once again you may wonder, why not use `time.After(...)` here? As it turns
 	// out, this also does not behave properly with large timestamps, like the ones
 	// we would want to clamp.
-	if nextPoolToExpire.EmptyAt > time.Now().Add(unusedPoolExpiration).Unix() {
-		nextPoolToExpire.EmptyAt = time.Now().Add(unusedPoolExpiration).Unix()
+	maxDelay := now.Add(maxPoolExpirationDelay)
+	if nextCheck > maxDelay.Unix() {
+		nextCheck = maxDelay.Unix()
 	}
 
-	log.Debug().Time("ExpireAt", time.Unix(nextPoolToExpire.EmptyAt, 0)).Msg("next pool to expire")
-
-	p.timer = time.NewTimer(time.Until(time.Unix(nextPoolToExpire.EmptyAt, 0)))
+	log.Debug().Time("ExpireAt", time.Unix(nextCheck, 0)).Msg("next pool to expire")
+	p.timer = time.NewTimer(time.Unix(nextCheck, 0).Sub(now))
 
 	return nil
 }
