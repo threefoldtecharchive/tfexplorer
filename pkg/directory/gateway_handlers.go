@@ -13,7 +13,9 @@ import (
 	"github.com/threefoldtech/tfexplorer/models"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/mw"
+	"github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	"github.com/threefoldtech/tfexplorer/schema"
 
 	"github.com/gorilla/mux"
 )
@@ -33,8 +35,16 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		return nil, mw.Forbidden(fmt.Errorf("trying to register a gateway with nodeID %s while you are %s", gw.NodeId, keyID))
 	}
 
+	db := mw.Database(r)
+
 	if err := gw.Validate(); err != nil {
 		return nil, mw.BadRequest(err)
+	}
+
+	var farmFilter types.FarmFilter
+	farmFilter = farmFilter.WithID(schema.ID(gw.FarmId))
+	if _, err := farmFilter.Get(r.Context(), db); err != nil {
+		return nil, mw.NotFound(errors.Wrap(err, "unknown farm id"))
 	}
 
 	for _, domain := range gw.ManagedDomains {
@@ -43,7 +53,6 @@ func (s *GatewayAPI) registerGateway(r *http.Request) (interface{}, mw.Response)
 		}
 	}
 
-	db := mw.Database(r)
 	if _, err := s.Add(r.Context(), db, gw); err != nil {
 		return nil, mw.Error(err)
 	}

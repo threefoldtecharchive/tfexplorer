@@ -31,6 +31,10 @@ func (n *Gateway) Validate() error {
 		return fmt.Errorf("node_is is required")
 	}
 
+	if n.FarmId == 0 {
+		return fmt.Errorf("farm_id is required")
+	}
+
 	if len(n.OsVersion) == 0 {
 		return fmt.Errorf("os_version is required")
 	}
