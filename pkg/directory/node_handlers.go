@@ -3,11 +3,11 @@ package directory
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -39,14 +39,17 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 	if err := q.Parse(r); err != nil {
 		return nil, err
 	}
-	// check if the node already exists
-	_, err := s.Get(r.Context(), db, n.NodeId, q.Proofs)
-	if err == nil {
-		// if the node exists, this request must be authenticated
-		hNodeID := httpsig.KeyIDFromContext(r.Context())
-		if n.NodeId != hNodeID {
-			return nil, mw.Forbidden(fmt.Errorf("trying to register a node with nodeID %s while you are %s", n.NodeId, hNodeID))
-		}
+
+	// make sure the node signatures matches the body
+	hNodeID := httpsig.KeyIDFromContext(r.Context())
+	if n.NodeId != hNodeID {
+		return nil, mw.Forbidden(fmt.Errorf("trying to register a node with nodeID %s while you are %s", n.NodeId, hNodeID))
+	}
+
+	var farmFilter types.FarmFilter
+	farmFilter = farmFilter.WithID(schema.ID(n.FarmId))
+	if _, err := farmFilter.Get(r.Context(), db); err != nil {
+		return nil, mw.NotFound(errors.Wrap(err, "unknown farm id"))
 	}
 
 	//make sure node can not set public config
