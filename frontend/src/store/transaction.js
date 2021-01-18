@@ -161,6 +161,7 @@ export default ({
       dispatch('getRegisteredNodes', { size: 500, page: 1 })
       dispatch('getRegisteredFarms', { size: 500, page: 1 })
       dispatch('getRegisteredGateways', { size: 500, page: 1 })
+      dispatch('getPrices')
     }
   },
   mutations: {
