@@ -1161,7 +1161,7 @@
         }
       }
     },
-    "/api/v1/workloads": {
+    "/api/v1/reservations/workloads": {
       "get": {
         "tags": [
           "workloads"
