@@ -389,7 +389,10 @@ func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
 	db := mw.Database(r)
 	workload, err := a.workloadpipeline(filter.Get(r.Context(), db))
 	if err != nil {
-		return nil, mw.NotFound(err)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, mw.NotFound(err)
+		}
+		return nil, mw.BadRequest(err)
 	}
 
 	return workload, nil
