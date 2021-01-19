@@ -1264,7 +1264,7 @@
         }
       }
     },
-    "/api/v1/workloads/{workloadId}": {
+    "/api/v1/reservations/workloads/{workloadId}": {
       "get": {
         "tags": [
           "workloads"
@@ -1302,7 +1302,7 @@
         }
       }
     },
-    "/api/v1/workloads/{workloadId}/sign/provision": {
+    "/api/v1/reservations/workloads/{workloadId}/sign/provision": {
       "post": {
         "tags": [
           "workloads"
@@ -1340,7 +1340,7 @@
         }
       }
     },
-    "/api/v1/workloads/{workloadId}/sign/delete": {
+    "/api/v1/reservations/workloads/{workloadId}/sign/delete": {
       "post": {
         "tags": [
           "workloads"
@@ -1378,7 +1378,7 @@
         }
       }
     },
-    "/api/v1/convert": {
+    "/api/v1/reservations/convert": {
       "get": {
         "tags": [
           "workloads"
