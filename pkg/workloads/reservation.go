@@ -392,7 +392,7 @@ func (a *API) getWorkload(r *http.Request) (interface{}, mw.Response) {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, mw.NotFound(err)
 		}
-		return nil, mw.BadRequest(err)
+		return nil, mw.Error(err)
 	}
 
 	return workload, nil
