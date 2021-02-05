@@ -11,7 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/xdr"
 	gdirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
@@ -59,17 +58,6 @@ type (
 		// GetByID get a farm from the database using its ID
 		GetByID(ctx context.Context, db *mongo.Database, id int64) (directorytypes.Farm, error)
 		GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmID, threebotID int64) (directorytypes.FarmThreebotPrice, error)
-	}
-
-	reservationRegisterJob struct {
-		reservation            workloads.Reservation
-		supportedCurrencyCodes []string
-		responseChan           chan reservationRegisterJobResponse
-	}
-
-	reservationRegisterJobResponse struct {
-		data types.CustomerEscrowInformation
-		err  error
 	}
 
 	capacityReservationRegisterJob struct {
@@ -537,28 +525,6 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 	return nil
 }
 
-func (e *Stellar) refundEscrow(escrowInfo types.ReservationPaymentInformation) error {
-	slog := log.With().
-		Str("address", escrowInfo.Address).
-		Int64("reservation_id", int64(escrowInfo.ReservationID)).
-		Logger()
-
-	slog.Info().Msgf("try to refund client for escrow")
-
-	addressInfo, err := types.CustomerAddressByAddress(e.ctx, e.db, escrowInfo.Address)
-	if err != nil {
-		return errors.Wrap(err, "failed to load escrow info")
-	}
-
-	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
-		return errors.Wrap(err, "failed to refund clients")
-	}
-	totalStellarTransactions.Inc()
-
-	slog.Info().Msgf("refunded client for escrow")
-	return nil
-}
-
 func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPaymentInformation, cause string) error {
 	slog := log.With().
 		Str("address", escrowInfo.Address).
@@ -728,10 +694,6 @@ func addressByAsset(addrs []gdirectory.WalletAddress, asset stellar.Asset) (stri
 		}
 	}
 	return "", fmt.Errorf("not address found for asset %s", asset)
-}
-
-func reservationMemo(id schema.ID) string {
-	return fmt.Sprintf("%d", id)
 }
 
 func capacityReservationMemo(id schema.ID) string {
