@@ -591,12 +591,6 @@ func (a *API) workloads(r *http.Request) (interface{}, mw.Response) {
 			continue
 		}
 
-		if reservation.NextAction == types.Delete {
-			if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
-				return nil, mw.Error(err)
-			}
-		}
-
 		// only reservations that is in right status
 		if !reservation.IsAny(types.Deploy, types.Delete) {
 			continue
@@ -823,20 +817,12 @@ func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Error(err)
 	}
 
-	if result.State == generated.ResultStateError {
-		if err := a.setReservationDeleted(r.Context(), db, rid); err != nil {
-			return nil, mw.Error(err)
-		}
-	} else if result.State == generated.ResultStateOK {
+	if result.State == generated.ResultStateOK {
 		// check if entire reservation is deployed successfully
 		// fetch reservation from db again to have result appended in the model
 		reservation, err = a.pipeline(filter.Get(r.Context(), db))
 		if err != nil {
 			return nil, mw.NotFound(err)
-		}
-
-		if reservation.IsSuccessfullyDeployed() {
-			a.escrow.ReservationDeployed(rid)
 		}
 	}
 
@@ -1216,10 +1202,6 @@ func (a *API) signDelete(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Created()
 	}
 
-	if err := a.setReservationDeleted(r.Context(), db, reservation.ID); err != nil {
-		return nil, mw.Error(err)
-	}
-
 	if err := types.WorkloadPush(r.Context(), db, reservation.Workloads("")...); err != nil {
 		return nil, mw.Error(err)
 	}
@@ -1281,19 +1263,6 @@ func (a *API) newSignDelete(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	return nil, mw.Created()
-}
-
-func (a *API) setReservationDeleted(ctx context.Context, db *mongo.Database, id schema.ID) error {
-	// cancel reservation escrow in case the reservation has not yet been deployed
-	a.escrow.ReservationCanceled(id)
-	// No longer set the reservation as deleted. This means a workload which managed
-	// to deploy will stay allive. This code path should not happen (it can only
-	// happen just after the upgrade, for reservations with a pending escrow), and
-	// its not worth the hassle to manually figure out where to send the tokens.
-
-	// if there are any public ip workloads defined, free up public ip's for the farmer
-
-	return nil
 }
 
 func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types.WorkloaderType) (types.WorkloaderType, error) {
