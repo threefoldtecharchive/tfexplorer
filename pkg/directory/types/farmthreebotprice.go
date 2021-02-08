@@ -10,7 +10,6 @@ import (
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 
 	"github.com/threefoldtech/tfexplorer/mw"
-	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -117,30 +116,10 @@ func (f FarmThreebotPriceFilter) Delete(ctx context.Context, db *mongo.Database)
 }
 
 // FarmThreebotPriceCreate creates a new farm threebot price
-func FarmThreebotPriceCreate(ctx context.Context, db *mongo.Database, farmThreebotPrice FarmThreebotPrice) (schema.ID, error) {
-	if err := farmThreebotPrice.Validate(); err != nil {
-		return 0, err
-	}
-
-	col := db.Collection(FarmThreebotPriceCollection)
-	id, err := models.NextID(ctx, db, FarmThreebotPriceCollection)
-	if err != nil {
-		return id, err
-	}
-
-	farmThreebotPrice.ID = id
-	_, err = col.InsertOne(ctx, farmThreebotPrice)
-	return id, err
-}
-
-// FarmThreebotPriceUpdate update an existing farm threebot price
-func FarmThreebotPriceUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farmThreebotPrice FarmThreebotPrice) error {
-	farmThreebotPrice.ID = id
-
+func FarmThreebotPriceCreateOrUpdate(ctx context.Context, db *mongo.Database, farmThreebotPrice FarmThreebotPrice) error {
 	if err := farmThreebotPrice.Validate(); err != nil {
 		return err
 	}
-
 	// update is a subset of Farm that only has the updatable fields.
 	// this to preven the farmer from overriding other managed fields
 	// like the list of IPs
@@ -154,9 +133,10 @@ func FarmThreebotPriceUpdate(ctx context.Context, db *mongo.Database, id schema.
 		FarmId:               farmThreebotPrice.FarmId,
 		CustomCloudUnitPrice: farmThreebotPrice.CustomCloudUnitPrice,
 	}
+	opts := options.Update().SetUpsert(true)
 
 	col := db.Collection(FarmThreebotPriceCollection)
 	f := FarmThreebotPriceFilter{}.WithFarmID(farmThreebotPrice.FarmId).WithThreebotID(farmThreebotPrice.ThreebotId)
-	_, err := col.UpdateOne(ctx, f, bson.M{"$set": update})
+	_, err := col.UpdateOne(ctx, f, bson.M{"$set": update}, opts)
 	return err
 }
