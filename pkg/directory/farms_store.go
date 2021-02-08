@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
@@ -80,4 +81,55 @@ func (s FarmAPI) Delete(ctx context.Context, db *mongo.Database, id int64) error
 	var filter directory.FarmFilter
 	filter = filter.WithID(schema.ID(id))
 	return filter.Delete(ctx, db)
+}
+
+func (s *FarmAPI) GetFarmCustomPrices(ctx context.Context, db *mongo.Database, farmId int64) ([]directory.FarmThreebotPrice, int64, error) {
+	var filter directory.FarmThreebotPriceFilter
+	filter = filter.WithFarmID(farmId)
+	var count int64
+
+	cur, err := filter.Find(ctx, db)
+
+	if err != nil {
+		return nil, count, errors.Wrap(err, "failed to list farmthreebotprice")
+	}
+	defer cur.Close(ctx)
+	out := []directory.FarmThreebotPrice{}
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, count, errors.Wrap(err, "failed to load farmthreebotprice list")
+	}
+
+	count, err = filter.Count(ctx, db)
+	if err != nil {
+		return nil, count, errors.Wrap(err, "failed to count entries in farms collection")
+	}
+
+	return out, count, nil
+}
+
+func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmId, threebotId int64) (directory.FarmThreebotPrice, error) {
+	var filter directory.FarmThreebotPriceFilter
+	filter = filter.WithFarmID(farmId).WithThreebotID(threebotId)
+	price, err := filter.Get(ctx, db)
+	if err != nil {
+		// check the default pricing or return the explorer pricing..
+		farm, err := s.GetByID(ctx, db, farmId)
+		if err != nil {
+			return directory.FarmThreebotPrice{}, errors.Wrap(err, "failed to find farm") //todo add farm id..
+		}
+		if farm.DefaultCloudUnitPrice.EnableCustomPricing {
+			// is there a better way to unwrap the returned farm?
+			unwrappedFromMongoFarmPrice := generated.NodeCloudUnitPrice{}
+			unwrappedFromMongoFarmPrice.EnableCustomPricing = farm.DefaultCloudUnitPrice.EnableCustomPricing
+			unwrappedFromMongoFarmPrice.CU = farm.DefaultCloudUnitPrice.CU
+			unwrappedFromMongoFarmPrice.SU = farm.DefaultCloudUnitPrice.SU
+			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitPrice.NU
+
+			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: unwrappedFromMongoFarmPrice}, nil
+		} else {
+			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: generated.NewNodeCloudUnitPrice()}, nil
+
+		}
+	}
+	return price, nil
 }

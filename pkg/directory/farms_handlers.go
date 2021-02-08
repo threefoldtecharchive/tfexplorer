@@ -242,3 +242,26 @@ func LoadFarmMiddleware(next http.Handler) http.Handler {
 func getFarmID(ctx context.Context) schema.ID {
 	return ctx.Value(farmKey{}).(schema.ID)
 }
+
+func (f *FarmAPI) getFarmPricing(r *http.Request) (interface{}, mw.Response) {
+	sid := mux.Vars(r)["farm_id"]
+
+	id, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	db := mw.Database(r)
+
+	farm, err := f.GetByID(r.Context(), db, id)
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	// hide the email of the farm for any non authenticated user
+	if !f.isAuthenticated(r) {
+		farm.Email = ""
+	}
+
+	return farm, nil
+}

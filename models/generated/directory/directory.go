@@ -25,11 +25,6 @@ type NodeCloudUnitPrice struct {
 	EnableCustomPricing bool              `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
 }
 
-type CustomNodeCloudUnitPrice struct {
-	ThreebotId int64 `bson:"threebot_id" json:"threebot_id"`
-	NodeCloudUnitPrice
-}
-
 func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
 	return NodeCloudUnitPrice{Currency: PriceCurrencyTFT}
 }
