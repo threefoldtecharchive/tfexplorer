@@ -110,7 +110,7 @@ func (s *FarmAPI) GetFarmCustomPrices(ctx context.Context, db *mongo.Database, f
 func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmId, threebotId int64) (directory.FarmThreebotPrice, error) {
 	var filter directory.FarmThreebotPriceFilter
 	filter = filter.WithFarmID(farmId).WithThreebotID(threebotId)
-	price, err := filter.Get(ctx, db)
+	farmThreebotPrice, err := filter.Get(ctx, db)
 	if err != nil {
 		// check the default pricing or return the explorer pricing..
 		farm, err := s.GetByID(ctx, db, farmId)
@@ -124,12 +124,9 @@ func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.D
 			unwrappedFromMongoFarmPrice.CU = farm.DefaultCloudUnitPrice.CU
 			unwrappedFromMongoFarmPrice.SU = farm.DefaultCloudUnitPrice.SU
 			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitPrice.NU
-
 			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: unwrappedFromMongoFarmPrice}, nil
-		} else {
-			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: generated.NewNodeCloudUnitPrice()}, nil
-
 		}
+		return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: generated.NewNodeCloudUnitPrice()}, nil
 	}
-	return price, nil
+	return farmThreebotPrice, nil
 }

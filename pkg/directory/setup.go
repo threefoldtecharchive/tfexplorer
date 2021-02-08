@@ -39,6 +39,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.deleteFarmIps)).Methods("DELETE").Name("farm-delete-ip-v1")
 	farmsAuthenticated.HandleFunc("", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update-v1")
 	farmsAuthenticated.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
+	farmsAuthenticated.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.getFarmCustomPrices)).Methods("GET").Name("farm-get-prices-v1")
 
 	nodes := api.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := api.PathPrefix("/nodes").Subrouter()

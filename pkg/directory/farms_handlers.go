@@ -243,25 +243,42 @@ func getFarmID(ctx context.Context) schema.ID {
 	return ctx.Value(farmKey{}).(schema.ID)
 }
 
-func (f *FarmAPI) getFarmPricing(r *http.Request) (interface{}, mw.Response) {
+func (f *FarmAPI) getFarmCustomPrices(r *http.Request) (interface{}, mw.Response) {
+	// Get the farm from the middleware context
 	sid := mux.Vars(r)["farm_id"]
 
-	id, err := strconv.ParseInt(sid, 10, 64)
+	farmID, err := strconv.ParseInt(sid, 10, 64)
+	ctx := r.Context()
+
+	db := mw.Database(r)
+	prices, _, err := f.GetFarmCustomPrices(ctx, db, farmID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
+	return prices, nil
+}
+func (f *FarmAPI) getFarmCustomPriceForThreebot(r *http.Request) (interface{}, mw.Response) {
+	// Get the farm from the middleware context
+	sfid := mux.Vars(r)["farm_id"]
+	stid := mux.Vars(r)["threebot_id"]
+
+	farmID, err := strconv.ParseInt(sfid, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+
+	}
+	threebotID, err := strconv.ParseInt(stid, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+
+	}
+	ctx := r.Context()
 
 	db := mw.Database(r)
-
-	farm, err := f.GetByID(r.Context(), db, id)
+	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmID, threebotID)
 	if err != nil {
-		return nil, mw.NotFound(err)
+		return nil, mw.BadRequest(err)
 	}
+	return price, nil
 
-	// hide the email of the farm for any non authenticated user
-	if !f.isAuthenticated(r) {
-		farm.Email = ""
-	}
-
-	return farm, nil
 }
