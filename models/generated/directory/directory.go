@@ -8,17 +8,50 @@ import (
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
+type NodeResourcePrice struct {
+	Currency PriceCurrencyEnum `bson:"currency" json:"currency"`
+	Cru      float64           `bson:"cru" json:"cru"`
+	Mru      float64           `bson:"mru" json:"mru"`
+	Hru      float64           `bson:"hru" json:"hru"`
+	Sru      float64           `bson:"sru" json:"sru"`
+	Nru      float64           `bson:"nru" json:"nru"`
+}
+
+type NodeCloudUnitPrice struct {
+	Currency            PriceCurrencyEnum `bson:"currency" json:"currency"`
+	CU                  float64           `bson:"cu" json:"cu"`
+	SU                  float64           `bson:"su" json:"su"`
+	NU                  float64           `bson:"nu" json:"nu"`
+	EnableCustomPricing bool              `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
+}
+
+type CustomNodeCloudUnitPrice struct {
+	ThreebotId int64 `bson:"threebot_id" json:"threebot_id"`
+	NodeCloudUnitPrice
+}
+
+func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
+	return NodeCloudUnitPrice{Currency: PriceCurrencyTFT}
+}
+
 type Farm struct {
-	ID              schema.ID           `bson:"_id" json:"id"`
-	ThreebotId      int64               `bson:"threebot_id" json:"threebot_id"`
-	IyoOrganization string              `bson:"iyo_organization" json:"iyo_organization"`
-	Name            string              `bson:"name" json:"name"`
-	WalletAddresses []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
-	Location        Location            `bson:"location" json:"location"`
-	Email           schema.Email        `bson:"email" json:"email"`
-	ResourcePrices  []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
-	PrefixZero      schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	IPAddresses     []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
+	ID                    schema.ID           `bson:"_id" json:"id"`
+	ThreebotId            int64               `bson:"threebot_id" json:"threebot_id"`
+	IyoOrganization       string              `bson:"iyo_organization" json:"iyo_organization"`
+	Name                  string              `bson:"name" json:"name"`
+	WalletAddresses       []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
+	Location              Location            `bson:"location" json:"location"`
+	Email                 schema.Email        `bson:"email" json:"email"`
+	ResourcePrices        []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
+	PrefixZero            schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	IPAddresses           []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
+	DefaultCloudUnitPrice NodeCloudUnitPrice  `bson:"default_cloud_units_price" json:"default_cloud_units_price"`
+}
+type FarmThreebotPrice struct {
+	ID                   schema.ID          `bson:"_id" json:"id"`
+	ThreebotId           int64              `bson:"threebot_id" json:"threebot_id"`
+	FarmId               int64              `bson:"farm_id" json:"farm_id"`
+	CustomCloudUnitPrice NodeCloudUnitPrice `bson:"custom_cloud_unit_price" json:"custom_cloud_unit_price"`
 }
 
 func NewFarm() (Farm, error) {
@@ -33,15 +66,6 @@ func NewFarm() (Farm, error) {
 type WalletAddress struct {
 	Asset   string `bson:"asset" json:"asset"`
 	Address string `bson:"address" json:"address"`
-}
-
-type NodeResourcePrice struct {
-	Currency PriceCurrencyEnum `bson:"currency" json:"currency"`
-	Cru      float64           `bson:"cru" json:"cru"`
-	Mru      float64           `bson:"mru" json:"mru"`
-	Hru      float64           `bson:"hru" json:"hru"`
-	Sru      float64           `bson:"sru" json:"sru"`
-	Nru      float64           `bson:"nru" json:"nru"`
 }
 
 func NewNodeResourcePrice() (NodeResourcePrice, error) {
