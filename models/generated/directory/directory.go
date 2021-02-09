@@ -22,7 +22,7 @@ type NodeCloudUnitPrice struct {
 	CU       float64           `bson:"cu" json:"cu"`
 	SU       float64           `bson:"su" json:"su"`
 	NU       float64           `bson:"nu" json:"nu"`
-	IP4U     float64           `bson:"ip4u" json:"ip4u"`
+	IPv4U    float64           `bson:"ipv4u" json:"ipv4u"`
 }
 
 func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
@@ -30,24 +30,23 @@ func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
 }
 
 type Farm struct {
-	ID                    schema.ID           `bson:"_id" json:"id"`
-	ThreebotId            int64               `bson:"threebot_id" json:"threebot_id"`
-	IyoOrganization       string              `bson:"iyo_organization" json:"iyo_organization"`
-	Name                  string              `bson:"name" json:"name"`
-	WalletAddresses       []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
-	Location              Location            `bson:"location" json:"location"`
-	Email                 schema.Email        `bson:"email" json:"email"`
-	ResourcePrices        []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
-	PrefixZero            schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	IPAddresses           []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
-	EnableCustomPricing   bool                `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
-	DefaultCloudUnitPrice NodeCloudUnitPrice  `bson:"default_cloud_units_price" json:"default_cloud_units_price"`
+	ID                     schema.ID           `bson:"_id" json:"id"`
+	ThreebotId             int64               `bson:"threebot_id" json:"threebot_id"`
+	IyoOrganization        string              `bson:"iyo_organization" json:"iyo_organization"`
+	Name                   string              `bson:"name" json:"name"`
+	WalletAddresses        []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
+	Location               Location            `bson:"location" json:"location"`
+	Email                  schema.Email        `bson:"email" json:"email"`
+	ResourcePrices         []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
+	PrefixZero             schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	IPAddresses            []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
+	EnableCustomPricing    bool                `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
+	DefaultCloudUnitsPrice NodeCloudUnitPrice  `bson:"default_cloudunits_price" json:"default_cloudunits_price"`
 }
 type FarmThreebotPrice struct {
-	ID                   schema.ID          `bson:"_id" json:"id"`
 	ThreebotId           int64              `bson:"threebot_id" json:"threebot_id"`
 	FarmId               int64              `bson:"farm_id" json:"farm_id"`
-	CustomCloudUnitPrice NodeCloudUnitPrice `bson:"custom_cloud_unit_price" json:"custom_cloud_unit_price"`
+	CustomCloudUnitPrice NodeCloudUnitPrice `bson:"custom_cloudunits_price" json:"custom_cloudunits_price"`
 }
 
 func NewFarm() (Farm, error) {

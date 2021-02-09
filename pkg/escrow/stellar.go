@@ -559,7 +559,7 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], reservation.SponsorTid)
 	cuDollarPerMonth := price.CustomCloudUnitPrice.CU
 	suDollarPerMonth := price.CustomCloudUnitPrice.SU
-	ip4uDollarPerMonth := price.CustomCloudUnitPrice.IP4U
+	ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
 
 	amount, err := e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
 	if err != nil {

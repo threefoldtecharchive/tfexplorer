@@ -10,6 +10,7 @@ import (
 
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -114,26 +115,50 @@ func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.D
 	farmThreebotPrice, err := filter.Get(ctx, db)
 	if err != nil {
 		// check the default pricing or return the explorer pricing..
-		farm, err := s.GetByID(ctx, db, farmId)
-		if err != nil {
-			return directory.FarmThreebotPrice{}, errors.Wrap(err, "failed to find farm") //todo add farm id..
+		farm, farmerr := s.GetByID(ctx, db, farmId)
+		if farmerr != nil {
+			return directory.FarmThreebotPrice{}, errors.Wrap(farmerr, "failed to find farm") //todo add farm id..
 		}
 		if farm.EnableCustomPricing {
 			// is there a better way to unwrap the returned farm?
 			unwrappedFromMongoFarmPrice := generated.NodeCloudUnitPrice{}
-			unwrappedFromMongoFarmPrice.CU = farm.DefaultCloudUnitPrice.CU
-			unwrappedFromMongoFarmPrice.SU = farm.DefaultCloudUnitPrice.SU
-			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitPrice.NU
+			unwrappedFromMongoFarmPrice.CU = farm.DefaultCloudUnitsPrice.CU
+			unwrappedFromMongoFarmPrice.SU = farm.DefaultCloudUnitsPrice.SU
+			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitsPrice.NU
+			unwrappedFromMongoFarmPrice.IPv4U = farm.DefaultCloudUnitsPrice.IPv4U
 			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: unwrappedFromMongoFarmPrice}, nil
 		}
 
 		return directory.FarmThreebotPrice{}, errors.Wrap(err, "farmer doesn't use custom pricing. should fallback to explorer generic calculation")
 	}
 	return farmThreebotPrice, nil
+
 }
 
 func (s *FarmAPI) DeleteFarmThreebotCustomPrice(ctx context.Context, db *mongo.Database, farmId, threebotId int64) error {
 	var filter directory.FarmThreebotPriceFilter
 	filter = filter.WithFarmID(farmId).WithThreebotID(threebotId)
 	return filter.Delete(ctx, db)
+}
+
+// FarmThreebotPriceCreate creates a new farm threebot price
+func (s *FarmAPI) FarmThreebotPriceCreateOrUpdate(ctx context.Context, db *mongo.Database, farmThreebotPrice directory.FarmThreebotPrice) error {
+	// this to preven the farmer from overriding other managed fields
+	// like the list of IPs
+
+	update := struct {
+		ThreebotId           int64                        `bson:"threebot_id" json:"threebot_id"`
+		FarmId               int64                        `bson:"farm_id" json:"farm_id"`
+		CustomCloudUnitPrice generated.NodeCloudUnitPrice `bson:"custom_cloudunits_price" json:"custom_cloudunits_price"`
+	}{
+		ThreebotId:           farmThreebotPrice.ThreebotId,
+		FarmId:               farmThreebotPrice.FarmId,
+		CustomCloudUnitPrice: farmThreebotPrice.CustomCloudUnitPrice,
+	}
+	opts := options.Update().SetUpsert(true)
+
+	col := db.Collection(directory.FarmThreebotPriceCollection)
+	f := directory.FarmThreebotPriceFilter{}.WithFarmID(farmThreebotPrice.FarmId).WithThreebotID(farmThreebotPrice.ThreebotId)
+	_, err := col.UpdateOne(ctx, f, bson.M{"$set": update}, opts)
+	return err
 }

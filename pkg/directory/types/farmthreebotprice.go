@@ -114,29 +114,3 @@ func (f FarmThreebotPriceFilter) Delete(ctx context.Context, db *mongo.Database)
 	_, err = col.DeleteOne(ctx, f, options.Delete())
 	return err
 }
-
-// FarmThreebotPriceCreate creates a new farm threebot price
-func FarmThreebotPriceCreateOrUpdate(ctx context.Context, db *mongo.Database, farmThreebotPrice FarmThreebotPrice) error {
-	if err := farmThreebotPrice.Validate(); err != nil {
-		return err
-	}
-	// update is a subset of Farm that only has the updatable fields.
-	// this to preven the farmer from overriding other managed fields
-	// like the list of IPs
-
-	update := struct {
-		ThreebotId           int64                        `bson:"threebot_id" json:"threebot_id"`
-		FarmId               int64                        `bson:"farm_id" json:"farm_id"`
-		CustomCloudUnitPrice generated.NodeCloudUnitPrice `bson:"custom_cloud_unit_price" json:"custom_cloud_unit_price"`
-	}{
-		ThreebotId:           farmThreebotPrice.ThreebotId,
-		FarmId:               farmThreebotPrice.FarmId,
-		CustomCloudUnitPrice: farmThreebotPrice.CustomCloudUnitPrice,
-	}
-	opts := options.Update().SetUpsert(true)
-
-	col := db.Collection(FarmThreebotPriceCollection)
-	f := FarmThreebotPriceFilter{}.WithFarmID(farmThreebotPrice.FarmId).WithThreebotID(farmThreebotPrice.ThreebotId)
-	_, err := col.UpdateOne(ctx, f, bson.M{"$set": update}, opts)
-	return err
-}

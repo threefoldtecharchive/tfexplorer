@@ -70,7 +70,6 @@ func (f *FarmAPI) updateFarm(r *http.Request) (interface{}, mw.Response) {
 	if err != nil {
 		return nil, mw.Error(err)
 	}
-
 	return nil, mw.Ok()
 }
 
@@ -293,11 +292,12 @@ func (f *FarmAPI) createOrUpdateFarmCustomPrice(r *http.Request) (interface{}, m
 	ctx := r.Context()
 
 	db := mw.Database(r)
-	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, postedFarmThreebotPrice.FarmId, postedFarmThreebotPrice.ThreebotId)
+
+	err := f.FarmThreebotPriceCreateOrUpdate(ctx, db, postedFarmThreebotPrice)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	return price, nil
+	return nil, mw.Ok()
 }
 
 func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Response) {
