@@ -117,10 +117,9 @@ func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.D
 		if err != nil {
 			return directory.FarmThreebotPrice{}, errors.Wrap(err, "failed to find farm") //todo add farm id..
 		}
-		if farm.DefaultCloudUnitPrice.EnableCustomPricing {
+		if farm.EnableCustomPricing {
 			// is there a better way to unwrap the returned farm?
 			unwrappedFromMongoFarmPrice := generated.NodeCloudUnitPrice{}
-			unwrappedFromMongoFarmPrice.EnableCustomPricing = farm.DefaultCloudUnitPrice.EnableCustomPricing
 			unwrappedFromMongoFarmPrice.CU = farm.DefaultCloudUnitPrice.CU
 			unwrappedFromMongoFarmPrice.SU = farm.DefaultCloudUnitPrice.SU
 			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitPrice.NU

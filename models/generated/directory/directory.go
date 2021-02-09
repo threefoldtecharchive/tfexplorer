@@ -18,11 +18,10 @@ type NodeResourcePrice struct {
 }
 
 type NodeCloudUnitPrice struct {
-	Currency            PriceCurrencyEnum `bson:"currency" json:"currency"`
-	CU                  float64           `bson:"cu" json:"cu"`
-	SU                  float64           `bson:"su" json:"su"`
-	NU                  float64           `bson:"nu" json:"nu"`
-	EnableCustomPricing bool              `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
+	Currency PriceCurrencyEnum `bson:"currency" json:"currency"`
+	CU       float64           `bson:"cu" json:"cu"`
+	SU       float64           `bson:"su" json:"su"`
+	NU       float64           `bson:"nu" json:"nu"`
 }
 
 func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
@@ -40,6 +39,7 @@ type Farm struct {
 	ResourcePrices        []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
 	PrefixZero            schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
 	IPAddresses           []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
+	EnableCustomPricing   bool                `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
 	DefaultCloudUnitPrice NodeCloudUnitPrice  `bson:"default_cloud_units_price" json:"default_cloud_units_price"`
 }
 type FarmThreebotPrice struct {
