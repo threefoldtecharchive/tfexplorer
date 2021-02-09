@@ -41,6 +41,7 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farmsAuthenticated.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
 	farmsAuthenticated.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.getFarmCustomPrices)).Methods("GET").Name("farm-get-prices-v1")
 	farmsAuthenticated.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.createOrUpdateFarmCustomPrice)).Methods("POST", "PUT").Name("farm-update-prices-v1")
+	farmsAuthenticated.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.deleteFarmCustomPrice)).Methods("DELETE").Name("farm-delete-prices-v1")
 
 	nodes := api.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := api.PathPrefix("/nodes").Subrouter()

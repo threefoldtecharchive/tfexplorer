@@ -131,3 +131,9 @@ func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.D
 	}
 	return farmThreebotPrice, nil
 }
+
+func (s *FarmAPI) DeleteFarmThreebotCustomPrice(ctx context.Context, db *mongo.Database, farmId, threebotId int64) error {
+	var filter directory.FarmThreebotPriceFilter
+	filter = filter.WithFarmID(farmId).WithThreebotID(threebotId)
+	return filter.Delete(ctx, db)
+}
