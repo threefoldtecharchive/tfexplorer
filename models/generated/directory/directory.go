@@ -22,6 +22,7 @@ type NodeCloudUnitPrice struct {
 	CU       float64           `bson:"cu" json:"cu"`
 	SU       float64           `bson:"su" json:"su"`
 	NU       float64           `bson:"nu" json:"nu"`
+	IP4U     float64           `bson:"ip4u" json:"ip4u"`
 }
 
 func NewNodeCloudUnitPrice() NodeCloudUnitPrice {

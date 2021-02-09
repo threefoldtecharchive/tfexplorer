@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/zaibon/httpsig"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -125,7 +126,8 @@ func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.D
 			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitPrice.NU
 			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: unwrappedFromMongoFarmPrice}, nil
 		}
-		return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: generated.NewNodeCloudUnitPrice()}, nil
+
+		return directory.FarmThreebotPrice{}, errors.Wrap(err, "farmer doesn't use custom pricing. should fallback to explorer generic calculation")
 	}
 	return farmThreebotPrice, nil
 }

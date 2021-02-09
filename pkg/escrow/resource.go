@@ -75,6 +75,40 @@ func getDiscount(d time.Duration) float64 {
 
 }
 
+func getComputeUnitSecondTFTStropesCost(cuPriceDollarMonth float64) int64 {
+	return int64((cuPriceDollarMonth * 10_000_000_000 / TftPriceMill) / (3600 * 24 * 30))
+}
+
+func getStorageUnitSecondTFTStropesCost(suPriceDollarMonth float64) int64 {
+	return int64((suPriceDollarMonth * 10_000_000_000 / TftPriceMill) / (3600 * 24 * 30))
+}
+
+func getIPv4UnitSecondTFTStropesCost(ip4uPriceDollarMonth float64) int64 {
+	return int64((ip4uPriceDollarMonth * 10_000_000_000 / TftPriceMill) / (3600 * 24 * 30))
+}
+
+// calculateCapacityReservationCost calculates the cost of a capacity reservation
+func (e Stellar) calculateCustomCapacityReservationCost(CUs, SUs, IPv4Us uint64, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth float64, farmID int64) (xdr.Int64, error) {
+	total := big.NewInt(0)
+	cuCost := big.NewInt(0)
+	suCost := big.NewInt(0)
+	ipuCost := big.NewInt(0)
+
+	cuSecondTFTStropesCost := getComputeUnitSecondTFTStropesCost(cuDollarPerMonth)
+	suSecondTFTStropesCost := getComputeUnitSecondTFTStropesCost(suDollarPerMonth)
+	ip4uSecondTFTStropesCost := getComputeUnitSecondTFTStropesCost(ip4uDollarPerMonth)
+
+	cuCost = cuCost.Mul(big.NewInt(cuSecondTFTStropesCost), big.NewInt(int64(CUs)))
+	suCost = suCost.Mul(big.NewInt(suSecondTFTStropesCost), big.NewInt(int64(SUs)))
+	ipuCost = ipuCost.Mul(big.NewInt(ip4uSecondTFTStropesCost), big.NewInt(int64(IPv4Us)))
+	// TODO: Discount??
+	total = total.Add(total.Add(cuCost, suCost), ipuCost)
+
+	total = total.Div(total, big.NewInt(e.getNetworkDivisor()))
+
+	return xdr.Int64(total.Int64()), nil
+}
+
 // calculateCapacityReservationCost calculates the cost of a capacity reservation
 func (e Stellar) calculateCapacityReservationCost(CUs, SUs, IPv4Us uint64, farmID int64) (xdr.Int64, error) {
 	total := big.NewInt(0)

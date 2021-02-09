@@ -42,6 +42,8 @@ type (
 		DataReservation   ReservationData `bson:"data_reservation" json:"data_reservation"`
 		CustomerTid       int64           `bson:"customer_tid" json:"customer_tid"`
 		CustomerSignature string          `bson:"customer_signature" json:"customer_signature"`
+		SponsorTid        int64           `bson:"sponsor_tid" json:"sponsor_tid"`
+		SponsorSignature  string          `bson:"sponsor_signature" json:"sponsor_signature"`
 	}
 
 	// ReservationData is the actual data sent in a capacity pool reservation. If
@@ -76,6 +78,9 @@ func (pr *Reservation) Validate() error {
 
 	if len(pr.CustomerSignature) == 0 {
 		return errors.New("customer_signature is required")
+	}
+	if pr.SponsorTid != 0 && len(pr.SponsorSignature) == 0 {
+		return errors.New("sponsor_signature is required")
 	}
 
 	if len(pr.DataReservation.NodeIDs) == 0 {

@@ -61,6 +61,7 @@ type (
 	FarmAPI interface {
 		// GetByID get a farm from the database using its ID
 		GetByID(ctx context.Context, db *mongo.Database, id int64) (directorytypes.Farm, error)
+		GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmId, threebotId int64) (directorytypes.FarmThreebotPrice, error)
 	}
 
 	reservationRegisterJob struct {
@@ -555,11 +556,18 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 		return customerInfo, errors.Wrap(err, "failed to get escrow address for customer")
 	}
 
-	amount, err := e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
-	if err != nil {
-		return customerInfo, errors.Wrap(err, "failed to calculate capacity cost")
-	}
+	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], reservation.SponsorTid)
+	cuDollarPerMonth := price.CustomCloudUnitPrice.CU
+	suDollarPerMonth := price.CustomCloudUnitPrice.SU
+	ip4uDollarPerMonth := price.CustomCloudUnitPrice.IP4U
 
+	amount, err := e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
+	if err != nil {
+		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
+		if err != nil {
+			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
+		}
+	}
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{
 		ReservationID: reservation.ID,
 		Address:       address,
