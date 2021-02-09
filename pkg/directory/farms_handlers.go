@@ -282,3 +282,20 @@ func (f *FarmAPI) getFarmCustomPriceForThreebot(r *http.Request) (interface{}, m
 	return price, nil
 
 }
+
+func (f *FarmAPI) createOrUpdateFarmCustomPrice(r *http.Request) (interface{}, mw.Response) {
+
+	var postedFarmThreebotPrice directory.FarmThreebotPrice
+	if err := json.NewDecoder(r.Body).Decode(&postedFarmThreebotPrice); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	ctx := r.Context()
+
+	db := mw.Database(r)
+	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, postedFarmThreebotPrice.FarmId, postedFarmThreebotPrice.ThreebotId)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+	return price, nil
+}
