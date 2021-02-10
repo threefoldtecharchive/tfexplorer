@@ -209,27 +209,27 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 	// this to preven the farmer from overriding other managed fields
 	// like the list of IPs
 	update := struct {
-		ThreebotID             int64                         `bson:"threebot_id" json:"threebot_id"`
-		IyoOrganization        string                        `bson:"iyo_organization" json:"iyo_organization"`
-		Name                   string                        `bson:"name" json:"name"`
-		WalletAddresses        []generated.WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
-		Location               generated.Location            `bson:"location" json:"location"`
-		Email                  schema.Email                  `bson:"email" json:"email"`
-		ResourcePrices         []generated.NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
-		PrefixZero             schema.IPRange                `bson:"prefix_zero" json:"prefix_zero"`
-		EnableCustomPricing    bool                          `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
-		DefaultCloudUnitsPrice generated.NodeCloudUnitPrice  `bson:"default_cloudunits_price" json:"default_cloudunits_price"`
+		ThreebotID          int64                         `bson:"threebot_id" json:"threebot_id"`
+		IyoOrganization     string                        `bson:"iyo_organization" json:"iyo_organization"`
+		Name                string                        `bson:"name" json:"name"`
+		WalletAddresses     []generated.WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
+		Location            generated.Location            `bson:"location" json:"location"`
+		Email               schema.Email                  `bson:"email" json:"email"`
+		ResourcePrices      []generated.NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
+		PrefixZero          schema.IPRange                `bson:"prefix_zero" json:"prefix_zero"`
+		EnableCustomPricing bool                          `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
+		FarmCloudUnitsPrice generated.NodeCloudUnitPrice  `bson:"farm_cloudunits_price" json:"default_cloudunits_price"`
 	}{
-		ThreebotID:             farm.ThreebotId,
-		IyoOrganization:        farm.IyoOrganization,
-		Name:                   farm.Name,
-		WalletAddresses:        farm.WalletAddresses,
-		Location:               farm.Location,
-		Email:                  farm.Email,
-		ResourcePrices:         farm.ResourcePrices,
-		PrefixZero:             farm.PrefixZero,
-		EnableCustomPricing:    farm.EnableCustomPricing,
-		DefaultCloudUnitsPrice: farm.DefaultCloudUnitsPrice,
+		ThreebotID:          farm.ThreebotId,
+		IyoOrganization:     farm.IyoOrganization,
+		Name:                farm.Name,
+		WalletAddresses:     farm.WalletAddresses,
+		Location:            farm.Location,
+		Email:               farm.Email,
+		ResourcePrices:      farm.ResourcePrices,
+		PrefixZero:          farm.PrefixZero,
+		EnableCustomPricing: farm.EnableCustomPricing,
+		FarmCloudUnitsPrice: farm.FarmCloudUnitsPrice,
 	}
 
 	col := db.Collection(FarmCollection)

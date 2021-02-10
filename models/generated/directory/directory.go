@@ -30,18 +30,18 @@ func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
 }
 
 type Farm struct {
-	ID                     schema.ID           `bson:"_id" json:"id"`
-	ThreebotId             int64               `bson:"threebot_id" json:"threebot_id"`
-	IyoOrganization        string              `bson:"iyo_organization" json:"iyo_organization"`
-	Name                   string              `bson:"name" json:"name"`
-	WalletAddresses        []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
-	Location               Location            `bson:"location" json:"location"`
-	Email                  schema.Email        `bson:"email" json:"email"`
-	ResourcePrices         []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
-	PrefixZero             schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
-	IPAddresses            []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
-	EnableCustomPricing    bool                `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
-	DefaultCloudUnitsPrice NodeCloudUnitPrice  `bson:"default_cloudunits_price" json:"default_cloudunits_price"`
+	ID                  schema.ID           `bson:"_id" json:"id"`
+	ThreebotId          int64               `bson:"threebot_id" json:"threebot_id"`
+	IyoOrganization     string              `bson:"iyo_organization" json:"iyo_organization"`
+	Name                string              `bson:"name" json:"name"`
+	WalletAddresses     []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`
+	Location            Location            `bson:"location" json:"location"`
+	Email               schema.Email        `bson:"email" json:"email"`
+	ResourcePrices      []NodeResourcePrice `bson:"resource_prices" json:"resource_prices"`
+	PrefixZero          schema.IPRange      `bson:"prefix_zero" json:"prefix_zero"`
+	IPAddresses         []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
+	EnableCustomPricing bool                `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
+	FarmCloudUnitsPrice NodeCloudUnitPrice  `bson:"farm_cloudunits_price" json:"farm_cloudunits_price"`
 }
 type FarmThreebotPrice struct {
 	ThreebotId           int64              `bson:"threebot_id" json:"threebot_id"`

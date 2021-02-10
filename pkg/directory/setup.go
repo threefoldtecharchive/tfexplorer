@@ -31,10 +31,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.registerFarm)).Methods("POST").Name("farm-register-v1")
 	farms.HandleFunc("", mw.AsHandlerFunc(farmAPI.listFarm)).Methods("GET").Name("farm-list-v1")
 	farms.HandleFunc("/{farm_id}", mw.AsHandlerFunc(farmAPI.getFarm)).Methods("GET").Name("farm-get-v1")
-	farms.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.getFarmCustomPrices)).Methods("GET").Name("farm-get-prices-v1")
-	farms.HandleFunc("/{farm_id}/custom_prices/{threebot_id}", mw.AsHandlerFunc(farmAPI.getFarmCustomPriceForThreebot)).Methods("GET").Name("farm-get-prices-for-threebot-v1")
-	farms.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.createOrUpdateFarmCustomPrice)).Methods("POST", "PUT").Name("farm-update-prices-v1")
-	farms.HandleFunc("/{farm_id}/custom_prices", mw.AsHandlerFunc(farmAPI.deleteFarmCustomPrice)).Methods("DELETE").Name("farm-delete-prices-v1")
+	farms.HandleFunc("/{farm_id}/deals", mw.AsHandlerFunc(farmAPI.getFarmCustomPrices)).Methods("GET").Name("farm-get-prices-v1")
+	farms.HandleFunc("/{farm_id}/deals/{threebot_id}", mw.AsHandlerFunc(farmAPI.getFarmCustomPriceForThreebot)).Methods("GET").Name("farm-get-prices-for-threebot-v1")
 
 	farmsAuthenticated := farms.PathPrefix("/{farm_id}").Subrouter()
 	farmsAuthenticated.Use(mw.NewAuthMiddleware(userVerifier).Middleware)
@@ -43,6 +41,8 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.deleteFarmIps)).Methods("DELETE").Name("farm-delete-ip-v1")
 	farmsAuthenticated.HandleFunc("", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update-v1")
 	farmsAuthenticated.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
+	farmsAuthenticated.HandleFunc("/deals", mw.AsHandlerFunc(farmAPI.createOrUpdateFarmCustomPrice)).Methods("POST", "PUT").Name("farm-update-prices-v1")
+	farmsAuthenticated.HandleFunc("/deals", mw.AsHandlerFunc(farmAPI.deleteFarmCustomPrice)).Methods("DELETE").Name("farm-delete-prices-v1")
 
 	nodes := api.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := api.PathPrefix("/nodes").Subrouter()

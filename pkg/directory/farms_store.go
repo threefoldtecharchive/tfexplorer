@@ -122,10 +122,10 @@ func (s *FarmAPI) GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.D
 		if farm.EnableCustomPricing {
 			// is there a better way to unwrap the returned farm?
 			unwrappedFromMongoFarmPrice := generated.NodeCloudUnitPrice{}
-			unwrappedFromMongoFarmPrice.CU = farm.DefaultCloudUnitsPrice.CU
-			unwrappedFromMongoFarmPrice.SU = farm.DefaultCloudUnitsPrice.SU
-			unwrappedFromMongoFarmPrice.NU = farm.DefaultCloudUnitsPrice.NU
-			unwrappedFromMongoFarmPrice.IPv4U = farm.DefaultCloudUnitsPrice.IPv4U
+			unwrappedFromMongoFarmPrice.CU = farm.FarmCloudUnitsPrice.CU
+			unwrappedFromMongoFarmPrice.SU = farm.FarmCloudUnitsPrice.SU
+			unwrappedFromMongoFarmPrice.NU = farm.FarmCloudUnitsPrice.NU
+			unwrappedFromMongoFarmPrice.IPv4U = farm.FarmCloudUnitsPrice.IPv4U
 			return directory.FarmThreebotPrice{FarmId: farmId, ThreebotId: threebotId, CustomCloudUnitPrice: unwrappedFromMongoFarmPrice}, nil
 		}
 
