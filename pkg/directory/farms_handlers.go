@@ -209,10 +209,13 @@ func (f *FarmAPI) deleteFarmIps(r *http.Request) (interface{}, mw.Response) {
 func LoadFarmMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sid := mux.Vars(r)["farm_id"]
-
 		id, err := strconv.ParseInt(sid, 10, 64)
 		if err != nil {
-			mw.BadRequest(err)
+			res := mw.BadRequest(err)
+
+			w.WriteHeader(res.Status())
+			w.Write([]byte(res.ErrorAsBytes()))
+
 			return
 		}
 
@@ -220,8 +223,12 @@ func LoadFarmMiddleware(next http.Handler) http.Handler {
 
 		farmerID := httpsig.KeyIDFromContext(r.Context())
 		requestFarmerID, err := strconv.ParseInt(farmerID, 10, 64)
+
 		if err != nil {
-			mw.BadRequest(err)
+			res := mw.BadRequest(err)
+
+			w.WriteHeader(res.Status())
+			w.Write([]byte(res.ErrorAsBytes()))
 			return
 		}
 
@@ -229,12 +236,15 @@ func LoadFarmMiddleware(next http.Handler) http.Handler {
 		filter = filter.WithID(schema.ID(id)).WithOwner(requestFarmerID)
 		farm, err := filter.Get(r.Context(), db)
 		if err != nil {
-			mw.NotFound(err)
+			res := mw.NotFound(err)
+			w.WriteHeader(res.Status())
+			w.Write([]byte(res.ErrorAsBytes()))
 			return
 		}
 
 		// Store the farm object in the request context for later usage
 		ctx := context.WithValue(r.Context(), farmKey{}, farm.ID)
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -270,7 +280,7 @@ func (f *FarmAPI) getFarmCustomPrices(r *http.Request) (interface{}, mw.Response
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	farmerID := farm.ThreebotId
+	farmerID := farm.ThreebotID
 	prices, _, err := f.GetFarmCustomPrices(ctx, db, farmID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
@@ -313,16 +323,16 @@ func (f *FarmAPI) getFarmCustomPriceForThreebot(r *http.Request) (interface{}, m
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	farmerID := farm.ThreebotId
-	threebotID, err := strconv.ParseInt(stid, 10, 64)
+	farmerID := farm.ThreebotID
+	ThreebotID, err := strconv.ParseInt(stid, 10, 64)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	if authenticatedThreebotCallerID != threebotID && authenticatedThreebotCallerID != farmerID {
+	if authenticatedThreebotCallerID != ThreebotID && authenticatedThreebotCallerID != farmerID {
 		return nil, mw.BadRequest(errors.Errorf("not allowed to see that deal"))
 	}
 
-	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmID, threebotID)
+	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmID, ThreebotID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -337,12 +347,27 @@ func (f *FarmAPI) createOrUpdateFarmCustomPrice(r *http.Request) (interface{}, m
 	if err := json.NewDecoder(r.Body).Decode(&postedFarmThreebotPrice); err != nil {
 		return nil, mw.BadRequest(err)
 	}
+	sauthenticatedThreebotCaller := r.Header.Get("Threebot-Id")
+	// if authenticated is not the farm owner or the threebot of the custom price we return bad request too.
+	authenticatedThreebotCallerID, err := strconv.ParseInt(sauthenticatedThreebotCaller, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
 
 	ctx := r.Context()
 
 	db := mw.Database(r)
 
-	err := f.FarmThreebotPriceCreateOrUpdate(ctx, db, postedFarmThreebotPrice)
+	farm, err := f.GetByID(ctx, db, postedFarmThreebotPrice.FarmID)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrapf(err, "couldnt get farm"))
+
+	}
+	if farm.ThreebotID != authenticatedThreebotCallerID {
+		return nil, mw.BadRequest(errors.Errorf("not allowed to create or update on this farm when not the owner of the farm"))
+	}
+
+	err = f.FarmThreebotPriceCreateOrUpdate(ctx, db, postedFarmThreebotPrice)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -359,7 +384,20 @@ func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Respon
 	ctx := r.Context()
 
 	db := mw.Database(r)
-	err := f.DeleteFarmThreebotCustomPrice(ctx, db, postedFarmThreebotPrice.FarmID, postedFarmThreebotPrice.ThreebotID)
+
+	sauthenticatedThreebotCaller := r.Header.Get("Threebot-Id")
+	// if authenticated is not the farm owner or the threebot of the custom price we return bad request too.
+	authenticatedThreebotCallerID, err := strconv.ParseInt(sauthenticatedThreebotCaller, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	farm, err := f.GetByID(ctx, db, postedFarmThreebotPrice.FarmID)
+	if farm.ThreebotID != authenticatedThreebotCallerID {
+		return nil, mw.BadRequest(errors.Errorf("not allowed to create or update on this farm when not the owner of the farm"))
+	}
+
+	err = f.DeleteFarmThreebotCustomPrice(ctx, db, postedFarmThreebotPrice.FarmID, postedFarmThreebotPrice.ThreebotID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
