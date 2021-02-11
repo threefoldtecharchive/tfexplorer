@@ -61,7 +61,7 @@ type (
 	FarmAPI interface {
 		// GetByID get a farm from the database using its ID
 		GetByID(ctx context.Context, db *mongo.Database, id int64) (directorytypes.Farm, error)
-		GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmId, threebotId int64) (directorytypes.FarmThreebotPrice, error)
+		GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmID, threebotID int64) (directorytypes.FarmThreebotPrice, error)
 	}
 
 	reservationRegisterJob struct {
@@ -557,6 +557,9 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	}
 
 	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], reservation.SponsorTid)
+	if err != nil {
+		return customerInfo, errors.Wrap(err, "couldn't get price for threebot")
+	}
 	cuDollarPerMonth := price.CustomCloudUnitPrice.CU
 	suDollarPerMonth := price.CustomCloudUnitPrice.SU
 	ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U

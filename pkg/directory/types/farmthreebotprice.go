@@ -16,26 +16,26 @@ import (
 )
 
 const (
-	// FarmCollection db collection name
+	// FarmThreebotPriceCollection db collection name
 	FarmThreebotPriceCollection = "farmthreebotprice"
 )
 
-//Farm mongo db wrapper for generated TfgridDirectoryFarm
+// FarmThreebotPrice mongo db wrapper for generated TfgridDirectoryFarm
 type FarmThreebotPrice generated.FarmThreebotPrice
 
 // Validate validates farm object
 func (f *FarmThreebotPrice) Validate() error {
-	if f.ThreebotId == 0 {
+	if f.ThreebotID == 0 {
 		return fmt.Errorf("threebot_id is required")
 	}
-	if f.FarmId == 0 {
+	if f.FarmID == 0 {
 		return fmt.Errorf("farm_id is required")
 	}
 
 	return nil
 }
 
-// FarmQuery helper to parse query string
+// FarmThreebotPriceQuery helper to parse query string
 type FarmThreebotPriceQuery struct {
 	FarmID     int64
 	ThreebotID int64

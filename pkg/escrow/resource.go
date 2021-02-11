@@ -95,8 +95,8 @@ func (e Stellar) calculateCustomCapacityReservationCost(CUs, SUs, IPv4Us uint64,
 	ipuCost := big.NewInt(0)
 
 	cuSecondTFTStropesCost := getComputeUnitSecondTFTStropesCost(cuDollarPerMonth)
-	suSecondTFTStropesCost := getComputeUnitSecondTFTStropesCost(suDollarPerMonth)
-	ip4uSecondTFTStropesCost := getComputeUnitSecondTFTStropesCost(ip4uDollarPerMonth)
+	suSecondTFTStropesCost := getStorageUnitSecondTFTStropesCost(suDollarPerMonth)
+	ip4uSecondTFTStropesCost := getIPv4UnitSecondTFTStropesCost(ip4uDollarPerMonth)
 
 	cuCost = cuCost.Mul(big.NewInt(cuSecondTFTStropesCost), big.NewInt(int64(CUs)))
 	suCost = suCost.Mul(big.NewInt(suSecondTFTStropesCost), big.NewInt(int64(SUs)))

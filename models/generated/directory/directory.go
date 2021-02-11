@@ -44,8 +44,8 @@ type Farm struct {
 	FarmCloudUnitsPrice NodeCloudUnitPrice  `bson:"farm_cloudunits_price" json:"farm_cloudunits_price"`
 }
 type FarmThreebotPrice struct {
-	ThreebotId           int64              `bson:"threebot_id" json:"threebot_id"`
-	FarmId               int64              `bson:"farm_id" json:"farm_id"`
+	ThreebotID           int64              `bson:"threebot_id" json:"threebot_id"`
+	FarmID               int64              `bson:"farm_id" json:"farm_id"`
 	CustomCloudUnitPrice NodeCloudUnitPrice `bson:"custom_cloudunits_price" json:"custom_cloudunits_price"`
 }
 

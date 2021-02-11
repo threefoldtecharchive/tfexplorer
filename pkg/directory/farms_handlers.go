@@ -247,7 +247,10 @@ func (f *FarmAPI) getFarmCustomPrices(r *http.Request) (interface{}, mw.Response
 	// Get the farm from the middleware context
 	sid := mux.Vars(r)["farm_id"]
 
-	farmId, err := strconv.ParseInt(sid, 10, 64)
+	farmID, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Errorf("invalid farm id"))
+	}
 	ctx := r.Context()
 
 	db := mw.Database(r)
@@ -258,25 +261,25 @@ func (f *FarmAPI) getFarmCustomPrices(r *http.Request) (interface{}, mw.Response
 	}
 	sauthenticatedThreebotCaller := r.Header.Get("Threebot-Id")
 	// if authenticated is not the farm owner or the threebot of the custom price we return bad request too.
-	authenticatedThreebotCallerId, err := strconv.ParseInt(sauthenticatedThreebotCaller, 10, 64)
+	authenticatedThreebotCallerID, err := strconv.ParseInt(sauthenticatedThreebotCaller, 10, 64)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	farm, err := f.GetByID(ctx, db, farmId)
+	farm, err := f.GetByID(ctx, db, farmID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	farmerId := farm.ThreebotId
-	prices, _, err := f.GetFarmCustomPrices(ctx, db, farmId)
+	farmerID := farm.ThreebotId
+	prices, _, err := f.GetFarmCustomPrices(ctx, db, farmID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	if farmerId == authenticatedThreebotCallerId {
+	if farmerID == authenticatedThreebotCallerID {
 		return prices, nil // return all of them
 	}
 	prices = nil // reset the slice
-	priceToReturn, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmId, authenticatedThreebotCallerId)
+	priceToReturn, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmID, authenticatedThreebotCallerID)
 	if err != nil {
 		return prices, mw.Ok()
 	}
@@ -294,11 +297,11 @@ func (f *FarmAPI) getFarmCustomPriceForThreebot(r *http.Request) (interface{}, m
 	}
 	sauthenticatedThreebotCaller := r.Header.Get("Threebot-Id")
 	// if authenticated is not the farm owner or the threebot of the custom price we return bad request too.
-	authenticatedThreebotCallerId, err := strconv.ParseInt(sauthenticatedThreebotCaller, 10, 64)
+	authenticatedThreebotCallerID, err := strconv.ParseInt(sauthenticatedThreebotCaller, 10, 64)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	farmId, err := strconv.ParseInt(sfid, 10, 64)
+	farmID, err := strconv.ParseInt(sfid, 10, 64)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 
@@ -306,20 +309,20 @@ func (f *FarmAPI) getFarmCustomPriceForThreebot(r *http.Request) (interface{}, m
 	ctx := r.Context()
 
 	db := mw.Database(r)
-	farm, err := f.GetByID(ctx, db, farmId)
+	farm, err := f.GetByID(ctx, db, farmID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	farmerId := farm.ThreebotId
-	threebotId, err := strconv.ParseInt(stid, 10, 64)
+	farmerID := farm.ThreebotId
+	threebotID, err := strconv.ParseInt(stid, 10, 64)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
-	if authenticatedThreebotCallerId != threebotId && authenticatedThreebotCallerId != farmerId {
+	if authenticatedThreebotCallerID != threebotID && authenticatedThreebotCallerID != farmerID {
 		return nil, mw.BadRequest(errors.Errorf("not allowed to see that deal"))
 	}
 
-	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmId, threebotId)
+	price, err := f.GetFarmCustomPriceForThreebot(ctx, db, farmID, threebotID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -356,7 +359,7 @@ func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Respon
 	ctx := r.Context()
 
 	db := mw.Database(r)
-	err := f.DeleteFarmThreebotCustomPrice(ctx, db, postedFarmThreebotPrice.FarmId, postedFarmThreebotPrice.ThreebotId)
+	err := f.DeleteFarmThreebotCustomPrice(ctx, db, postedFarmThreebotPrice.FarmID, postedFarmThreebotPrice.ThreebotID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
