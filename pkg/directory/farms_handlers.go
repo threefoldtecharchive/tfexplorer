@@ -393,6 +393,9 @@ func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Respon
 	}
 
 	farm, err := f.GetByID(ctx, db, postedFarmThreebotPrice.FarmID)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
 	if farm.ThreebotID != authenticatedThreebotCallerID {
 		return nil, mw.BadRequest(errors.Errorf("not allowed to create or update on this farm when not the owner of the farm"))
 	}

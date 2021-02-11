@@ -555,22 +555,32 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to get escrow address for customer")
 	}
-
-	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], reservation.SponsorTid)
-	if err != nil {
-		return customerInfo, errors.Wrap(err, "couldn't get price for threebot")
+	var amount xdr.Int64
+	whichThreebotID := reservation.CustomerTid
+	if reservation.SponsorTid != 0 {
+		// should verify the sponsor here..
+		whichThreebotID = reservation.SponsorTid
 	}
-	cuDollarPerMonth := price.CustomCloudUnitPrice.CU
-	suDollarPerMonth := price.CustomCloudUnitPrice.SU
-	ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
 
-	amount, err := e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
+	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], whichThreebotID)
+	// safe to ignore the error here, we already have a farm
 	if err != nil {
 		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
 		}
+	} else {
+
+		cuDollarPerMonth := price.CustomCloudUnitPrice.CU
+		suDollarPerMonth := price.CustomCloudUnitPrice.SU
+		ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
+
+		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
+		if err != nil {
+			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
+		}
 	}
+
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{
 		ReservationID: reservation.ID,
 		Address:       address,

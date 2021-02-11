@@ -115,6 +115,35 @@ func (pr *Reservation) Verify(pk string) error {
 	return crypto.Verify(key, []byte(pr.JSON), signature)
 }
 
+// VerifySponsor the provided sponsor signature against the reservation JSON, with the provided
+// key. The key is the public key of the sponsor, as a hex string
+func (pr *Reservation) VerifySponsor(pk string) error {
+	signature, err := hex.DecodeString(pr.SponsorSignature)
+	if err != nil {
+		return errors.Wrap(err, "invalid signature format, expecting hex encoded string")
+	}
+	key, err := crypto.KeyFromHex(pk)
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
+	return crypto.Verify(key, []byte(pr.JSON), signature)
+}
+
+// VerifyCustomerAndSponsor the provided signatures of customer and sponsor against the reservation JSON, with the provided
+// customerPk The key is the public key of the user, as a hex string
+// sponsorPk The key is the public key of the sponsor, as a hex string
+func (pr *Reservation) VerifyCustomerAndSponsor(customerPk, sponsorPk string) error {
+	err := pr.Verify(customerPk)
+	if err != nil {
+		return err
+	}
+	err = pr.VerifySponsor(sponsorPk)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // CapacityReservationCreate saves a new capacity reservation to the database
 func CapacityReservationCreate(ctx context.Context, db *mongo.Database, reservation Reservation) (Reservation, error) {
 	id := models.MustID(ctx, db, CapacityReservationCollection)
