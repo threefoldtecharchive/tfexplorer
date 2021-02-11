@@ -19,7 +19,7 @@ import (
 
 type oldType struct {
 	ID              schema.ID                     `bson:"_id" json:"id"`
-	ThreebotId      int64                         `bson:"threebot_id" json:"threebot_id"`
+	ThreebotID      int64                         `bson:"threebot_id" json:"threebot_id"`
 	IyoOrganization string                        `bson:"iyo_organization" json:"iyo_organization"`
 	Name            string                        `bson:"name" json:"name"`
 	WalletAddresses []string                      `bson:"wallet_addresses" json:"wallet_addresses"`
@@ -81,7 +81,7 @@ func main() {
 
 		new := types.Farm{
 			ID:              old.ID,
-			ThreebotId:      old.ThreebotId,
+			ThreebotID:      old.ThreebotID,
 			IyoOrganization: old.IyoOrganization,
 			Name:            old.Name,
 			WalletAddresses: make([]generated.WalletAddress, len(old.WalletAddresses)),

@@ -38,7 +38,7 @@ func (f *Farm) Validate() error {
 		return fmt.Errorf("invalid farm name. name can only contain alphanumeric characters dash (-) or underscore (_)")
 	}
 
-	if f.ThreebotId == 0 {
+	if f.ThreebotID == 0 {
 		return fmt.Errorf("threebot_id is required")
 	}
 
@@ -220,7 +220,7 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 		EnableCustomPricing bool                          `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
 		FarmCloudUnitsPrice generated.NodeCloudUnitPrice  `bson:"farm_cloudunits_price" json:"default_cloudunits_price"`
 	}{
-		ThreebotID:          farm.ThreebotId,
+		ThreebotID:          farm.ThreebotID,
 		IyoOrganization:     farm.IyoOrganization,
 		Name:                farm.Name,
 		WalletAddresses:     farm.WalletAddresses,

@@ -31,7 +31,7 @@ func NewNodeCloudUnitPrice() NodeCloudUnitPrice {
 
 type Farm struct {
 	ID                  schema.ID           `bson:"_id" json:"id"`
-	ThreebotId          int64               `bson:"threebot_id" json:"threebot_id"`
+	ThreebotID          int64               `bson:"threebot_id" json:"threebot_id"`
 	IyoOrganization     string              `bson:"iyo_organization" json:"iyo_organization"`
 	Name                string              `bson:"name" json:"name"`
 	WalletAddresses     []WalletAddress     `bson:"wallet_addresses" json:"wallet_addresses"`

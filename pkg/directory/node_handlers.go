@@ -321,7 +321,7 @@ func farmOwner(ctx context.Context, farmID int64, db *mongo.Database) (int64, mw
 		return 0, mw.Error(err) //TODO
 	}
 
-	return farm.ThreebotId, nil
+	return farm.ThreebotID, nil
 }
 
 // isFarmerAuthorized ensure it is the farmer authenticated in request r is owning the node
