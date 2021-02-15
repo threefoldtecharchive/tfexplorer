@@ -19,6 +19,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
+
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -557,11 +558,15 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	}
 	var amount xdr.Int64
 	whichThreebotID := reservation.CustomerTid
-	if reservation.SponsorTid != 0 {
-		// should verify the sponsor here..
-		whichThreebotID = reservation.SponsorTid
+	poolID := reservation.DataReservation.PoolID
+	pool, err := capacitytypes.GetPool(e.ctx, e.db, schema.ID(poolID))
+	if err == nil {
+		whichThreebotID = pool.SponsorTid
+	} else {
+		if reservation.SponsorTid != 0 {
+			whichThreebotID = reservation.SponsorTid
+		}
 	}
-
 	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], whichThreebotID)
 	// safe to ignore the error here, we already have a farm
 	if err != nil {

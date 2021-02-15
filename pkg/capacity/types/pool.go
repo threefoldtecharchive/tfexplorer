@@ -59,7 +59,8 @@ type (
 		// CustomerTid is the threebot id of the pool owner. Only the owner can
 		// assign workloads to the pool
 		CustomerTid int64 `bson:"customer_tid" json:"customer_tid"`
-		SponsorTid  int64 `bson:"sponsor_tid" json:"sponsor_tid"`
+		// SponsorTid is the original sponsor of the pool when created.
+		SponsorTid int64 `bson:"sponsor_tid" json:"sponsor_tid"`
 
 		// ActiveWorkloadIDs for this pool, this list contains only unique entries
 		ActiveWorkloadIDs []schema.ID `bson:"active_workload_ids" json:"active_workload_ids"`
