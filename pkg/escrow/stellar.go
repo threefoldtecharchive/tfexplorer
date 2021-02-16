@@ -19,6 +19,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
+
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -61,6 +62,7 @@ type (
 	FarmAPI interface {
 		// GetByID get a farm from the database using its ID
 		GetByID(ctx context.Context, db *mongo.Database, id int64) (directorytypes.Farm, error)
+		GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmID, threebotID int64) (directorytypes.FarmThreebotPrice, error)
 	}
 
 	reservationRegisterJob struct {
@@ -554,10 +556,34 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	if err != nil {
 		return customerInfo, errors.Wrap(err, "failed to get escrow address for customer")
 	}
-
-	amount, err := e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
+	var amount xdr.Int64
+	whichThreebotID := reservation.CustomerTid
+	poolID := reservation.DataReservation.PoolID
+	pool, err := capacitytypes.GetPool(e.ctx, e.db, schema.ID(poolID))
+	if err == nil {
+		whichThreebotID = pool.SponsorTid
+	} else {
+		if reservation.SponsorTid != 0 {
+			whichThreebotID = reservation.SponsorTid
+		}
+	}
+	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], whichThreebotID)
+	// safe to ignore the error here, we already have a farm
 	if err != nil {
-		return customerInfo, errors.Wrap(err, "failed to calculate capacity cost")
+		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
+		if err != nil {
+			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
+		}
+	} else {
+
+		cuDollarPerMonth := price.CustomCloudUnitPrice.CU
+		suDollarPerMonth := price.CustomCloudUnitPrice.SU
+		ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
+
+		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
+		if err != nil {
+			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
+		}
 	}
 
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{

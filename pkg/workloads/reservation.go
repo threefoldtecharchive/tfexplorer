@@ -251,6 +251,23 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 	if err := reservation.Verify(user.Pubkey); err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "failed to verify customer signature"))
 	}
+	// sponsor filter
+
+	if reservation.SponsorTid != 0 {
+		if len(reservation.SponsorSignature) == 0 {
+			return nil, mw.BadRequest(errors.Wrapf(err, "cannot use sponsor_tid without providing sponsor_signature"))
+		}
+		filter = phonebook.UserFilter{}
+		filter = filter.WithID(schema.ID(reservation.SponsorTid))
+		sponsor, err := filter.Get(r.Context(), db)
+		if err != nil {
+			return nil, mw.BadRequest(errors.Wrapf(err, "cannot find sponsor with id '%d'", reservation.SponsorTid))
+		}
+		if err := reservation.VerifySponsor(sponsor.Pubkey); err != nil {
+			return nil, mw.BadRequest(errors.Wrap(err, "failed to verify sponsor signature"))
+		}
+
+	}
 
 	reservation, err = capacitytypes.CapacityReservationCreate(r.Context(), db, reservation)
 	if err != nil {

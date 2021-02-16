@@ -347,7 +347,7 @@ func (p *NaivePlanner) reserve(reservation types.Reservation, currencies []strin
 		}
 	} else {
 		// create new pool
-		pool = types.NewPool(reservation.ID, reservation.CustomerTid, data.NodeIDs)
+		pool = types.NewPool(reservation.ID, reservation.CustomerTid, reservation.SponsorTid, data.NodeIDs)
 		pool, err = types.CapacityPoolCreate(p.ctx, p.db, pool)
 		if err != nil {
 			return pi, errors.Wrap(err, "could not create new capacity pool")

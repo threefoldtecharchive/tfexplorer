@@ -36,6 +36,16 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		},
 	}
 
+	farmThreebotPrice := db.Collection(FarmThreebotPriceCollection)
+	farmThreebotPriceIndexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{"farm_id": 1},
+		},
+		{
+			Keys: bson.M{"threebot_id": 1},
+		},
+	}
+
 	for _, x := range []string{"total_resources", "user_resources", "reserved_resources"} {
 		for _, y := range []string{"cru", "mru", "hru", "sru"} {
 			nodeIdexes = append(nodeIdexes, mongo.IndexModel{
@@ -50,5 +60,10 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		log.Error().Err(err).Msg("failed to initialize node index")
 	}
 
+	_, err = farmThreebotPrice.Indexes().CreateMany(ctx, farmThreebotPriceIndexes)
+
+	if err != nil {
+		log.Error().Err(err).Msg("failed to initialize node index")
+	}
 	return err
 }

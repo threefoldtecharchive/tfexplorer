@@ -94,7 +94,7 @@ func (a *API) getConversionList(r *http.Request) (interface{}, mw.Response) {
 			return nil, mw.Error(err)
 		}
 		// create pool
-		pool := capacitytypes.NewPool(0, userTid, nodeIDs)
+		pool := capacitytypes.NewPool(0, userTid, 0, nodeIDs)
 		pool, err = capacitytypes.CapacityPoolCreate(r.Context(), db, pool)
 		if err != nil {
 			return nil, mw.Error(err)

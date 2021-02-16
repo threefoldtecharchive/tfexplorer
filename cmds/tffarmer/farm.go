@@ -29,7 +29,7 @@ func registerFarm(c *cli.Context) (err error) {
 
 	farm := directory.Farm{
 		Name:            name,
-		ThreebotId:      int64(userid.ThreebotID),
+		ThreebotID:      int64(userid.ThreebotID),
 		Email:           schema.Email(email),
 		IyoOrganization: iyo,
 		WalletAddresses: addresses,
@@ -97,7 +97,7 @@ func formatFarm(farm directory.Farm) string {
 	fmt.Fprintf(b, "ID: %d\n", farm.ID)
 	fmt.Fprintf(b, "Name: %s\ns", farm.Name)
 	fmt.Fprintf(b, "Email: %s\n", farm.Email)
-	fmt.Fprintf(b, "Farmer TheebotID: %d\n", farm.ThreebotId)
+	fmt.Fprintf(b, "Farmer TheebotID: %d\n", farm.ThreebotID)
 	fmt.Fprintf(b, "IYO organization: %s\n", farm.IyoOrganization)
 	fmt.Fprintf(b, "Wallet addresses:\n")
 	for _, a := range farm.WalletAddresses {

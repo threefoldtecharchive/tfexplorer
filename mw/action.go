@@ -12,7 +12,7 @@ import (
 type Response interface {
 	Status() int
 	Err() error
-
+	ErrorAsBytes() []byte
 	// header getter
 	Header() http.Header
 	// header setter
@@ -69,6 +69,10 @@ func (r genericResponse) Status() int {
 
 func (r genericResponse) Err() error {
 	return r.err
+}
+
+func (r genericResponse) ErrorAsBytes() []byte {
+	return []byte(r.err.Error())
 }
 
 func (r genericResponse) Header() http.Header {

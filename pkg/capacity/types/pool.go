@@ -59,6 +59,8 @@ type (
 		// CustomerTid is the threebot id of the pool owner. Only the owner can
 		// assign workloads to the pool
 		CustomerTid int64 `bson:"customer_tid" json:"customer_tid"`
+		// SponsorTid is the original sponsor of the pool when created.
+		SponsorTid int64 `bson:"sponsor_tid" json:"sponsor_tid"`
 
 		// ActiveWorkloadIDs for this pool, this list contains only unique entries
 		ActiveWorkloadIDs []schema.ID `bson:"active_workload_ids" json:"active_workload_ids"`
@@ -76,7 +78,7 @@ var (
 // NewPool sets up a new pool, ready to use, with the given data.
 //
 // If id is 0, it will be set on first save
-func NewPool(id schema.ID, ownerID int64, nodeIDs []string) Pool {
+func NewPool(id schema.ID, ownerID int64, sponsorTID int64, nodeIDs []string) Pool {
 	return Pool{
 		ID:                id,
 		Cus:               0,
@@ -87,6 +89,7 @@ func NewPool(id schema.ID, ownerID int64, nodeIDs []string) Pool {
 		ActiveSU:          0,
 		EmptyAt:           math.MaxInt64,
 		CustomerTid:       ownerID,
+		SponsorTid:        sponsorTID,
 		ActiveWorkloadIDs: []schema.ID{},
 	}
 }
