@@ -14,14 +14,16 @@ var _ Capaciter = (*K8S)(nil)
 type K8S struct {
 	ReservationInfo `bson:",inline"`
 
-	Size            int64             `bson:"size" json:"size"`
-	ClusterSecret   string            `bson:"cluster_secret" json:"cluster_secret"`
-	NetworkId       string            `bson:"network_id" json:"network_id"`
-	Ipaddress       net.IP            `bson:"ipaddress" json:"ipaddress"`
-	MasterIps       []net.IP          `bson:"master_ips" json:"master_ips"`
-	SshKeys         []string          `bson:"ssh_keys" json:"ssh_keys"`
-	StatsAggregator []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
-	PublicIP        schema.ID         `bson:"public_ip" json:"public_ip"`
+	Size                  int64             `bson:"size" json:"size"`
+	ClusterSecret         string            `bson:"cluster_secret" json:"cluster_secret"`
+	NetworkId             string            `bson:"network_id" json:"network_id"`
+	Ipaddress             net.IP            `bson:"ipaddress" json:"ipaddress"`
+	MasterIps             []net.IP          `bson:"master_ips" json:"master_ips"`
+	SshKeys               []string          `bson:"ssh_keys" json:"ssh_keys"`
+	StatsAggregator       []StatsAggregator `bson:"stats_aggregator" json:"stats_aggregator"`
+	PublicIP              schema.ID         `bson:"public_ip" json:"public_ip"`
+	DatastoreEndpoint     string            `bson:"datastore_endpoint" json:"datastore_endpoint"`
+	DisableDefaultIngress bool              `bson:"disable_default_ingress" json:"disable_default_ingress"`
 }
 
 var k8sSize = map[int64]RSU{
@@ -155,6 +157,12 @@ func (k *K8S) SignatureChallenge() ([]byte, error) {
 		}
 	}
 	if _, err := fmt.Fprintf(b, "%d", k.PublicIP); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%s", k.DatastoreEndpoint); err != nil {
+		return nil, err
+	}
+	if _, err := fmt.Fprintf(b, "%t", k.DisableDefaultIngress); err != nil {
 		return nil, err
 	}
 
