@@ -406,7 +406,6 @@ func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Respon
 
 	err = f.DeleteFarmThreebotCustomPrice(ctx, db, farmID, threebotID)
 	if err != nil {
-		fmt.Println("hereee....")
 		return nil, mw.BadRequest(err)
 	}
 	return nil, mw.Ok()
