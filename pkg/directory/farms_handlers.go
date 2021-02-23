@@ -375,12 +375,6 @@ func (f *FarmAPI) createOrUpdateFarmCustomPrice(r *http.Request) (interface{}, m
 }
 
 func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Response) {
-
-	var postedFarmThreebotPrice directory.FarmThreebotPrice
-	if err := json.NewDecoder(r.Body).Decode(&postedFarmThreebotPrice); err != nil {
-		return nil, mw.BadRequest(err)
-	}
-
 	ctx := r.Context()
 
 	db := mw.Database(r)
@@ -392,7 +386,17 @@ func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Respon
 		return nil, mw.BadRequest(err)
 	}
 
-	farm, err := f.GetByID(ctx, db, postedFarmThreebotPrice.FarmID)
+	farmID, err := strconv.ParseInt(mux.Vars(r)["farm_id"], 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	threebotID, err := strconv.ParseInt(mux.Vars(r)["threebot_id"], 10, 64)
+	if err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	farm, err := f.GetByID(ctx, db, farmID)
 	if err != nil {
 		return nil, mw.BadRequest(err)
 	}
@@ -400,8 +404,9 @@ func (f *FarmAPI) deleteFarmCustomPrice(r *http.Request) (interface{}, mw.Respon
 		return nil, mw.BadRequest(errors.Errorf("not allowed to create or update on this farm when not the owner of the farm"))
 	}
 
-	err = f.DeleteFarmThreebotCustomPrice(ctx, db, postedFarmThreebotPrice.FarmID, postedFarmThreebotPrice.ThreebotID)
+	err = f.DeleteFarmThreebotCustomPrice(ctx, db, farmID, threebotID)
 	if err != nil {
+		fmt.Println("hereee....")
 		return nil, mw.BadRequest(err)
 	}
 	return nil, mw.Ok()
