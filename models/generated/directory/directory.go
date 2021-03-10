@@ -114,6 +114,8 @@ type Node struct {
 	WgPorts           []int64        `bson:"wg_ports" json:"wg_ports"`
 	Deleted           bool           `bson:"deleted" json:"deleted"`
 	Reserved          bool           `bson:"reserved" json:"reserved"`
+	// optional flag to indicate that a node can only accept workloads from a certain user
+	UserID schema.ID `bson:"user_id" json:"user_id"`
 }
 
 func NewNode() (Node, error) {

@@ -100,6 +100,27 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.UnAuthorized(fmt.Errorf("request user identity does not match the reservation customer-tid"))
 	}
 
+	db := mw.Database(r)
+
+	var nodeFilter directory.NodeFilter
+	nodeID, err := strconv.Atoi(workload.GetNodeID())
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrapf(err, "workload with node id: %s is not valid", workload.GetNodeID()))
+	}
+
+	nodeFilter = nodeFilter.WithID(schema.ID(nodeID))
+	node, err := nodeFilter.Get(r.Context(), db, false)
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find node with id '%s'", workload.GetNodeID()))
+	}
+
+	// if a node has a userID assigned it means it will only take reservations from this user
+	if node.UserID != 0 {
+		if workload.GetCustomerTid() != int64(node.UserID) {
+			return nil, mw.UnAuthorized(fmt.Errorf("node accepts only reservations from user with id: %d", node.UserID))
+		}
+	}
+
 	workload, err = a.workloadpipeline(workload, nil)
 	if err != nil {
 		// if failed to create pipeline, then
@@ -110,8 +131,6 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	if workload.IsAny(types.Invalid, types.Delete) {
 		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.GetNextAction().String()))
 	}
-
-	db := mw.Database(r)
 
 	var filter phonebook.UserFilter
 	filter = filter.WithID(schema.ID(workload.GetCustomerTid()))
