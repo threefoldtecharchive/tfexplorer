@@ -146,6 +146,17 @@ const (
 	WorkloadTypePublicIP
 )
 
+// Any returns true if the type is one of the given types
+func (t WorkloadTypeEnum) Any(types ...WorkloadTypeEnum) bool {
+	for _, typ := range types {
+		if typ == t {
+			return true
+		}
+	}
+
+	return false
+}
+
 // WorkloadTypes is a map of all the supported workload type
 var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeZDB:             "zdb",
@@ -168,4 +179,24 @@ func (e WorkloadTypeEnum) String() string {
 		return "UNKNOWN"
 	}
 	return s
+}
+
+// GatewayTypes is a list of all types processed by a gateway
+var GatewayTypes = []WorkloadTypeEnum{
+	WorkloadTypeProxy,
+	WorkloadTypeReverseProxy,
+	WorkloadTypeSubDomain,
+	WorkloadTypeDomainDelegate,
+	WorkloadTypeGateway4To6,
+}
+
+// ZeroOSTypes is a list of all types supported by zero-os node
+var ZeroOSTypes = []WorkloadTypeEnum{
+	WorkloadTypeZDB,
+	WorkloadTypeContainer,
+	WorkloadTypeVolume,
+	WorkloadTypeNetwork,
+	WorkloadTypeKubernetes,
+	WorkloadTypeNetworkResource,
+	WorkloadTypePublicIP,
 }

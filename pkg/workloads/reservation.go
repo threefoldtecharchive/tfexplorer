@@ -102,22 +102,22 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	db := mw.Database(r)
 
-	var nodeFilter directory.NodeFilter
-	nodeID, err := strconv.Atoi(workload.GetNodeID())
-	if err != nil {
-		return nil, mw.BadRequest(errors.Wrapf(err, "workload with node id: %s is not valid", workload.GetNodeID()))
-	}
+	typ := workload.GetWorkloadType()
+	if typ.Any(generated.ZeroOSTypes...) {
+		// dedication does not apply on gateways, hence this
+		// check is here
+		var nodeFilter directory.NodeFilter
+		nodeFilter = nodeFilter.WithNodeID(workload.GetNodeID())
+		node, err := nodeFilter.Get(r.Context(), db, false)
+		if err != nil {
+			return nil, mw.BadRequest(errors.Wrapf(err, "cannot find node with id '%s'", workload.GetNodeID()))
+		}
 
-	nodeFilter = nodeFilter.WithID(schema.ID(nodeID))
-	node, err := nodeFilter.Get(r.Context(), db, false)
-	if err != nil {
-		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find node with id '%s'", workload.GetNodeID()))
-	}
-
-	// if a node has a dedicated ID assigned it means it will only take reservations from this user
-	if node.Dedicated != 0 {
-		if workload.GetCustomerTid() != int64(node.Dedicated) {
-			return nil, mw.UnAuthorized(fmt.Errorf("node accepts only reservations from user with id: %d", node.Dedicated))
+		// if a node has a dedicated ID assigned it means it will only take reservations from this user
+		if node.Dedicated != 0 {
+			if workload.GetCustomerTid() != int64(node.Dedicated) {
+				return nil, mw.UnAuthorized(fmt.Errorf("node accepts only reservations from user with id: %d", node.Dedicated))
+			}
 		}
 	}
 
