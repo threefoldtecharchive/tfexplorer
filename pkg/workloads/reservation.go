@@ -100,6 +100,27 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.UnAuthorized(fmt.Errorf("request user identity does not match the reservation customer-tid"))
 	}
 
+	db := mw.Database(r)
+
+	typ := workload.GetWorkloadType()
+	if typ.Any(generated.ZeroOSTypes...) {
+		// dedication does not apply on gateways, hence this
+		// check is here
+		var nodeFilter directory.NodeFilter
+		nodeFilter = nodeFilter.WithNodeID(workload.GetNodeID())
+		node, err := nodeFilter.Get(r.Context(), db, false)
+		if err != nil {
+			return nil, mw.BadRequest(errors.Wrapf(err, "cannot find node with id '%s'", workload.GetNodeID()))
+		}
+
+		// if a node has a dedicated ID assigned it means it will only take reservations from this user
+		if node.Dedicated != 0 {
+			if workload.GetCustomerTid() != int64(node.Dedicated) {
+				return nil, mw.UnAuthorized(fmt.Errorf("node accepts only reservations from user with id: %d", node.Dedicated))
+			}
+		}
+	}
+
 	workload, err = a.workloadpipeline(workload, nil)
 	if err != nil {
 		// if failed to create pipeline, then
@@ -110,8 +131,6 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	if workload.IsAny(types.Invalid, types.Delete) {
 		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.GetNextAction().String()))
 	}
-
-	db := mw.Database(r)
 
 	var filter phonebook.UserFilter
 	filter = filter.WithID(schema.ID(workload.GetCustomerTid()))
