@@ -17,6 +17,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/mw"
 	"github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	directory "github.com/threefoldtech/tfexplorer/pkg/directory/types"
+	phonebook "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/capacity"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
@@ -157,6 +158,52 @@ func (s *NodeAPI) registerIfaces(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	return nil, mw.Created()
+}
+
+func (s *NodeAPI) setNodeDedicated(r *http.Request) (interface{}, mw.Response) {
+	data := struct {
+		UserID int64 `json:"user_id"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	db := mw.Database(r)
+	nodeID := mux.Vars(r)["node_id"]
+
+	node, err := s.Get(r.Context(), db, nodeID, false)
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	// ensure it is the farmer that does the call
+	authorized, merr := isFarmerAuthorized(r, node, db)
+	if err != nil {
+		return nil, merr
+	}
+
+	if !authorized {
+		return nil, mw.Forbidden(fmt.Errorf("only the farmer can configured the public interface of its nodes"))
+	}
+
+	// if a userID is provided we check if the user exists
+	// otherwise it will be an unset operation
+	if data.UserID > 0 {
+		var filter phonebook.UserFilter
+		filter = filter.WithID(schema.ID(data.UserID))
+		_, err = filter.Get(r.Context(), db)
+		if err != nil {
+			return nil, mw.NotFound(errors.Wrap(err, "user not found"))
+		}
+	}
+
+	err = directory.NodeUpdateDedicated(r.Context(), db, nodeID, data.UserID)
+	if err != nil {
+		return nil, mw.Error(err)
+	}
+
+	return nil, mw.Ok()
 }
 
 func (s *NodeAPI) configurePublic(r *http.Request) (interface{}, mw.Response) {
