@@ -114,10 +114,10 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(errors.Wrapf(err, "cannot find node with id '%s'", workload.GetNodeID()))
 	}
 
-	// if a node has a userID assigned it means it will only take reservations from this user
-	if node.UserID != 0 {
-		if workload.GetCustomerTid() != int64(node.UserID) {
-			return nil, mw.UnAuthorized(fmt.Errorf("node accepts only reservations from user with id: %d", node.UserID))
+	// if a node has a dedicated ID assigned it means it will only take reservations from this user
+	if node.Dedicated != 0 {
+		if workload.GetCustomerTid() != int64(node.Dedicated) {
+			return nil, mw.UnAuthorized(fmt.Errorf("node accepts only reservations from user with id: %d", node.Dedicated))
 		}
 	}
 

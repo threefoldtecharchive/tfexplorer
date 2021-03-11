@@ -115,7 +115,7 @@ type Node struct {
 	Deleted           bool           `bson:"deleted" json:"deleted"`
 	Reserved          bool           `bson:"reserved" json:"reserved"`
 	// optional flag to indicate that a node can only accept workloads from a certain user
-	UserID schema.ID `bson:"user_id" json:"user_id"`
+	Dedicated schema.ID `bson:"dedicated" json:"dedicated"`
 }
 
 func NewNode() (Node, error) {
