@@ -597,7 +597,6 @@ func (p *NaivePlanner) syncPools() error {
 	}
 
 	for pool := range pools {
-		log.Debug().Int64("id", int64(pool.ID)).Msg("synching pool")
 		if pool.Err != nil {
 			log.Error().Err(err).Msg("failed to process pool")
 			continue
@@ -629,12 +628,6 @@ func (p *NaivePlanner) updateUsedCapacityPool(pool types.Pool) error {
 		if err != nil {
 			return errors.Wrap(err, "could not pool's workload")
 		}
-
-		if w.GetNextAction() == workloadtypes.Deleted {
-			log.Debug().Int64("id", int64(w.GetID())).Msg("workload is deleted, dropping from pool")
-			continue
-		}
-
 		rsu, err := w.GetRSU()
 		if err != nil {
 			return err

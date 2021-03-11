@@ -113,8 +113,6 @@ type Node struct {
 	PublicKeyHex      string         `bson:"public_key_hex" json:"public_key_hex"`
 	WgPorts           []int64        `bson:"wg_ports" json:"wg_ports"`
 	Deleted           bool           `bson:"deleted" json:"deleted"`
-	// Reserved for internal use.
-	Reserved bool `bson:"reserved" json:"reserved"`
 }
 
 func NewNode() (Node, error) {
