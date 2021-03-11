@@ -358,7 +358,13 @@ func GetPoolsByOwner(ctx context.Context, db *mongo.Database, owner int64) ([]Po
 // GetExpiredPools returns a list of all expired pools
 func GetExpiredPools(ctx context.Context, db *mongo.Database, ts int64) ([]Pool, error) {
 	pools := []Pool{}
-	cursor, err := db.Collection(CapacityPoolCollection).Find(ctx, bson.M{"empty_at": bson.M{"$lte": ts}})
+
+	cursor, err := db.Collection(CapacityPoolCollection).Find(ctx,
+		bson.M{"$or": bson.A{
+			bson.M{"empty_at": bson.M{"$lte": ts}},
+			bson.M{"empty_at": math.MaxInt64},
+		}})
+
 	if err != nil {
 		return nil, errors.Wrap(err, "could not load pools for owner")
 	}
