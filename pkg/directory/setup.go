@@ -41,9 +41,9 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.deleteFarmIps)).Methods("DELETE").Name("farm-delete-ip-v1")
 	farmsAuthenticated.HandleFunc("", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update-v1")
 	farmsAuthenticated.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
+	farmsAuthenticated.HandleFunc("/{node_id}/dedicated", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.setNodeDedicated))).Methods("PUT").Name("node-set-node-dedicated")
 	farmsAuthenticated.HandleFunc("/deals", mw.AsHandlerFunc(farmAPI.createOrUpdateFarmCustomPrice)).Methods("POST", "PUT").Name("farm-update-prices-v1")
 	farmsAuthenticated.HandleFunc("/deals/{threebot_id}", mw.AsHandlerFunc(farmAPI.deleteFarmCustomPrice)).Methods("DELETE").Name("farm-delete-prices-v1")
-	farmsAuthenticated.HandleFunc("/dedicate-node", mw.AsHandlerFunc(farmAPI.setNodeDedicated)).Methods("POST").Name("farm-set-node-dedicated")
 
 	nodes := api.PathPrefix("/nodes").Subrouter()
 	nodesAuthenticated := api.PathPrefix("/nodes").Subrouter()

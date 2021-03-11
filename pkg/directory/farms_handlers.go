@@ -157,8 +157,7 @@ func (f *FarmAPI) setNodeDedicated(r *http.Request) (interface{}, mw.Response) {
 	farmID := getFarmID(r.Context())
 
 	data := struct {
-		nodeID string
-		userID int64
+		UserID int64 `json:"user_id"`
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -166,9 +165,10 @@ func (f *FarmAPI) setNodeDedicated(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	var nodeAPI NodeAPI
+	nodeID := mux.Vars(r)["node_id"]
 
 	db := mw.Database(r)
-	node, err := nodeAPI.Get(r.Context(), db, data.nodeID, false)
+	node, err := nodeAPI.Get(r.Context(), db, nodeID, false)
 	if err != nil {
 		return nil, mw.NotFound(err)
 	}
@@ -177,19 +177,18 @@ func (f *FarmAPI) setNodeDedicated(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Forbidden(fmt.Errorf("only the farm owner of this node can update this node"))
 	}
 
-	var filter phonebook.UserFilter
-	filter = filter.WithID(schema.ID(data.userID))
-
 	// if a userID is provided we check if the user exists
 	// otherwise it will be an unset operation
-	if data.userID > 0 {
+	if data.UserID > 0 {
+		var filter phonebook.UserFilter
+		filter = filter.WithID(schema.ID(data.UserID))
 		_, err = filter.Get(r.Context(), db)
 		if err != nil {
 			return nil, mw.NotFound(err)
 		}
 	}
 
-	err = directory.NodeUpdateDedicated(r.Context(), db, data.nodeID, data.userID)
+	err = directory.NodeUpdateDedicated(r.Context(), db, nodeID, data.UserID)
 	if err != nil {
 		return nil, mw.Error(err)
 	}
