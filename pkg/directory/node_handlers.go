@@ -56,6 +56,9 @@ func (s *NodeAPI) registerNode(r *http.Request) (interface{}, mw.Response) {
 	n.PublicConfig = nil
 	// and it not immediately deleted
 	n.Deleted = false
+	// set dedicated user id to 0 in case this was passed on accident or on purpose
+	n.Dedicated = 0
+
 	if _, err := s.Add(r.Context(), db, n); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, mw.NotFound(fmt.Errorf("farm with id:%d does not exists", n.FarmId))
