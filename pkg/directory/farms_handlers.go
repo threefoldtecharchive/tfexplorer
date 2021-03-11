@@ -156,11 +156,10 @@ func (f *FarmAPI) deleteNodeFromFarm(r *http.Request) (interface{}, mw.Response)
 func (f *FarmAPI) setNodeDedicated(r *http.Request) (interface{}, mw.Response) {
 	farmID := getFarmID(r.Context())
 
-	type body struct {
+	data := struct {
 		nodeID string
 		userID int64
-	}
-	var data body
+	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		return nil, mw.BadRequest(err)
