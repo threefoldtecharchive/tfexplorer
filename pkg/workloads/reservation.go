@@ -144,6 +144,14 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.Forbidden(errors.New("not allowed to deploy workload on this pool"))
 	}
 
+	// this has to be done before checking the capacity planner
+	// for capacityand of course before storing the object
+	if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
+		if err := a.handleKubernetesSize(r.Context(), db, workload); err != nil {
+			return nil, err
+		}
+	}
+
 	id, err := types.WorkloadCreate(r.Context(), db, workload)
 	if err != nil {
 		log.Error().Err(err).Msg("could not create workload")
@@ -175,7 +183,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 	}
 
 	if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
-		if err := a.handleKubernetesReservation(r.Context(), db, workload, requestUserID); err != nil {
+		if err := a.handleKubernetesPublicIP(r.Context(), db, workload, requestUserID); err != nil {
 			return nil, err
 		}
 	} else if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
@@ -1307,7 +1315,50 @@ func (a *API) setFarmIPFree(ctx context.Context, db *mongo.Database, workload ty
 	return nil
 }
 
-func (a *API) handleKubernetesReservation(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
+func (a *API) getMaxNodeCapacity(ctx context.Context, db *mongo.Database, nodeID string) (workloads.K8SCustomSize, mw.Response) {
+
+	var filter directory.NodeFilter
+	filter = filter.WithNodeID(nodeID)
+	node, err := filter.Get(ctx, db, false)
+	if err != nil {
+		return workloads.K8SCustomSize{}, mw.NotFound(err)
+	}
+
+	resources := node.TotalResources.Diff(node.ReservedResources)
+	if resources.Cru == 0 || resources.Mru <= 0 {
+		return workloads.K8SCustomSize{}, mw.Conflict(fmt.Errorf("selected node does not have enough resources"))
+	}
+	return workloads.K8SCustomSize{
+		CRU: int64(resources.Cru),
+		MRU: resources.Mru,
+		SRU: 50, //TODO: should we keep fixed? and to what value?
+	}, nil
+}
+
+func (a *API) handleKubernetesSize(ctx context.Context, db *mongo.Database, workload types.WorkloaderType) mw.Response {
+	k8sWorkload := workload.Workloader.(*generated.K8S)
+	// resert the custom size fields anyway even if the
+	// node gonna ignore it anyway
+
+	k8sWorkload.CustomSize = workloads.K8SCustomSize{}
+
+	// fix k3s size
+	if k8sWorkload.Size == -1 {
+		// size -1 is a special size
+		// that allow the explorer to fill in custom
+		// cpu and memory sizes
+		size, err := a.getMaxNodeCapacity(ctx, db, workload.GetNodeID())
+		if err != nil {
+			return err
+		}
+
+		k8sWorkload.CustomSize = size
+	}
+
+	return nil
+}
+
+func (a *API) handleKubernetesPublicIP(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
 	k8sWorkload := workload.Workloader.(*generated.K8S)
 
 	if k8sWorkload.PublicIP == 0 {

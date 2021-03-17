@@ -216,6 +216,16 @@ type ResourceAmount struct {
 	Sru float64 `bson:"sru" json:"sru"`
 }
 
+// Diff returns r - v
+func (r *ResourceAmount) Diff(v ResourceAmount) ResourceAmount {
+	return ResourceAmount{
+		Cru: r.Cru - v.Cru,
+		Mru: r.Mru - v.Mru,
+		Hru: r.Mru - v.Hru,
+		Sru: r.Sru - v.Sru,
+	}
+}
+
 func NewResourceAmount() (ResourceAmount, error) {
 	const value = "{}"
 	var object ResourceAmount
