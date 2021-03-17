@@ -309,13 +309,6 @@ func NodeSetWGPorts(ctx context.Context, db *mongo.Database, nodeID string, port
 	})
 }
 
-// NodeUpdateDedicated sets node dedicated user id
-func NodeUpdateDedicated(ctx context.Context, db *mongo.Database, nodeID string, dedicated int64) error {
-	return nodeUpdate(ctx, db, nodeID, bson.M{
-		"dedicated": dedicated,
-	})
-}
-
 // NodePushProof push proof to node
 func NodePushProof(ctx context.Context, db *mongo.Database, nodeID string, proof generated.Proof) error {
 	if nodeID == "" {
