@@ -12,9 +12,9 @@ var _ Workloader = (*K8S)(nil)
 var _ Capaciter = (*K8S)(nil)
 
 type K8SCustomSize struct {
-	CRU int64
-	MRU float64
-	SRU float64
+	CRU int64   `bson:"cru" json:"cru" `
+	MRU float64 `bson:"mru" json:"mru" `
+	SRU float64 `bson:"sru" json:"sru" `
 }
 
 type K8S struct {
