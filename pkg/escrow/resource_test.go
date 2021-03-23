@@ -140,9 +140,8 @@ func TestProcessReservation(t *testing.T) {
 
 	escrow := Stellar{
 		//wallet:             &stellar.StellarWallet{},
-		db:                 nil,
-		reservationChannel: nil,
-		nodeAPI:            &nodeAPIMock{},
+		db:      nil,
+		nodeAPI: &nodeAPIMock{},
 	}
 
 	farmRsu, err := escrow.processReservationResources(data)

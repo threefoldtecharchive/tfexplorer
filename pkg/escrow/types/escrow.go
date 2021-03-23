@@ -109,22 +109,6 @@ type (
 	}
 )
 
-// ReservationPaymentInfoCreate creates the reservation payment information
-func ReservationPaymentInfoCreate(ctx context.Context, db *mongo.Database, reservationPaymentInfo ReservationPaymentInformation) error {
-	col := db.Collection(EscrowCollection)
-	_, err := col.InsertOne(ctx, reservationPaymentInfo)
-	if err != nil {
-		if merr, ok := err.(mongo.WriteException); ok {
-			errCode := merr.WriteErrors[0].Code
-			if errCode == 11000 {
-				return ErrEscrowExists
-			}
-		}
-		return err
-	}
-	return nil
-}
-
 // CapacityReservationPaymentInfoCreate creates the reservation payment information
 func CapacityReservationPaymentInfoCreate(ctx context.Context, db *mongo.Database, reservationPaymentInfo CapacityReservationPaymentInformation) error {
 	col := db.Collection(CapacityEscrowCollection)
@@ -141,17 +125,6 @@ func CapacityReservationPaymentInfoCreate(ctx context.Context, db *mongo.Databas
 	return nil
 }
 
-// ReservationPaymentInfoUpdate update reservation payment info
-func ReservationPaymentInfoUpdate(ctx context.Context, db *mongo.Database, update ReservationPaymentInformation) error {
-	filter := bson.M{"_id": update.ReservationID}
-	// actually update the user with final data
-	if _, err := db.Collection(EscrowCollection).UpdateOne(ctx, filter, bson.M{"$set": update}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // CapacityReservationPaymentInfoUpdate update reservation payment info
 func CapacityReservationPaymentInfoUpdate(ctx context.Context, db *mongo.Database, update CapacityReservationPaymentInformation) error {
 	filter := bson.M{"_id": update.ReservationID}
@@ -161,21 +134,6 @@ func CapacityReservationPaymentInfoUpdate(ctx context.Context, db *mongo.Databas
 	}
 
 	return nil
-}
-
-// ReservationPaymentInfoGet a single reservation escrow info using its id
-func ReservationPaymentInfoGet(ctx context.Context, db *mongo.Database, id schema.ID) (ReservationPaymentInformation, error) {
-	col := db.Collection(EscrowCollection)
-	var rpi ReservationPaymentInformation
-	res := col.FindOne(ctx, bson.M{"_id": id})
-	if err := res.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return rpi, ErrEscrowNotFound
-		}
-		return rpi, err
-	}
-	err := res.Decode(&rpi)
-	return rpi, err
 }
 
 // CapacityReservationPaymentInfoGet a single reservation escrow info using its id
@@ -191,21 +149,6 @@ func CapacityReservationPaymentInfoGet(ctx context.Context, db *mongo.Database, 
 	}
 	err := res.Decode(&rpi)
 	return rpi, err
-}
-
-// GetAllActiveReservationPaymentInfos get all active reservation payment information
-func GetAllActiveReservationPaymentInfos(ctx context.Context, db *mongo.Database) ([]ReservationPaymentInformation, error) {
-	filter := bson.M{"paid": false, "expiration": bson.M{"$gt": schema.Date{Time: time.Now()}}}
-	cursor, err := db.Collection(EscrowCollection).Find(ctx, filter)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get cursor over active payment infos")
-	}
-	paymentInfos := make([]ReservationPaymentInformation, 0)
-	err = cursor.All(ctx, &paymentInfos)
-	if err != nil {
-		err = errors.Wrap(err, "failed to decode active payment information")
-	}
-	return paymentInfos, err
 }
 
 // GetAllActiveCapacityReservationPaymentInfos get all active reservation payment information

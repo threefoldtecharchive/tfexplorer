@@ -11,15 +11,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/xdr"
 	gdirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
-	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
 	"github.com/threefoldtech/tfexplorer/pkg/directory"
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
-	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
-
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -32,10 +29,7 @@ type (
 		db                *mongo.Database
 		gridNetwork       gridnetworks.GridNetwork
 
-		reservationChannel         chan reservationRegisterJob
 		capacityReservationChannel chan capacityReservationRegisterJob
-		deployedChannel            chan schema.ID
-		cancelledChannel           chan schema.ID
 
 		paidCapacityInfoChannel chan schema.ID
 
@@ -63,17 +57,6 @@ type (
 		// GetByID get a farm from the database using its ID
 		GetByID(ctx context.Context, db *mongo.Database, id int64) (directorytypes.Farm, error)
 		GetFarmCustomPriceForThreebot(ctx context.Context, db *mongo.Database, farmID, threebotID int64) (directorytypes.FarmThreebotPrice, error)
-	}
-
-	reservationRegisterJob struct {
-		reservation            workloads.Reservation
-		supportedCurrencyCodes []string
-		responseChan           chan reservationRegisterJobResponse
-	}
-
-	reservationRegisterJobResponse struct {
-		data types.CustomerEscrowInformation
-		err  error
 	}
 
 	capacityReservationRegisterJob struct {
@@ -160,16 +143,13 @@ func NewStellar(wallet stellar.Wallet, db *mongo.Database, foundationAddress str
 	}
 
 	return &Stellar{
-		wallet:             wallet,
-		db:                 db,
-		foundationAddress:  addr,
-		gridNetwork:        gridNetwork,
-		nodeAPI:            &directory.NodeAPI{},
-		gatewayAPI:         &directory.GatewayAPI{},
-		farmAPI:            &directory.FarmAPI{},
-		reservationChannel: make(chan reservationRegisterJob),
-		deployedChannel:    make(chan schema.ID),
-		cancelledChannel:   make(chan schema.ID),
+		wallet:            wallet,
+		db:                db,
+		foundationAddress: addr,
+		gridNetwork:       gridNetwork,
+		nodeAPI:           &directory.NodeAPI{},
+		gatewayAPI:        &directory.GatewayAPI{},
+		farmAPI:           &directory.FarmAPI{},
 		// paidCapacityInfoChannel is buffered since it is used to communicate
 		// with other workers, which might also try to communicate with this
 		// worker
@@ -193,38 +173,15 @@ func (e *Stellar) Run(ctx context.Context) error {
 
 		case <-ticker.C:
 			totalActiveEscrows.Set(0)
-			log.Info().Msg("scanning active escrow accounts balance")
-			if err := e.checkReservations(); err != nil {
-				log.Error().Err(err).Msgf("failed to check reservations")
-			}
 
 			log.Info().Msg("scanning active capacity escrow accounts balance")
 			if err := e.checkCapacityReservations(); err != nil {
 				log.Error().Err(err).Msgf("failed to check capacity reservations")
 			}
 
-			log.Info().Msg("scanning for expired escrows")
-			if err := e.refundExpiredReservations(); err != nil {
-				log.Error().Err(err).Msgf("failed to refund expired reservations")
-			}
-
 			log.Info().Msg("scanning for expired capacity escrows")
 			if err := e.refundExpiredCapacityReservations(); err != nil {
 				log.Error().Err(err).Msgf("failed to refund expired capacity reservations")
-			}
-
-		case job := <-e.reservationChannel:
-			log.Info().Int64("reservation_id", int64(job.reservation.ID)).Msg("processing new reservation escrow for reservation")
-			details, err := e.processReservation(job.reservation, job.supportedCurrencyCodes)
-			if err != nil {
-				log.Error().
-					Err(err).
-					Int64("reservation_id", int64(job.reservation.ID)).
-					Msgf("failed to check reservations")
-			}
-			job.responseChan <- reservationRegisterJobResponse{
-				err:  err,
-				data: details,
 			}
 
 		case job := <-e.capacityReservationChannel:
@@ -241,49 +198,9 @@ func (e *Stellar) Run(ctx context.Context) error {
 				data: details,
 			}
 			totalReservationsProcessed.Inc()
-
-		case id := <-e.deployedChannel:
-			log.Info().Int64("reservation_id", int64(id)).Msg("trying to pay farmer for deployed reservation")
-			if err := e.payoutFarmers(id); err != nil {
-				log.Error().
-					Err(err).
-					Int64("reservation_id", int64(id)).
-					Msgf("failed to payout farmers")
-			}
-
-		case id := <-e.cancelledChannel:
-			log.Info().Int64("reservation_id", int64(id)).Msg("trying to refund clients for canceled reservation")
-			if err := e.refundClients(id); err != nil {
-				log.Error().
-					Err(err).
-					Int64("reservation_id", int64(id)).
-					Msgf("could not refund clients")
-			}
-			totalReservationsExpires.Inc()
-		}
-	}
-}
-
-func (e *Stellar) refundExpiredReservations() error {
-	// load expired escrows
-	reservationEscrows, err := types.GetAllExpiredReservationPaymentInfos(e.ctx, e.db)
-	if err != nil {
-		return errors.Wrap(err, "failed to load active reservations from escrow")
-	}
-	for _, escrowInfo := range reservationEscrows {
-		log.Info().Int64("id", int64(escrowInfo.ReservationID)).Msg("expired escrow")
-
-		if err := e.refundEscrow(escrowInfo); err != nil {
-			log.Error().Err(err).Msgf("failed to refund reservation escrow")
-			continue
 		}
 
-		escrowInfo.Canceled = true
-		if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
-			log.Error().Err(err).Msgf("failed to mark expired reservation escrow info as cancelled")
-		}
 	}
-	return nil
 }
 
 func (e *Stellar) refundExpiredCapacityReservations() error {
@@ -300,30 +217,6 @@ func (e *Stellar) refundExpiredCapacityReservations() error {
 			continue
 		}
 
-	}
-	return nil
-}
-
-// checkReservations checks all the active reservations and marks those who are funded.
-// if a reservation is funded then it will mark this reservation as to DEPLOY.
-// if its underfunded it will throw an error.
-func (e *Stellar) checkReservations() error {
-	// load active escrows
-	reservationEscrows, err := types.GetAllActiveReservationPaymentInfos(e.ctx, e.db)
-	if err != nil {
-		return errors.Wrap(err, "failed to load active reservations from escrow")
-	}
-
-	for _, escrowInfo := range reservationEscrows {
-		if err := e.checkReservationPaid(escrowInfo); err != nil {
-			log.Error().
-				Str("address", escrowInfo.Address).
-				Int64("reservation_id", int64(escrowInfo.ReservationID)).
-				Err(err).
-				Msg("failed to check reservation escrow funding status")
-			continue
-		}
-		totalActiveEscrows.Inc()
 	}
 	return nil
 }
@@ -349,80 +242,6 @@ func (e *Stellar) checkCapacityReservations() error {
 		totalActiveEscrows.Inc()
 		totalNewEscrows.Inc()
 	}
-	return nil
-}
-
-// CheckReservationPaid verifies if an escrow account received sufficient balance
-// to pay for a reservation. If this is the case, the reservation will be moved
-// to the deploy state, and the escrow state will be updated to indicate that this
-// escrow has indeed been paid for this reservation, so it is not checked anymore
-// in the future.
-func (e *Stellar) checkReservationPaid(escrowInfo types.ReservationPaymentInformation) error {
-	slog := log.With().
-		Str("address", escrowInfo.Address).
-		Int64("reservation_id", int64(escrowInfo.ReservationID)).
-		Logger()
-
-	// calculate total amount needed for reservation
-	requiredValue := xdr.Int64(0)
-	for _, escrowAccount := range escrowInfo.Infos {
-		requiredValue += escrowAccount.TotalAmount
-	}
-
-	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset)
-	if err != nil {
-		return errors.Wrap(err, "failed to verify escrow account balance")
-	}
-
-	if balance < requiredValue {
-		slog.Debug().Msgf("required balance %d not reached yet (%d)", requiredValue, balance)
-		return nil
-	}
-
-	slog.Debug().Msgf("required balance %d funded (%d), continue reservation", requiredValue, balance)
-
-	reservation, err := workloadtypes.ReservationFilter{}.WithID(escrowInfo.ReservationID).Get(e.ctx, e.db)
-	if err != nil {
-		return errors.Wrap(err, "failed to load reservation")
-	}
-
-	pl, err := workloadtypes.NewPipeline(reservation)
-	if err != nil {
-		return errors.Wrap(err, "failed to process reservation pipeline")
-	}
-
-	reservation, _ = pl.Next()
-	if !reservation.IsAny(workloadtypes.Pay) {
-		// Do not continue, but also take no action to drive the reservation
-		// as much as possible from the main explorer part.
-		slog.Warn().Msg("reservation is paid, but no longer in pay state")
-		// We warn because this is an unusual state to be in, yet there are
-		// situations where this could happen. For example, we load the escrow,
-		// the explorer then invalidates the actual reservation (e.g. user cancels),
-		// we then load the updated reservation, which is no longer in pay state,
-		// but the explorer is still cancelling the escrow, so we get here. As stated
-		// above, we drive the escrow as much as possible from the workloads, with the
-		// timeouts coming from the escrow itself, so this situation should always
-		// resole itself. If we notice this log is coming back periodically, it thus means
-		// there is a bug somewhere else in the code.
-		// As a result, this state is therefore not considered an error.
-		return nil
-	}
-
-	slog.Info().Msg("all farmer are paid, trying to move to deploy state")
-
-	if err := workloadtypes.ReservationToDeploy(e.ctx, e.db, &reservation); err != nil {
-		return errors.Wrap(err, "failed to schedule the reservation to deploy")
-	}
-
-	escrowInfo.Paid = true
-	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
-		return errors.Wrap(err, "failed to mark reservation escrow info as paid")
-	}
-	totalEscrowsPaid.Inc()
-
-	slog.Debug().Msg("escrow marked as paid")
-
 	return nil
 }
 
@@ -469,12 +288,6 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 	slog.Debug().Msg("escrow marked as paid")
 	e.paidCapacityInfoChannel <- escrowInfo.ReservationID
 	return nil
-}
-
-// processReservation processes a single reservation
-// calculates resources and their costs
-func (e *Stellar) processReservation(reservation workloads.Reservation, offeredCurrencyCodes []string) (types.CustomerEscrowInformation, error) {
-	return types.CustomerEscrowInformation{}, fmt.Errorf("new reservations are not accepted, please use capacity pools and workloads API instead")
 }
 
 // processCapacityReservation processes a single reservation
@@ -621,136 +434,6 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	return customerInfo, nil
 }
 
-// refundClients refunds clients if the reservation is cancelled
-func (e *Stellar) refundClients(id schema.ID) error {
-	rpi, err := types.ReservationPaymentInfoGet(e.ctx, e.db, id)
-	if err != nil {
-		return errors.Wrap(err, "failed to get reservation escrow info")
-	}
-	if rpi.Released || rpi.Canceled {
-		// already paid
-		return nil
-	}
-	if err := e.refundEscrow(rpi); err != nil {
-		log.Error().Err(err).Msg("failed to refund escrow")
-		return errors.Wrap(err, "could not refund escrow")
-	}
-
-	rpi.Canceled = true
-	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
-		return errors.Wrapf(err, "could not mark escrows for %d as canceled", rpi.ReservationID)
-	}
-	log.Debug().Int64("id", int64(rpi.ReservationID)).Msg("refunded clients for reservation")
-	return nil
-}
-
-// payoutFarmers pays out the farmer for a processed reservation
-func (e *Stellar) payoutFarmers(id schema.ID) error {
-	rpi, err := types.ReservationPaymentInfoGet(e.ctx, e.db, id)
-	if err != nil {
-		if errors.Is(err, types.ErrEscrowNotFound) {
-			// reservation deployed for which there is no escrow, this is possible
-			// for a reservation attached to capacity pools. Don't worry about it.
-			return nil
-		}
-		return errors.Wrap(err, "failed to get reservation escrow info")
-	}
-	if rpi.Released || rpi.Canceled {
-		// already paid
-		return nil
-	}
-
-	paymentDistribution, exists := assetDistributions[rpi.Asset]
-	if !exists {
-		return fmt.Errorf("no payment distribution found for asset %s", rpi.Asset)
-	}
-
-	// keep track of total amount to burn and to send to foundation
-	var toBurn, toFoundation xdr.Int64
-
-	// collect the farmer addresses and amount they should receive, we already
-	// have sufficient balance on the escrow to cover this
-	paymentInfo := make([]stellar.PayoutInfo, 0, len(rpi.Infos))
-
-	for _, escrowDetails := range rpi.Infos {
-		farmerAmount, burnAmount, foundationAmount := e.splitPayout(escrowDetails.TotalAmount, paymentDistribution)
-		toBurn += burnAmount
-		toFoundation += foundationAmount
-
-		if farmerAmount > 0 {
-			// in case of an error in this flow we continue, so we try to pay as much
-			// farmers as possible even if one fails
-			farm, err := e.farmAPI.GetByID(e.ctx, e.db, int64(escrowDetails.FarmerID))
-			if err != nil {
-				log.Error().Msgf("failed to load farm info: %s", err)
-				continue
-			}
-
-			destination, err := addressByAsset(farm.WalletAddresses, rpi.Asset)
-			if err != nil {
-				// FIXME: this is probably not ok, what do we do in this case ?
-				log.Error().Err(err).Msgf("failed to find address for %s for farmer %d", rpi.Asset.Code(), farm.ID)
-				continue
-			}
-
-			// farmerAmount can't be pooled so add an info immediately
-			paymentInfo = append(paymentInfo,
-				stellar.PayoutInfo{
-					Address: destination,
-					Amount:  farmerAmount,
-				},
-			)
-		}
-	}
-
-	// a burn is a transfer of tokens back to the issuer
-	if toBurn > 0 {
-		paymentInfo = append(paymentInfo,
-			stellar.PayoutInfo{
-				Address: rpi.Asset.Issuer(),
-				Amount:  toBurn,
-			})
-	}
-
-	// ship remainder to the foundation
-	if toFoundation > 0 {
-		paymentInfo = append(paymentInfo,
-			stellar.PayoutInfo{
-				Address: e.foundationAddress,
-				Amount:  toFoundation,
-			})
-	}
-
-	addressInfo, err := types.CustomerAddressByAddress(e.ctx, e.db, rpi.Address)
-	if err != nil {
-		log.Error().Msgf("failed to load escrow address info: %s", err)
-		return errors.Wrap(err, "could not load escrow address info")
-	}
-	if err = e.wallet.PayoutFarmers(addressInfo.Secret, paymentInfo, reservationMemo(id), rpi.Asset); err != nil {
-		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, id)
-		return errors.Wrap(err, "could not pay farmer")
-	}
-	totalStellarTransactions.Inc()
-
-	// now refund any possible overpayment
-	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(id), rpi.Asset); err != nil {
-		log.Error().Msgf("failed to refund overpayment farmer: %s", err)
-		return errors.Wrap(err, "could not refund overpayment")
-	}
-	totalStellarTransactions.Inc()
-
-	log.Info().
-		Str("escrow address", rpi.Address).
-		Int64("reservation id", int64(rpi.ReservationID)).
-		Msgf("paid farmer")
-
-	rpi.Released = true
-	if err = types.ReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
-		return errors.Wrapf(err, "could not mark escrows for %d as released", rpi.ReservationID)
-	}
-	return nil
-}
-
 // payoutFarmersCap pays out the farmer for a processed reservation
 func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformation) error {
 	if rpi.Released || rpi.Canceled {
@@ -841,28 +524,6 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 	return nil
 }
 
-func (e *Stellar) refundEscrow(escrowInfo types.ReservationPaymentInformation) error {
-	slog := log.With().
-		Str("address", escrowInfo.Address).
-		Int64("reservation_id", int64(escrowInfo.ReservationID)).
-		Logger()
-
-	slog.Info().Msgf("try to refund client for escrow")
-
-	addressInfo, err := types.CustomerAddressByAddress(e.ctx, e.db, escrowInfo.Address)
-	if err != nil {
-		return errors.Wrap(err, "failed to load escrow info")
-	}
-
-	if err = e.wallet.Refund(addressInfo.Secret, reservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
-		return errors.Wrap(err, "failed to refund clients")
-	}
-	totalStellarTransactions.Inc()
-
-	slog.Info().Msgf("refunded client for escrow")
-	return nil
-}
-
 func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPaymentInformation, cause string) error {
 	slog := log.With().
 		Str("address", escrowInfo.Address).
@@ -891,20 +552,6 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 	return nil
 }
 
-// RegisterReservation registers a workload reservation
-func (e *Stellar) RegisterReservation(reservation workloads.Reservation, supportedCurrencies []string) (types.CustomerEscrowInformation, error) {
-	job := reservationRegisterJob{
-		reservation:            reservation,
-		supportedCurrencyCodes: supportedCurrencies,
-		responseChan:           make(chan reservationRegisterJobResponse),
-	}
-	e.reservationChannel <- job
-
-	response := <-job.responseChan
-
-	return response.data, response.err
-}
-
 // CapacityReservation implements Escrow
 func (e *Stellar) CapacityReservation(reservation capacitytypes.Reservation, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error) {
 	job := capacityReservationRegisterJob{
@@ -922,18 +569,6 @@ func (e *Stellar) CapacityReservation(reservation capacitytypes.Reservation, sup
 // PaidCapacity implements Escrow
 func (e *Stellar) PaidCapacity() <-chan schema.ID {
 	return e.paidCapacityInfoChannel
-}
-
-// ReservationDeployed informs the escrow that a reservation has been successfully
-// deployed, so the escrow can release the funds to the farmer (and refund any excess)
-func (e *Stellar) ReservationDeployed(reservationID schema.ID) {
-	e.deployedChannel <- reservationID
-}
-
-// ReservationCanceled informs the escrow of a canceled reservation so it can refund
-// the user
-func (e *Stellar) ReservationCanceled(reservationID schema.ID) {
-	e.cancelledChannel <- reservationID
 }
 
 // createOrLoadAccount creates or loads account based on  customer id
@@ -1058,10 +693,6 @@ func addressByAsset(addrs []gdirectory.WalletAddress, asset stellar.Asset) (stri
 		}
 	}
 	return "", fmt.Errorf("not address found for asset %s", asset)
-}
-
-func reservationMemo(id schema.ID) string {
-	return fmt.Sprintf("%d", id)
 }
 
 func capacityReservationMemo(id schema.ID) string {
