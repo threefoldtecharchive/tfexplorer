@@ -17,7 +17,6 @@ import (
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
-	workloadtypes "github.com/threefoldtech/tfexplorer/pkg/workloads/types"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
 )
