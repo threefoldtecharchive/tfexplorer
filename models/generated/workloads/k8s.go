@@ -11,6 +11,12 @@ import (
 var _ Workloader = (*K8S)(nil)
 var _ Capaciter = (*K8S)(nil)
 
+type K8SCustomSize struct {
+	CRU int64   `bson:"cru" json:"cru" `
+	MRU float64 `bson:"mru" json:"mru" `
+	SRU float64 `bson:"sru" json:"sru" `
+}
+
 type K8S struct {
 	ReservationInfo `bson:",inline"`
 
@@ -24,6 +30,7 @@ type K8S struct {
 	PublicIP              schema.ID         `bson:"public_ip" json:"public_ip"`
 	DatastoreEndpoint     string            `bson:"datastore_endpoint" json:"datastore_endpoint"`
 	DisableDefaultIngress bool              `bson:"disable_default_ingress" json:"disable_default_ingress"`
+	CustomSize            K8SCustomSize     `bson:"custom_size" json:"custom_size"`
 }
 
 var k8sSize = map[int64]RSU{
@@ -120,6 +127,14 @@ var k8sSize = map[int64]RSU{
 }
 
 func (k *K8S) GetRSU() (RSU, error) {
+	if k.Size == -1 {
+		return RSU{
+			CRU: k.CustomSize.CRU,
+			MRU: k.CustomSize.MRU,
+			SRU: k.CustomSize.SRU,
+		}, nil
+	}
+
 	rsu, ok := k8sSize[k.Size]
 	if !ok {
 		return RSU{}, fmt.Errorf("K8S VM size %d is not supported", k.Size)

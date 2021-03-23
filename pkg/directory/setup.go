@@ -41,7 +41,6 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	farmsAuthenticated.HandleFunc("/ip", mw.AsHandlerFunc(farmAPI.deleteFarmIps)).Methods("DELETE").Name("farm-delete-ip-v1")
 	farmsAuthenticated.HandleFunc("", mw.AsHandlerFunc(farmAPI.updateFarm)).Methods("PUT").Name("farm-update-v1")
 	farmsAuthenticated.HandleFunc("/{node_id}", mw.AsHandlerFunc(nodeAPI.Requires("node_id", farmAPI.deleteNodeFromFarm))).Methods("DELETE").Name("farm-node-delete-v1")
-
 	farmsAuthenticated.HandleFunc("/deals", mw.AsHandlerFunc(farmAPI.createOrUpdateFarmCustomPrice)).Methods("POST", "PUT").Name("farm-update-prices-v1")
 	farmsAuthenticated.HandleFunc("/deals/{threebot_id}", mw.AsHandlerFunc(farmAPI.deleteFarmCustomPrice)).Methods("DELETE").Name("farm-delete-prices-v1")
 
@@ -61,7 +60,6 @@ func Setup(parent *mux.Router, db *mongo.Database) error {
 	nodesAuthenticated.HandleFunc("/{node_id}/interfaces", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.registerIfaces))).Methods("POST").Name("node-interfaces-v1")
 	nodesAuthenticated.HandleFunc("/{node_id}/ports", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.registerPorts))).Methods("POST").Name("node-set-ports-v1")
 	userAuthenticated.HandleFunc("/{node_id}/configure_public", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.configurePublic))).Methods("POST").Name("node-configure-public-v1")
-	userAuthenticated.HandleFunc("/{node_id}/dedicated", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.setNodeDedicated))).Methods("PUT").Name("node-set-node-dedicated")
 	userAuthenticated.HandleFunc("/{node_id}/configure_free", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.configureFreeToUse))).Methods("POST").Name("node-configure-free-v1")
 	nodesAuthenticated.HandleFunc("/{node_id}/capacity", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.registerCapacity))).Methods("POST").Name("node-capacity-v1")
 	nodesAuthenticated.HandleFunc("/{node_id}/uptime", mw.AsHandlerFunc(nodeAPI.Requires("node_id", nodeAPI.updateUptimeHandler))).Methods("POST").Name("node-uptime-v1")

@@ -114,8 +114,6 @@ type Node struct {
 	WgPorts           []int64        `bson:"wg_ports" json:"wg_ports"`
 	Deleted           bool           `bson:"deleted" json:"deleted"`
 	Reserved          bool           `bson:"reserved" json:"reserved"`
-	// optional flag to indicate that a node can only accept workloads from a certain user
-	Dedicated schema.ID `bson:"dedicated" json:"dedicated"`
 }
 
 func NewNode() (Node, error) {
@@ -216,6 +214,16 @@ type ResourceAmount struct {
 	Mru float64 `bson:"mru" json:"mru"`
 	Hru float64 `bson:"hru" json:"hru"`
 	Sru float64 `bson:"sru" json:"sru"`
+}
+
+// Diff returns r - v
+func (r *ResourceAmount) Diff(v ResourceAmount) ResourceAmount {
+	return ResourceAmount{
+		Cru: r.Cru - v.Cru,
+		Mru: r.Mru - v.Mru,
+		Hru: r.Mru - v.Hru,
+		Sru: r.Sru - v.Sru,
+	}
 }
 
 func NewResourceAmount() (ResourceAmount, error) {
