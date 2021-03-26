@@ -257,6 +257,9 @@ export default ({
 })
 
 function online (node) {
+  const { reserved } = node
+  if (reserved) return true
+
   const timestamp = new Date().getTime() / 1000
   const minutes = (timestamp - node.updated) / 60
   return minutes < 20
