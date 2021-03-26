@@ -74,7 +74,9 @@ export default {
   methods: {
     ...mapActions(['resetNodes']),
     getStatus (node) {
-      const { updated } = node
+      const { updated, reserved } = node
+      if (reserved) return { color: 'green', status: 'up' }
+
       const startTime = moment()
       const end = moment.unix(updated)
       const minutes = startTime.diff(end, 'minutes')
