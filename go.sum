@@ -626,6 +626,8 @@ github.com/yudai/pp v2.0.1+incompatible h1:Q4//iY4pNF6yPLZIigmvcl7k/bPgrcTPIFIcm
 github.com/yudai/pp v2.0.1+incompatible/go.mod h1:PuxR/8QJ7cyCkFp/aUDS+JY727OFEZkTdatxwunjIkc=
 github.com/zaibon/httpsig v0.0.0-20200401133919-ea9cb57b0946 h1:s12kADbuUVEJkYxqUojKvFR5JUpib9PCzARL1YR2ZDU=
 github.com/zaibon/httpsig v0.0.0-20200401133919-ea9cb57b0946/go.mod h1:T2e9wAAQHKLB08ONx+0xxxrlAfUnRbwLOpO0WodNbQ4=
+github.com/zaibon/httpsig v0.0.0-20210219100301-931cc471f406 h1:tuqYxrhWKt6WrZCZCLomXbtVc+hZlu4+PrUzEukF96s=
+github.com/zaibon/httpsig v0.0.0-20210219100301-931cc471f406/go.mod h1:T2e9wAAQHKLB08ONx+0xxxrlAfUnRbwLOpO0WodNbQ4=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=

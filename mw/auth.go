@@ -32,12 +32,12 @@ func NewUserKeyGetter(db *mongo.Database) UserKeyGetter {
 }
 
 // GetKey implements httpsig.KeyGetter
-func (u UserKeyGetter) GetKey(id string) interface{} {
+func (u UserKeyGetter) GetKey(id string) (interface{}, error) {
 	ctx := context.TODO()
 
 	uid, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	f := types.UserFilter{}
@@ -45,14 +45,14 @@ func (u UserKeyGetter) GetKey(id string) interface{} {
 
 	user, err := f.Get(ctx, u.db)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	pk, err := hex.DecodeString(user.Pubkey)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return ed25519.PublicKey(pk)
+	return ed25519.PublicKey(pk), nil
 }
 
 // NodeKeyGetter implements httpsig.KeyGetter for the nodes collections
@@ -65,10 +65,10 @@ func NewNodeKeyGetter() NodeKeyGetter {
 }
 
 // GetKey implements httpsig.KeyGetter
-func (m NodeKeyGetter) GetKey(id string) interface{} {
+func (m NodeKeyGetter) GetKey(id string) (interface{}, error) {
 	// the node ID is its public key base58 encoded, so we just need
 	// to decode it to get the []byte version of the key
-	return ed25519.PublicKey(base58.Decode(id))
+	return ed25519.PublicKey(base58.Decode(id)), nil
 }
 
 // requiredHeaders are the parameters to be used to generated the http signature

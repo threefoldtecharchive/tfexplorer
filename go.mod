@@ -21,7 +21,7 @@ require (
 	github.com/threefoldtech/zos v0.4.0-rc9-b.0.20200918140104-b46553b0c680
 	github.com/tyler-smith/go-bip39 v1.0.2
 	github.com/urfave/cli v1.22.4
-	github.com/zaibon/httpsig v0.0.0-20200401133919-ea9cb57b0946
+	github.com/zaibon/httpsig v0.0.0-20210219100301-931cc471f406
 	go.mongodb.org/mongo-driver v1.3.2
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20191219145116-fa6499c8e75f
