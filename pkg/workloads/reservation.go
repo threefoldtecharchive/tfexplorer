@@ -75,6 +75,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 
 	bodyBuf := bytes.NewBuffer(nil)
 	bodyBuf.ReadFrom(r.Body)
+	log.Info().Bytes("Request", bodyBuf.Bytes()).Msg("HI")
 	w, err := workloads.UnmarshalJSON(bodyBuf.Bytes())
 	if err != nil {
 		return nil, mw.BadRequest(err)

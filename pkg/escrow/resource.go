@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/xdr"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 )
@@ -141,6 +142,9 @@ func (e Stellar) processReservationResources(resData workloads.ReservationData) 
 	for _, k8s := range resData.Kubernetes {
 		rsuPerNodeMap[k8s.NodeId] = rsuPerNodeMap[k8s.NodeId].add(processKubernetes(k8s))
 	}
+	for _, vm := range resData.VirtualMachines {
+		rsuPerNodeMap[vm.NodeId] = rsuPerNodeMap[vm.NodeId].add(processVirtualMachine(vm))
+	}
 	rsuPerFarmerMap := make(rsuPerFarmer)
 	for nodeID, rsu := range rsuPerNodeMap {
 		node, err := e.nodeAPI.Get(e.ctx, e.db, nodeID, false)
@@ -216,6 +220,23 @@ func processKubernetes(k8s workloads.K8S) rsu {
 	}
 	return rsu{}
 
+}
+
+func processVirtualMachine(vm workloads.VirtualMachine) rsu {
+	log.Info().
+		Uint64("disk size", vm.Capacity.DiskSize).
+		Int64("memory", vm.Capacity.Memory).
+		Int64("cpu", vm.Capacity.Cpu).
+		Msg("Processing vm")
+	rsu := rsu{
+		cru: vm.Capacity.Cpu,
+		// round mru to 4 digits precision
+		mru: math.Round(float64(vm.Capacity.Memory)/1024*10000) / 10000,
+	}
+	sru := math.Round(float64(vm.Capacity.DiskSize)/1024*10000) / 10000
+	rsu.sru = int64(sru)
+
+	return rsu
 }
 
 func (r rsu) add(other rsu) rsu {
