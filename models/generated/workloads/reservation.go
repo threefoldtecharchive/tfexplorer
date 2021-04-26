@@ -73,7 +73,6 @@ type ReservationData struct {
 	PublicIPs               []PublicIP            `bson:"public_ips" json:"public_ips"`
 	ExpirationProvisioning  schema.Date           `bson:"expiration_provisioning" json:"expiration_provisioning"`
 	ExpirationReservation   schema.Date           `bson:"expiration_reservation" json:"expiration_reservation"`
-	VirtualMachines         []VirtualMachine      `bson:"virtual_machine" json:"virtual_machine"`
 }
 
 type SigningRequest struct {
