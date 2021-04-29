@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/rs/zerolog/log"
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -33,33 +32,27 @@ func (k *VirtualMachine) GetRSU() (RSU, error) {
 }
 
 func (vm *VirtualMachine) SignatureChallenge() ([]byte, error) {
-	log.Info().Msg("Entering signature challenge")
 	ric, err := vm.ReservationInfo.SignatureChallenge()
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msg(vm.Name)
 
 	b := bytes.NewBuffer(ric)
 	if _, err := fmt.Fprintf(b, "%s", vm.Name); err != nil {
 		return nil, err
 	}
-	log.Info().Msg(vm.NetworkId)
 	if _, err := fmt.Fprintf(b, "%s", vm.NetworkId); err != nil {
 		return nil, err
 	}
-	log.Info().Msg(fmt.Sprint(vm.PublicIP))
 	if _, err := fmt.Fprintf(b, "%d", vm.PublicIP); err != nil {
 		return nil, err
 	}
-	log.Info().Msg(vm.Ipaddress.String())
 
 	if _, err := fmt.Fprintf(b, "%s", vm.Ipaddress.String()); err != nil {
 		return nil, err
 	}
 
 	for _, key := range vm.SshKeys {
-		log.Info().Msg(key)
 		if _, err := fmt.Fprintf(b, "%s", key); err != nil {
 			return nil, err
 		}
@@ -69,7 +62,5 @@ func (vm *VirtualMachine) SignatureChallenge() ([]byte, error) {
 		return nil, err
 	}
 
-	log.Info().Msg("Entering signature 7")
-	log.Info().Bytes("customer data", b.Bytes()).Msg("Hi")
 	return b.Bytes(), nil
 }
