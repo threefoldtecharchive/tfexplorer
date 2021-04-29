@@ -57,11 +57,14 @@
             <v-flex md2 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="nodeSpecs.container" title="Containers deployed" />
             </v-flex>
-            <v-flex md3 xs6 d-flex class="pa-2 others">
+            <v-flex md2 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="nodeSpecs.zdb_namespace" title="0-DB Namespace deployed" />
             </v-flex>
-            <v-flex md3 xs6 d-flex class="pa-2 others">
+            <v-flex md2 xs6 d-flex class="pa-2 others">
               <miniGraph class="others" :value="nodeSpecs.k8s_vm" title="K8S VM deployed" />
+            </v-flex>
+            <v-flex md2 xs6 d-flex class="pa-2 others">
+              <miniGraph class="others" :value="nodeSpecs.generic_vm" title="Generic VM deployed" />
             </v-flex>
           </v-row>
           <v-row>

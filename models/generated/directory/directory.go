@@ -242,6 +242,7 @@ type WorkloadAmount struct {
 	ZDBNamespace    uint16 `bson:"zdb_namespace" json:"zdb_namespace"`
 	Container       uint16 `bson:"container" json:"container"`
 	K8sVM           uint16 `bson:"k8s_vm" json:"k8s_vm"`
+	GenericVM       uint16 `bson:"generic_vm" json:"generic_vm"`
 	Proxy           uint16 `bson:"proxy" json:"proxy"`
 	ReverseProxy    uint16 `bson:"reverse_proxy" json:"reverse_proxy"`
 	Subdomain       uint16 `bson:"subdomain" json:"subdomain"`
