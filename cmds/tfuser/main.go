@@ -467,60 +467,6 @@ func main() {
 					},
 					Action: generateKubernetes,
 				},
-				{
-					Name:  "vm",
-					Usage: "Provision a vm running a generic vm on a node",
-					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  "network-id",
-							Usage: "ID of the network resource in which the vm will be created",
-						},
-						cli.StringFlag{
-							Name:  "ip",
-							Usage: "Ip address of the vm in the network resource",
-						},
-						cli.StringFlag{
-							Name:     "node, n",
-							Usage:    "node ID.",
-							Required: true,
-						},
-						cli.StringSliceFlag{
-							Name:  "ssh-keys",
-							Usage: "Ssh keys to authorize for the vm. Can be either a full ssh key, or a \"github:username\" form which will pull the ssh keys from github",
-						},
-						cli.Uint64Flag{
-							Name:  "poolID, p",
-							Usage: "ID of the pool",
-							Value: 0,
-						},
-						cli.StringFlag{
-							Name:     "flist",
-							Usage:    "URL to the flist",
-							Required: true,
-						},
-						cli.StringFlag{
-							Name:  "hub-url",
-							Usage: "URL to the flist storage backend",
-						},
-						cli.UintFlag{
-							Name:  "cpu",
-							Usage: "limit the amount of CPU allocated to the container",
-						},
-						cli.Uint64Flag{
-							Name:  "memory",
-							Usage: "limit the amount of memory a container can allocate",
-						},
-						cli.UintFlag{
-							Name:  "root-size",
-							Usage: "Size of the root fs",
-						},
-						cli.StringFlag{
-							Name:  "public-ip",
-							Usage: "the public ip of the vm",
-						},
-					},
-					Action: generateVM,
-				},
 			},
 		},
 		{
