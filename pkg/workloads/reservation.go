@@ -278,6 +278,9 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 		filter = phonebook.UserFilter{}
 		filter = filter.WithID(schema.ID(reservation.SponsorTid))
 		sponsor, err := filter.Get(r.Context(), db)
+		if !sponsor.IsTrustedChannel {
+			return nil, mw.UnAuthorized(fmt.Errorf("the sponsor tid is not authorized"))
+		}
 		if err != nil {
 			return nil, mw.BadRequest(errors.Wrapf(err, "cannot find sponsor with id '%d'", reservation.SponsorTid))
 		}

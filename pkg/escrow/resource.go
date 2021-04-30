@@ -88,7 +88,7 @@ func getIPv4UnitSecondTFTStropesCost(ip4uPriceDollarMonth float64) int64 {
 }
 
 // calculateCapacityReservationCost calculates the cost of a capacity reservation
-func (e Stellar) calculateCustomCapacityReservationCost(CUs, SUs, IPv4Us uint64, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth float64, farmID int64) (xdr.Int64, error) {
+func (e Stellar) calculateCustomCapacityReservationCost(CUs, SUs, IPv4Us uint64, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth float64) (xdr.Int64, error) {
 	total := big.NewInt(0)
 	cuCost := big.NewInt(0)
 	suCost := big.NewInt(0)
@@ -110,7 +110,7 @@ func (e Stellar) calculateCustomCapacityReservationCost(CUs, SUs, IPv4Us uint64,
 }
 
 // calculateCapacityReservationCost calculates the cost of a capacity reservation
-func (e Stellar) calculateCapacityReservationCost(CUs, SUs, IPv4Us uint64, farmID int64) (xdr.Int64, error) {
+func (e Stellar) calculateCapacityReservationCost(CUs, SUs, IPv4Us uint64) (xdr.Int64, error) {
 	total := big.NewInt(0)
 	cuCost := big.NewInt(0)
 	suCost := big.NewInt(0)

@@ -371,19 +371,23 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	}
 	var amount xdr.Int64
 	whichThreebotID := reservation.CustomerTid
-	poolID := reservation.DataReservation.PoolID
-	pool, err := capacitytypes.GetPool(e.ctx, e.db, schema.ID(poolID))
-	if err == nil {
-		whichThreebotID = pool.SponsorTid
-	} else {
-		if reservation.SponsorTid != 0 {
-			whichThreebotID = reservation.SponsorTid
-		}
+	poolID := reservation.ID
+	if reservation.DataReservation.PoolID != 0 {
+		poolID = schema.ID(reservation.DataReservation.PoolID)
 	}
+
+	pool, err := capacitytypes.GetPool(e.ctx, e.db, schema.ID(poolID))
+	if err != nil {
+		return types.CustomerCapacityEscrowInformation{}, err
+	}
+	if pool.SponsorTid != 0 {
+		whichThreebotID = pool.SponsorTid
+	}
+
 	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], whichThreebotID)
 	// safe to ignore the error here, we already have a farm
 	if err != nil {
-		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
+		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
 		}
@@ -393,7 +397,7 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 		suDollarPerMonth := price.CustomCloudUnitPrice.SU
 		ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
 
-		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
+		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
 		}

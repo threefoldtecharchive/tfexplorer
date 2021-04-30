@@ -42,6 +42,9 @@ type Farm struct {
 	IPAddresses         []PublicIP          `bson:"ipaddresses" json:"ipaddresses"`
 	EnableCustomPricing bool                `bson:"enable_custom_pricing" json:"enable_custom_pricing"`
 	FarmCloudUnitsPrice NodeCloudUnitPrice  `bson:"farm_cloudunits_price" json:"farm_cloudunits_price"`
+
+	// Grid3 pricing enabled
+	IsGrid3Compliant bool `bson:"is_grid3_compliant" json:"is_grid3_compliant"`
 }
 type FarmThreebotPrice struct {
 	ThreebotID           int64              `bson:"threebot_id" json:"threebot_id"`

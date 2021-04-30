@@ -235,6 +235,19 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 	col := db.Collection(FarmCollection)
 	f := FarmFilter{}.WithID(id)
 	_, err := col.UpdateOne(ctx, f, bson.M{"$set": update})
+	if err != nil {
+		return err
+	}
+
+	// special update for compliance with grid 3 pricing can only be updated once.
+	if farm.IsGrid3Compliant {
+		_, err = col.UpdateOne(ctx, f, bson.M{
+			"$set": bson.M{
+				"is_grid3_compliant": true,
+			},
+		})
+	}
+
 	return err
 }
 
