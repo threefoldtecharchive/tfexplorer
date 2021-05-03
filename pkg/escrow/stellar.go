@@ -549,6 +549,9 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 	}
 
 	payouts, err := e.getPayouts(rpi, farm)
+	if err != nil {
+		return err
+	}
 
 	amounts := e.splitPayout(rpi.Amount, payouts)
 
