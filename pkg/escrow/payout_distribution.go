@@ -10,6 +10,7 @@ const (
 	WisdomWallet = "GAI4C2BGOA3YHVQZZW7OW4FHOGGYWTUBEVNHB6MW4ZAFG7ZAA7D5IPC3"
 )
 
+// PaymentDestination type
 type PaymentDestination uint8
 
 const (
@@ -55,6 +56,7 @@ const (
 	DistributionFamerSales = "farmer-sales"
 )
 
+// AssetDistributions map
 var AssetDistributions = map[string]PaymentDistribution{
 	DistributionV2: {
 		FarmerDestination:     90,
