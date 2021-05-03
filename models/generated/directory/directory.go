@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/threefoldtech/tfexplorer/models/generated/phonebook"
 	schema "github.com/threefoldtech/tfexplorer/schema"
 )
 
@@ -61,10 +62,7 @@ func NewFarm() (Farm, error) {
 	return object, nil
 }
 
-type WalletAddress struct {
-	Asset   string `bson:"asset" json:"asset"`
-	Address string `bson:"address" json:"address"`
-}
+type WalletAddress = phonebook.WalletAddress
 
 func NewNodeResourcePrice() (NodeResourcePrice, error) {
 	const value = "{}"
