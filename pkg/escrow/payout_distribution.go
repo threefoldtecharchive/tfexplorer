@@ -13,15 +13,22 @@ const (
 type PaymentDestination uint8
 
 const (
-	FarmerDestination     PaymentDestination = 0
-	BurnedDestination     PaymentDestination = 1
+	// FarmerDestination destination
+	FarmerDestination PaymentDestination = 0
+	// BurnedDestination destination
+	BurnedDestination PaymentDestination = 1
+	// FoundationDestination destination
 	FoundationDestination PaymentDestination = 2
-	SalesDestination      PaymentDestination = 3
-	WisdomDestination     PaymentDestination = 4
+	// SalesDestination destination
+	SalesDestination PaymentDestination = 3
+	// WisdomDestination destination
+	WisdomDestination PaymentDestination = 4
 )
 
+// PaymentDistribution type is map from destination to a percent
 type PaymentDistribution map[PaymentDestination]uint8
 
+// Valid checks if distribution is valid
 func (p PaymentDistribution) Valid() error {
 	var total uint8
 	for _, v := range p {
@@ -36,10 +43,16 @@ func (p PaymentDistribution) Valid() error {
 }
 
 const (
-	DistributionV2             = "grid2"
-	DistributionV3             = "grid3"
+	// DistributionV2 uses legacy v2.x distribution
+	DistributionV2 = "grid2"
+	// DistributionV3 uses new v3.0 distribution
+	DistributionV3 = "grid3"
+	// DistributionCertifiedSales uses distribution if capacity is sold over
+	// certified sales channel
 	DistributionCertifiedSales = "certified-sales"
-	DistributionFamerSales     = "farmer-sales"
+	// DistributionFamerSales uses distribution if farmer is re-buying or selling
+	// his own capacity
+	DistributionFamerSales = "farmer-sales"
 )
 
 var AssetDistributions = map[string]PaymentDistribution{
@@ -66,12 +79,14 @@ var AssetDistributions = map[string]PaymentDistribution{
 	},
 }
 
+// Payout structure
 type Payout struct {
 	Destination  PaymentDestination
 	Distribution uint8
 	Address      string
 }
 
+// Valid checks if payout is valid,
 func (p *Payout) Valid() error {
 	if p.Distribution == 0 {
 		return nil
