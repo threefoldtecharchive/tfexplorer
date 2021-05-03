@@ -463,11 +463,11 @@ func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, fa
 		return nil, err
 	}
 
-	// type {percentage + wallet}
 	if !farm.IsGrid3Compliant {
+		// grid 2
 		distribution = AssetDistributions[DistributionV2]
 	} else {
-		// grid 3
+		// grid 3 default distribution
 		distribution = AssetDistributions[DistributionV3]
 
 		pool, err := e.getPool(rpi.ReservationID)
@@ -476,6 +476,7 @@ func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, fa
 		}
 
 		// check if certified sales channel
+		// this can be detected if the pool is sponsored
 		if pool.SponsorTid != 0 {
 			// sponsor channel.
 			distribution = AssetDistributions[DistributionCertifiedSales]
@@ -493,7 +494,8 @@ func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, fa
 			}
 		}
 
-		// is the farmer buying his own capacity
+		// is the farmer selling his own capacity so the pool is either owned by
+		// that farmer, or sponsors the pool.
 		if farm.ThreebotID == pool.CustomerTid || farm.ThreebotID == pool.SponsorTid {
 			distribution = AssetDistributions[DistributionFamerSales]
 		}
@@ -528,11 +530,6 @@ func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, fa
 
 		payouts = append(payouts, payout)
 	}
-
-	sort.Slice(payouts, func(i, j int) bool {
-		// less
-		return payouts[i].Destination < payouts[j].Destination
-	})
 
 	return payouts, nil
 }
@@ -681,9 +678,16 @@ func (e *Stellar) createOrLoadAccount(customerTID int64) (string, error) {
 
 // splitPayout to a farmer in the amount the farmer receives, the amount to be burned,
 // and the amount the foundation receives
-func (e *Stellar) splitPayout(totalAmount xdr.Int64, distribution []Payout) []int64 {
+func (e *Stellar) splitPayout(totalAmount xdr.Int64, payouts []Payout) []int64 {
 	// we can't just use big.Float for this calculation, since we need to verify
 	// the rounding afterwards
+
+	// sorting is pretty important because the logic below will
+	// give the change to the first payout that gets paid
+	sort.Slice(payouts, func(i, j int) bool {
+		// less
+		return payouts[i].Destination < payouts[j].Destination
+	})
 
 	// calculate missing precision digits, to perform percentage division without
 	// floating point operations
@@ -699,8 +703,8 @@ func (e *Stellar) splitPayout(totalAmount xdr.Int64, distribution []Payout) []in
 
 	baseAmount := amount / 100
 	var change int64
-	amounts := make([]int64, 0, len(distribution))
-	for _, payout := range distribution {
+	amounts := make([]int64, 0, len(payouts))
+	for _, payout := range payouts {
 		amount := baseAmount * int64(payout.Distribution)
 		change += amount % multiplier
 		amount /= multiplier
