@@ -11,6 +11,12 @@ import (
 var _ Workloader = (*VirtualMachine)(nil)
 var _ Capaciter = (*VirtualMachine)(nil)
 
+type VMCustomSize struct {
+	CRU int64   `bson:"cru" json:"cru" `
+	MRU float64 `bson:"mru" json:"mru" `
+	SRU float64 `bson:"sru" json:"sru" `
+}
+
 type VirtualMachine struct {
 	ReservationInfo `bson:",inline"`
 
@@ -19,11 +25,20 @@ type VirtualMachine struct {
 	Ipaddress net.IP   `bson:"ipaddress" json:"ipaddress"`
 	SshKeys   []string `bson:"ssh_keys" json:"ssh_keys"`
 	// why isn't this a net.IP? because it's a wid
-	PublicIP schema.ID `bson:"public_ip" json:"public_ip"`
-	Size     int64     `bson:"size" json:"size"`
+	PublicIP   schema.ID    `bson:"public_ip" json:"public_ip"`
+	Size       int64        `bson:"size" json:"size"`
+	CustomSize VMCustomSize `bson:"custom_size" json:"custom_size"`
 }
 
 func (k *VirtualMachine) GetRSU() (RSU, error) {
+	if k.Size == -1 {
+		return RSU{
+			CRU: k.CustomSize.CRU,
+			MRU: k.CustomSize.MRU,
+			SRU: k.CustomSize.SRU,
+		}, nil
+	}
+
 	rsu, ok := k8sSize[k.Size]
 	if !ok {
 		return RSU{}, fmt.Errorf("VM size %d is not supported", k.Size)
