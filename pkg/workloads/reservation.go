@@ -1395,7 +1395,6 @@ func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP 
 	workloadFiler = types.WorkloadFilter{}.
 		WithCustomerID(userID).
 		WithNextAction(generated.NextActionDeploy).
-		WithWorkloadType(generated.WorkloadTypeKubernetes).
 		WithPublicIP(publicIP)
 
 	// to be tested on a node with pubip
@@ -1405,20 +1404,6 @@ func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP 
 		return mw.Conflict(fmt.Errorf("public ip is in use"))
 	} else if err != nil && err != mongo.ErrNoDocuments {
 		// some error occured other than no documents found
-		return mw.Error(err)
-	}
-
-	// Check if there is already a vm workload with this public ip reservation in the database
-	workloadFiler = workloadFiler.
-		WithCustomerID(userID).
-		WithNextAction(generated.NextActionDeploy).
-		WithWorkloadType(generated.WorkloadTypeVirtualMachine).
-		WithPublicIP(publicIP)
-
-	_, err = workloadFiler.Get(ctx, db)
-	if err == nil {
-		return mw.Conflict(fmt.Errorf("public ip is in use"))
-	} else if err != nil && err != mongo.ErrNoDocuments {
 		return mw.Error(err)
 	}
 

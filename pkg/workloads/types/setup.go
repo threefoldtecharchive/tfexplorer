@@ -70,6 +70,9 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		{
 			Keys: bson.M{"workload_type": 1},
 		},
+		{
+			Keys: bson.M{"public_ip": 1},
+		},
 	}
 
 	if _, err := col.Indexes().CreateMany(ctx, indexes); err != nil {
