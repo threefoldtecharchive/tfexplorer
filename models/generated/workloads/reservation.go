@@ -144,6 +144,7 @@ const (
 	WorkloadTypeGateway4To6
 	WorkloadTypeNetworkResource
 	WorkloadTypePublicIP
+	WorkloadTypeVirtualMachine
 )
 
 // WorkloadTypes is a map of all the supported workload type
@@ -160,6 +161,7 @@ var WorkloadTypes = map[WorkloadTypeEnum]string{
 	WorkloadTypeGateway4To6:     "gateway4to6",
 	WorkloadTypeNetworkResource: "network_resource",
 	WorkloadTypePublicIP:        "public_ip",
+	WorkloadTypeVirtualMachine:  "virtual_machine",
 }
 
 func (e WorkloadTypeEnum) String() string {

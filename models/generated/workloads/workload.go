@@ -131,6 +131,10 @@ func UnmarshalJSON(buffer []byte) (Workloader, error) {
 		var ip PublicIP
 		err = json.Unmarshal(buffer, &ip)
 		workload = &ip
+	case WorkloadTypeVirtualMachine:
+		var vm VirtualMachine
+		err = json.Unmarshal(buffer, &vm)
+		workload = &vm
 	default:
 		return nil, errors.New("unrecognized workload type")
 	}
@@ -196,6 +200,10 @@ func UnmarshalBSON(buffer []byte) (Workloader, error) {
 		var ip PublicIP
 		err = bson.Unmarshal(buffer, &ip)
 		workload = &ip
+	case WorkloadTypeVirtualMachine:
+		var vm VirtualMachine
+		err = bson.Unmarshal(buffer, &vm)
+		workload = &vm
 	default:
 		return nil, errors.New("unrecognized workload type")
 	}

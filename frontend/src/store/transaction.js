@@ -32,7 +32,8 @@ const getDefaultState = () => {
       volume: 0,
       container: 0,
       zdb_namespace: 0,
-      k8s_vm: 0
+      k8s_vm: 0,
+      generic_vm: 0
     },
     prices: {
       CuPriceDollarMonth: 0,
@@ -225,6 +226,7 @@ export default ({
       state.nodeSpecs.container = lodash.sumBy(onlineNodes, node => node.workloads.container)
       state.nodeSpecs.zdb_namespace = lodash.sumBy(onlineNodes, node => node.workloads.zdb_namespace)
       state.nodeSpecs.k8s_vm = lodash.sumBy(onlineNodes, node => node.workloads.k8s_vm)
+      state.nodeSpecs.generic_vm = lodash.sumBy(onlineNodes, node => node.workloads.generic_vm)
     },
     setGatewaySpecs (state, gateways) {
       if (gateways.length === 0) {

@@ -186,6 +186,11 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		if err := a.handleKubernetesPublicIP(r.Context(), db, workload, requestUserID); err != nil {
 			return nil, err
 		}
+	} else if workload.GetWorkloadType() == generated.WorkloadTypeVirtualMachine {
+		if err := a.handleVMPublicIP(r.Context(), db, workload, requestUserID); err != nil {
+			return nil, err
+		}
+
 	} else if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
 		if err := a.handlePublicIPReservation(r.Context(), db, workload); err != nil {
 			return nil, err
@@ -1360,8 +1365,17 @@ func (a *API) handleKubernetesSize(ctx context.Context, db *mongo.Database, work
 
 func (a *API) handleKubernetesPublicIP(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
 	k8sWorkload := workload.Workloader.(*generated.K8S)
+	return checkPublicIPAvailablity(ctx, db, k8sWorkload.PublicIP, userID)
+}
 
-	if k8sWorkload.PublicIP == 0 {
+func (a *API) handleVMPublicIP(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
+	vmWorkload := workload.Workloader.(*generated.VirtualMachine)
+	return checkPublicIPAvailablity(ctx, db, vmWorkload.PublicIP, userID)
+}
+
+func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP schema.ID, userID int64) mw.Response {
+
+	if publicIP == 0 {
 		return nil
 	}
 
@@ -1369,32 +1383,32 @@ func (a *API) handleKubernetesPublicIP(ctx context.Context, db *mongo.Database, 
 
 	var workloadFiler types.WorkloadFilter
 	workloadFiler = workloadFiler.
-		WithID(k8sWorkload.PublicIP).
+		WithID(publicIP).
 		WithNextAction(generated.NextActionDeploy).
 		WithCustomerID(userID)
 
 	_, err = workloadFiler.Get(ctx, db)
 	if err != nil {
-		return mw.NotFound(errors.Wrapf(err, "ip workload '%d' not found", k8sWorkload.PublicIP))
+		return mw.NotFound(errors.Wrapf(err, "ip workload '%d' not found", publicIP))
 	}
-
 	// Check if there is already a k8s workload with this public ip reservation in the database
-	workloadFiler = workloadFiler.
+	workloadFiler = types.WorkloadFilter{}.
 		WithCustomerID(userID).
 		WithNextAction(generated.NextActionDeploy).
-		WithWorkloadType(generated.WorkloadTypeKubernetes).
-		WithPublicIP(k8sWorkload.PublicIP)
+		WithPublicIP(publicIP)
 
+	// to be tested on a node with pubip
 	_, err = workloadFiler.Get(ctx, db)
-	if err == mongo.ErrNoDocuments {
-		// If there is no match, this means this is a valid reservation
-		return nil
-	} else if err != nil {
+	if err == nil {
+		// some documents are returened -> ip in use
+		return mw.Conflict(fmt.Errorf("public ip is in use"))
+	} else if err != nil && err != mongo.ErrNoDocuments {
+		// some error occured other than no documents found
 		return mw.Error(err)
 	}
 
-	// Means there is no error, so the workload with a public ip is found, return an error here
-	return mw.Conflict(fmt.Errorf("public ip is in use"))
+	// All checks passed
+	return nil
 }
 
 // userCanSign checks if a specific user has right to push a deletion or provision signature to the reservation/workload

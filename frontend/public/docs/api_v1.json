@@ -1581,6 +1581,10 @@
             "type": "integer",
             "format": "int64"
           },
+          "generic_vm": {
+            "type": "integer",
+            "format": "int64"
+          },
           "proxy": {
             "type": "integer",
             "format": "int64"
