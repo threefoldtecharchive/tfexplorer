@@ -1365,15 +1365,15 @@ func (a *API) handleKubernetesSize(ctx context.Context, db *mongo.Database, work
 
 func (a *API) handleKubernetesPublicIP(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
 	k8sWorkload := workload.Workloader.(*generated.K8S)
-	return checkPublicIPAvailablity(ctx, db, k8sWorkload.PublicIP, userID)
+	return checkPublicIPAvailablity(ctx, db, k8sWorkload.ID, k8sWorkload.PublicIP, userID)
 }
 
 func (a *API) handleVMPublicIP(ctx context.Context, db *mongo.Database, workload types.WorkloaderType, userID int64) mw.Response {
 	vmWorkload := workload.Workloader.(*generated.VirtualMachine)
-	return checkPublicIPAvailablity(ctx, db, vmWorkload.PublicIP, userID)
+	return checkPublicIPAvailablity(ctx, db, vmWorkload.ID, vmWorkload.PublicIP, userID)
 }
 
-func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP schema.ID, userID int64) mw.Response {
+func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, wid schema.ID, publicIP schema.ID, userID int64) mw.Response {
 
 	if publicIP == 0 {
 		return nil
@@ -1381,25 +1381,25 @@ func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP 
 
 	var err error
 
-	var workloadFiler types.WorkloadFilter
-	workloadFiler = workloadFiler.
+	var workloadFilter types.WorkloadFilter
+	workloadFilter = workloadFilter.
 		WithID(publicIP).
 		WithNextAction(generated.NextActionDeploy).
 		WithCustomerID(userID)
 
-	_, err = workloadFiler.Get(ctx, db)
+	_, err = workloadFilter.Get(ctx, db)
 	if err != nil {
 		return mw.NotFound(errors.Wrapf(err, "ip workload '%d' not found", publicIP))
 	}
 	// Check if there is already a k8s workload with this public ip reservation in the database
-	workloadFiler = types.WorkloadFilter{}.
+	workloadFilter = types.WorkloadFilter{}.
 		WithCustomerID(userID).
 		WithNextAction(generated.NextActionDeploy).
 		WithPublicIP(publicIP)
 
 	// to be tested on a node with pubip
-	_, err = workloadFiler.Get(ctx, db)
-	if err == nil {
+	w, err := workloadFilter.Get(ctx, db)
+	if err == nil && w.GetID() != wid {
 		// some documents are returened -> ip in use
 		return mw.Conflict(fmt.Errorf("public ip is in use"))
 	} else if err != nil && err != mongo.ErrNoDocuments {
