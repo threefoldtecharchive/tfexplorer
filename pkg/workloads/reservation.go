@@ -107,6 +107,9 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	// force next action to create.
+	workload.SetNextAction(generated.NextActionCreate)
+
 	if workload.IsAny(types.Invalid, types.Delete) {
 		return nil, mw.BadRequest(fmt.Errorf("invalid request wrong status '%s'", workload.GetNextAction().String()))
 	}
@@ -152,6 +155,17 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		}
 	}
 
+	if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
+		if err := a.handleKubernetesPublicIP(r.Context(), db, workload, requestUserID); err != nil {
+			return nil, err
+		}
+	} else if workload.GetWorkloadType() == generated.WorkloadTypeVirtualMachine {
+		if err := a.handleVMPublicIP(r.Context(), db, workload, requestUserID); err != nil {
+			return nil, err
+		}
+
+	}
+
 	id, err := types.WorkloadCreate(r.Context(), db, workload)
 	if err != nil {
 		log.Error().Err(err).Msg("could not create workload")
@@ -182,16 +196,7 @@ func (a *API) create(r *http.Request) (interface{}, mw.Response) {
 		return ReservationCreateResponse{ID: id}, mw.PaymentRequired(errors.New("pool needs additional capacity to support this workload"))
 	}
 
-	if workload.GetWorkloadType() == generated.WorkloadTypeKubernetes {
-		if err := a.handleKubernetesPublicIP(r.Context(), db, workload, requestUserID); err != nil {
-			return nil, err
-		}
-	} else if workload.GetWorkloadType() == generated.WorkloadTypeVirtualMachine {
-		if err := a.handleVMPublicIP(r.Context(), db, workload, requestUserID); err != nil {
-			return nil, err
-		}
-
-	} else if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
+	if workload.GetWorkloadType() == generated.WorkloadTypePublicIP {
 		if err := a.handlePublicIPReservation(r.Context(), db, workload); err != nil {
 			return nil, err
 		}
@@ -1384,6 +1389,7 @@ func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP 
 	var workloadFiler types.WorkloadFilter
 	workloadFiler = workloadFiler.
 		WithID(publicIP).
+		WithWorkloadType(generated.WorkloadTypePublicIP).
 		WithNextAction(generated.NextActionDeploy).
 		WithCustomerID(userID)
 
@@ -1391,6 +1397,7 @@ func checkPublicIPAvailablity(ctx context.Context, db *mongo.Database, publicIP 
 	if err != nil {
 		return mw.NotFound(errors.Wrapf(err, "ip workload '%d' not found", publicIP))
 	}
+
 	// Check if there is already a k8s workload with this public ip reservation in the database
 	workloadFiler = types.WorkloadFilter{}.
 		WithCustomerID(userID).
