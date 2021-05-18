@@ -7,31 +7,31 @@ import (
 )
 
 func TestPayoutDistributionValidation(t *testing.T) {
-	distributions := []payoutDistribution{
+	distributions := []PaymentDistribution{
 		{
-			farmer:     23,
-			burned:     56,
-			foundation: 0,
+			FarmerDestination:     23,
+			BurnedDestination:     56,
+			FoundationDestination: 0,
 		},
 		{
-			farmer:     33,
-			burned:     33,
-			foundation: 33,
+			FarmerDestination:     33,
+			BurnedDestination:     33,
+			FoundationDestination: 33,
 		},
 		{
-			farmer:     50,
-			burned:     40,
-			foundation: 10,
+			FarmerDestination:     50,
+			BurnedDestination:     40,
+			FoundationDestination: 10,
 		},
 	}
 
-	assert.Error(t, distributions[0].validate(), "")
-	assert.Error(t, distributions[1].validate(), "")
-	assert.NoError(t, distributions[2].validate())
+	assert.Error(t, distributions[0].Valid(), "")
+	assert.Error(t, distributions[1].Valid(), "")
+	assert.NoError(t, distributions[2].Valid())
 }
 
 func TestKnownPayoutDistributions(t *testing.T) {
-	for _, pd := range assetDistributions {
-		assert.NoError(t, pd.validate())
+	for _, pd := range AssetDistributions {
+		assert.NoError(t, pd.Valid())
 	}
 }

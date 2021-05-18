@@ -1,6 +1,7 @@
 package escrow
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stellar/go/xdr"
@@ -17,31 +18,73 @@ func TestPayoutDistribution(t *testing.T) {
 	//
 	// note that the actual amount to be paid can have up to the wallets precision,
 	// i.e. it is possible to have greater than 6 digits precision
-	pds := []payoutDistribution{
+	pds := []PaymentDistribution{
 		{
-			farmer:     50,
-			burned:     50,
-			foundation: 0,
+			FarmerDestination:     50,
+			BurnedDestination:     50,
+			FoundationDestination: 0,
 		},
 		{
-			farmer:     34,
-			burned:     33,
-			foundation: 33,
+			FarmerDestination:     34,
+			BurnedDestination:     33,
+			FoundationDestination: 33,
 		},
 		{
-			farmer:     40,
-			burned:     40,
-			foundation: 20,
+			FarmerDestination:     40,
+			BurnedDestination:     40,
+			FoundationDestination: 20,
 		},
 		{
-			farmer:     0,
-			burned:     73,
-			foundation: 27,
+			FarmerDestination:     0,
+			BurnedDestination:     73,
+			FoundationDestination: 27,
 		},
 	}
 
+	payouts := []struct {
+		payouts []Payout
+		inputs  []int64
+		output  [][]int64
+	}{
+		{
+			payouts: []Payout{
+				{Destination: FarmerDestination, Distribution: 50},
+				{Destination: BurnedDestination, Distribution: 50},
+				{Destination: FoundationDestination, Distribution: 0},
+			},
+			inputs: []int64{10, 330},
+			output: [][]int64{{5, 5, 0}, {165, 165, 0}},
+		},
+		{
+			payouts: []Payout{
+				{Destination: FarmerDestination, Distribution: 34},
+				{Destination: BurnedDestination, Distribution: 33},
+				{Destination: FoundationDestination, Distribution: 33},
+			},
+			inputs: []int64{10, 330},
+			output: [][]int64{{4, 3, 3}, {114, 108, 108}},
+		},
+		{
+			payouts: []Payout{
+				{Destination: FarmerDestination, Distribution: 40},
+				{Destination: BurnedDestination, Distribution: 40},
+				{Destination: FoundationDestination, Distribution: 20},
+			},
+			inputs: []int64{10, 330},
+			output: [][]int64{{4, 4, 2}, {132, 132, 66}},
+		},
+		{
+			payouts: []Payout{
+				{Destination: FarmerDestination, Distribution: 0},
+				{Destination: BurnedDestination, Distribution: 73},
+				{Destination: FoundationDestination, Distribution: 27},
+			},
+			inputs: []int64{10, 330},
+			output: [][]int64{{0, 8, 2}, {0, 241, 89}},
+		},
+	}
 	for _, pd := range pds {
-		assert.NoError(t, pd.validate())
+		assert.NoError(t, pd.Valid())
 	}
 
 	w, err := stellar.New("", stellar.NetworkTest, nil)
@@ -49,44 +92,15 @@ func TestPayoutDistribution(t *testing.T) {
 
 	e := NewStellar(w, nil, "", gridnetworks.GridNetworkMainnet)
 
-	// check rounding in some trivial cases
-	farmer, burn, fd := e.splitPayout(10, pds[0])
-	assert.Equal(t, xdr.Int64(5), farmer)
-	assert.Equal(t, xdr.Int64(5), burn)
-	assert.Equal(t, xdr.Int64(0), fd)
-
-	farmer, burn, fd = e.splitPayout(10, pds[1])
-	assert.Equal(t, xdr.Int64(4), farmer)
-	assert.Equal(t, xdr.Int64(3), burn)
-	assert.Equal(t, xdr.Int64(3), fd)
-
-	farmer, burn, fd = e.splitPayout(10, pds[2])
-	assert.Equal(t, xdr.Int64(4), farmer)
-	assert.Equal(t, xdr.Int64(4), burn)
-	assert.Equal(t, xdr.Int64(2), fd)
-
-	farmer, burn, fd = e.splitPayout(10, pds[3])
-	assert.Equal(t, xdr.Int64(0), farmer)
-	assert.Equal(t, xdr.Int64(8), burn)
-	assert.Equal(t, xdr.Int64(2), fd)
-
-	farmer, burn, fd = e.splitPayout(330, pds[0])
-	assert.Equal(t, xdr.Int64(165), farmer)
-	assert.Equal(t, xdr.Int64(165), burn)
-	assert.Equal(t, xdr.Int64(0), fd)
-
-	farmer, burn, fd = e.splitPayout(330, pds[1])
-	assert.Equal(t, xdr.Int64(114), farmer)
-	assert.Equal(t, xdr.Int64(108), burn)
-	assert.Equal(t, xdr.Int64(108), fd)
-
-	farmer, burn, fd = e.splitPayout(330, pds[2])
-	assert.Equal(t, xdr.Int64(132), farmer)
-	assert.Equal(t, xdr.Int64(132), burn)
-	assert.Equal(t, xdr.Int64(66), fd)
-
-	farmer, burn, fd = e.splitPayout(330, pds[3])
-	assert.Equal(t, xdr.Int64(0), farmer)
-	assert.Equal(t, xdr.Int64(241), burn)
-	assert.Equal(t, xdr.Int64(89), fd)
+	for i, tc := range payouts {
+		for j, in := range tc.inputs {
+			expected := tc.output[j]
+			t.Run(fmt.Sprint(i, "_", j), func(t *testing.T) {
+				amounts := e.splitPayout(xdr.Int64(in), tc.payouts)
+				for x, a := range amounts {
+					assert.Equal(t, expected[x], a)
+				}
+			})
+		}
+	}
 }

@@ -281,6 +281,9 @@ func (a *API) setupPool(r *http.Request) (interface{}, mw.Response) {
 		if err != nil {
 			return nil, mw.BadRequest(errors.Wrapf(err, "cannot find sponsor with id '%d'", reservation.SponsorTid))
 		}
+		if !sponsor.IsTrustedChannel {
+			return nil, mw.UnAuthorized(fmt.Errorf("the sponsor tid '%d' is not authorized", reservation.SponsorTid))
+		}
 		if err := reservation.VerifySponsor(sponsor.Pubkey); err != nil {
 			return nil, mw.BadRequest(errors.Wrap(err, "failed to verify sponsor signature"))
 		}

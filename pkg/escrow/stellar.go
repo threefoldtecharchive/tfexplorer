@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ import (
 	directorytypes "github.com/threefoldtech/tfexplorer/pkg/directory/types"
 	"github.com/threefoldtech/tfexplorer/pkg/escrow/types"
 	"github.com/threefoldtech/tfexplorer/pkg/gridnetworks"
+	phonebooktypes "github.com/threefoldtech/tfexplorer/pkg/phonebook/types"
 	"github.com/threefoldtech/tfexplorer/pkg/stellar"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -305,13 +307,12 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 			}
 			return customerInfo, err
 		}
-		// Sanity check
-		if _, exists := assetDistributions[asset]; !exists {
-			// no payout distribution info set, log error and treat as if the asset
-			// is not supported
+		// we currently only support ONE asset
+		if asset != stellar.TFTMainnet {
 			log.Error().Msgf("asset %s supported by wallet but no payout distribution found in escrow", asset)
 			continue
 		}
+
 		currencies = append(currencies, asset)
 	}
 
@@ -344,12 +345,6 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	// the farm ids have conveniently been provided when checking the used rsu
 	var asset stellar.Asset
 	for _, currency := range currencies {
-		// if the farmer does not receive anything in the first place, they always
-		// all agree on this currency
-		if assetDistributions[currency].farmer == 0 {
-			asset = currency
-			break
-		}
 		// check if all used farms have an address for this asset set up
 		supported, err := e.checkAssetSupport(farmIDs, currency)
 		if err != nil {
@@ -371,19 +366,23 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	}
 	var amount xdr.Int64
 	whichThreebotID := reservation.CustomerTid
-	poolID := reservation.DataReservation.PoolID
-	pool, err := capacitytypes.GetPool(e.ctx, e.db, schema.ID(poolID))
-	if err == nil {
-		whichThreebotID = pool.SponsorTid
-	} else {
-		if reservation.SponsorTid != 0 {
-			whichThreebotID = reservation.SponsorTid
-		}
+	poolID := reservation.ID
+	if reservation.DataReservation.PoolID != 0 {
+		poolID = schema.ID(reservation.DataReservation.PoolID)
 	}
+
+	pool, err := capacitytypes.GetPool(e.ctx, e.db, schema.ID(poolID))
+	if err != nil {
+		return types.CustomerCapacityEscrowInformation{}, err
+	}
+	if pool.SponsorTid != 0 {
+		whichThreebotID = pool.SponsorTid
+	}
+
 	price, err := e.farmAPI.GetFarmCustomPriceForThreebot(e.ctx, e.db, farmIDs[0], whichThreebotID)
 	// safe to ignore the error here, we already have a farm
 	if err != nil {
-		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, node.FarmId)
+		amount, err = e.calculateCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
 		}
@@ -393,7 +392,7 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 		suDollarPerMonth := price.CustomCloudUnitPrice.SU
 		ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
 
-		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth, node.FarmId)
+		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
 		}
@@ -434,64 +433,134 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	return customerInfo, nil
 }
 
+func (e *Stellar) getPool(reservationID schema.ID) (capacitytypes.Pool, error) {
+	reservation, err := capacitytypes.CapacityReservationGet(e.ctx, e.db, reservationID)
+	if err != nil {
+		return capacitytypes.Pool{}, err
+	}
+
+	poolID := reservation.ID
+	if reservation.DataReservation.PoolID != 0 {
+		poolID = schema.ID(reservation.DataReservation.PoolID)
+	}
+
+	return capacitytypes.GetPool(e.ctx, e.db, poolID)
+}
+
+// asset distribution based on issue https://github.com/threefoldtech/home/issues/1041
+func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, farm directorytypes.Farm) ([]Payout, error) {
+	var (
+		distribution      PaymentDistribution
+		farmerAddress     string
+		salesAddress      string
+		foundationAddress = e.foundationAddress
+		wisdomAddress     = WisdomWallet
+	)
+
+	var err error
+	farmerAddress, err = addressByAsset(farm.WalletAddresses, rpi.Asset)
+	if err != nil {
+		return nil, err
+	}
+
+	if !farm.IsGrid3Compliant {
+		// grid 2
+		distribution = AssetDistributions[DistributionV2]
+	} else {
+		// grid 3 default distribution
+		distribution = AssetDistributions[DistributionV3]
+
+		pool, err := e.getPool(rpi.ReservationID)
+		if err != nil {
+			return nil, err
+		}
+
+		// check if certified sales channel
+		// this can be detected if the pool is sponsored
+		if pool.SponsorTid != 0 {
+			// sponsor channel.
+			distribution = AssetDistributions[DistributionCertifiedSales]
+			// fill in the address for the sales channel
+			var f phonebooktypes.UserFilter
+			f = f.WithID(schema.ID(pool.SponsorTid))
+			sales, err := f.Get(e.ctx, e.db)
+			if err != nil {
+				return nil, err
+			}
+
+			salesAddress, err = addressByAsset(sales.WalletAddresses, rpi.Asset)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// is the farmer selling his own capacity so the pool is either owned by
+		// that farmer, or sponsors the pool.
+		if farm.ThreebotID == pool.CustomerTid || farm.ThreebotID == pool.SponsorTid {
+			distribution = AssetDistributions[DistributionFamerSales]
+		}
+	}
+
+	var payouts []Payout
+	for destination, amount := range distribution {
+		if amount == 0 {
+			continue
+		}
+		var address string
+		switch destination {
+		case FarmerDestination:
+			address = farmerAddress
+		case SalesDestination:
+			address = salesAddress
+		case FoundationDestination:
+			address = foundationAddress
+		case WisdomDestination:
+			address = wisdomAddress
+		case BurnedDestination:
+			address = rpi.Asset.Issuer()
+		}
+
+		payout := Payout{
+			Address:      address,
+			Distribution: amount,
+		}
+		if err := payout.Valid(); err != nil {
+			return nil, errors.Wrapf(err, "payout for '%s' is invlaid", string(destination))
+		}
+
+		payouts = append(payouts, payout)
+	}
+
+	return payouts, nil
+}
+
 // payoutFarmersCap pays out the farmer for a processed reservation
 func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformation) error {
 	if rpi.Released || rpi.Canceled {
 		// already paid
 		return nil
 	}
-
-	paymentDistribution, exists := assetDistributions[rpi.Asset]
-	if !exists {
-		return fmt.Errorf("no payment distribution found for asset %s", rpi.Asset)
+	farm, err := e.farmAPI.GetByID(e.ctx, e.db, int64(rpi.FarmerID))
+	if err != nil {
+		return errors.Wrap(err, "failed to load farm info")
 	}
 
-	// keep track of total amount to burn and to send to foundation
-	var toBurn, toFoundation xdr.Int64
+	payouts, err := e.getPayouts(rpi, farm)
+	if err != nil {
+		return err
+	}
 
-	farmerAmount, burnAmount, foundationAmount := e.splitPayout(rpi.Amount, paymentDistribution)
-	toBurn += burnAmount
-	toFoundation += foundationAmount
+	amounts := e.splitPayout(rpi.Amount, payouts)
 
 	paymentInfo := []stellar.PayoutInfo{}
-	if farmerAmount > 0 {
-		// in case of an error in this flow we continue, so we try to pay as much
-		// farmers as possible even if one fails
-		farm, err := e.farmAPI.GetByID(e.ctx, e.db, int64(rpi.FarmerID))
-		if err != nil {
-			return errors.Wrap(err, "failed to load farm info")
-		}
-
-		destination, err := addressByAsset(farm.WalletAddresses, rpi.Asset)
-		if err != nil {
-			return errors.Wrapf(err, "failed to find address for %s for farmer %d", rpi.Asset.Code(), farm.ID)
-		}
-
-		// farmerAmount can't be pooled so add an info immediately
-		paymentInfo = append(paymentInfo,
+	for i, amount := range amounts {
+		paymentInfo = append(
+			paymentInfo,
 			stellar.PayoutInfo{
-				Address: destination,
-				Amount:  farmerAmount,
+				Address: payouts[i].Address,
+				Amount:  xdr.Int64(amount),
 			},
 		)
-	}
-
-	// a burn is a transfer of tokens back to the issuer
-	if toBurn > 0 {
-		paymentInfo = append(paymentInfo,
-			stellar.PayoutInfo{
-				Address: rpi.Asset.Issuer(),
-				Amount:  toBurn,
-			})
-	}
-
-	// ship remainder to the foundation
-	if toFoundation > 0 {
-		paymentInfo = append(paymentInfo,
-			stellar.PayoutInfo{
-				Address: e.foundationAddress,
-				Amount:  toFoundation,
-			})
 	}
 
 	addressInfo, err := types.CustomerAddressByAddress(e.ctx, e.db, rpi.Address)
@@ -609,9 +678,16 @@ func (e *Stellar) createOrLoadAccount(customerTID int64) (string, error) {
 
 // splitPayout to a farmer in the amount the farmer receives, the amount to be burned,
 // and the amount the foundation receives
-func (e *Stellar) splitPayout(totalAmount xdr.Int64, distribution payoutDistribution) (xdr.Int64, xdr.Int64, xdr.Int64) {
+func (e *Stellar) splitPayout(totalAmount xdr.Int64, payouts []Payout) []int64 {
 	// we can't just use big.Float for this calculation, since we need to verify
 	// the rounding afterwards
+
+	// sorting is pretty important because the logic below will
+	// give the change to the first payout that gets paid
+	sort.Slice(payouts, func(i, j int) bool {
+		// less
+		return payouts[i].Destination < payouts[j].Destination
+	})
 
 	// calculate missing precision digits, to perform percentage division without
 	// floating point operations
@@ -626,37 +702,26 @@ func (e *Stellar) splitPayout(totalAmount xdr.Int64, distribution payoutDistribu
 	amount := int64(totalAmount) * multiplier
 
 	baseAmount := amount / 100
-	farmerAmount := baseAmount * int64(distribution.farmer)
-	burnAmount := baseAmount * int64(distribution.burned)
-	foundationAmount := baseAmount * int64(distribution.foundation)
-
-	// collect parts which will be missing in division, if any
 	var change int64
-	change += farmerAmount % multiplier
-	change += burnAmount % multiplier
-	change += foundationAmount % multiplier
-
-	// change is now necessarily a multiple of multiplier
-	change /= multiplier
-	// we tracked all change which would be removed by the following integer
-	// devisions
-	farmerAmount /= multiplier
-	burnAmount /= multiplier
-	foundationAmount /= multiplier
-
-	// give change to whichever gets funds anyway, in the following order:
-	//  - farmer
-	//  - burned
-	//  - foundation
-	if farmerAmount != 0 {
-		farmerAmount += change
-	} else if burnAmount != 0 {
-		burnAmount += change
-	} else if foundationAmount != 0 {
-		foundationAmount += change
+	amounts := make([]int64, 0, len(payouts))
+	for _, payout := range payouts {
+		amount := baseAmount * int64(payout.Distribution)
+		change += amount % multiplier
+		amount /= multiplier
+		amounts = append(amounts, amount)
 	}
 
-	return xdr.Int64(farmerAmount), xdr.Int64(burnAmount), xdr.Int64(foundationAmount)
+	change /= multiplier
+
+	for i := range amounts {
+		v := amounts[i]
+		if v != 0 {
+			amounts[i] += change
+			break
+		}
+	}
+
+	return amounts
 }
 
 // checkAssetSupport for all unique farms in the reservation
