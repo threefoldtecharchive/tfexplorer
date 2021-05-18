@@ -44,6 +44,9 @@ func (f *FarmAPI) registerFarm(r *http.Request) (interface{}, mw.Response) {
 		return nil, mw.BadRequest(err)
 	}
 
+	// all new farms must be grid3 compliant
+	info.IsGrid3Compliant = true
+
 	id, err := f.Add(r.Context(), db, info)
 	if err != nil {
 		return nil, mw.Error(err)
