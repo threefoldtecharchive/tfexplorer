@@ -47,6 +47,12 @@
           <span>{{node.updated}}</span>
         </v-flex>
       </v-row>
+      <v-row>
+        <v-flex xs3 class="text-left pr-2">V3 compliant</v-flex>
+        <v-flex class="text-truncate font-weight-bold">
+          <v-icon :color="isV3Icon.color">{{isV3Icon.icon}}</v-icon>
+        </v-flex>
+      </v-row>
       <!-- <v-row>
         <v-tooltip right>
           <template v-slot:activator="{ on }">

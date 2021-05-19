@@ -62,7 +62,8 @@ export default {
           updated: new Date(node.updated * 1000),
           status: this.getStatus(node),
           location: node.location,
-          freeToUse: node.free_to_use
+          freeToUse: node.free_to_use,
+          isV3: farm.is_grid3_compliant
         }
       })
       return parsedNodes
