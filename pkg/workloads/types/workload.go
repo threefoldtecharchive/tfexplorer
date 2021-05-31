@@ -43,7 +43,15 @@ func ApplyQueryFilterWorkload(r *http.Request, filter WorkloadFilter) (WorkloadF
 		if err != nil {
 			return nil, errors.Wrap(err, "next_action should be an integer")
 		}
-		filter = filter.WithNextAction(generated.NextActionEnum(nextAction))
+		filter = filter.WithNextAction(workloads.NextActionEnum(nextAction))
+	}
+	sWorkloadType := r.FormValue("workload_type")
+	if len(sWorkloadType) != 0 {
+		workloadType, err := strconv.ParseUint(sWorkloadType, 10, 8)
+		if err != nil {
+			return nil, errors.Wrap(err, "workload_type should be an integer")
+		}
+		filter = filter.WithWorkloadType(workloads.WorkloadTypeEnum(workloadType))
 	}
 	return filter, nil
 }
