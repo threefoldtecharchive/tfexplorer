@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/tfexplorer/models"
+	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
 	"github.com/threefoldtech/zos/pkg/crypto"
@@ -42,15 +43,15 @@ func ApplyQueryFilterWorkload(r *http.Request, filter WorkloadFilter) (WorkloadF
 		if err != nil {
 			return nil, errors.Wrap(err, "next_action should be an integer")
 		}
-		filter = filter.WithNextAction(generated.NextActionEnum(nextAction))
+		filter = filter.WithNextAction(workloads.NextActionEnum(nextAction))
 	}
 	sWorkloadType := r.FormValue("workload_type")
 	if len(sWorkloadType) != 0 {
-		workloadType, err := strconv.ParseInt(sWorkloadType, 10, 0)
+		workloadType, err := strconv.ParseUint(sWorkloadType, 10, 8)
 		if err != nil {
 			return nil, errors.Wrap(err, "workload_type should be an integer")
 		}
-		filter = filter.WithWorkloadType(generated.WorkloadTypeEnum(workloadType))
+		filter = filter.WithWorkloadType(workloads.WorkloadTypeEnum(workloadType))
 	}
 	return filter, nil
 }
@@ -205,7 +206,7 @@ func (w WorkloaderType) MarshalBSON() ([]byte, error) {
 
 // UnmarshalBSON implements bson.Unmarshaller
 func (w *WorkloaderType) UnmarshalBSON(buf []byte) error {
-	workload, err := generated.UnmarshalBSON(buf)
+	workload, err := workloads.UnmarshalBSON(buf)
 	if err != nil {
 		return err
 	}
@@ -226,7 +227,7 @@ func (w WorkloaderType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements JSON.Unmarshaller
 func (w *WorkloaderType) UnmarshalJSON(buf []byte) error {
-	workload, err := generated.UnmarshalJSON(buf)
+	workload, err := workloads.UnmarshalJSON(buf)
 	if err != nil {
 		return err
 	}
