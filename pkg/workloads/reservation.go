@@ -1320,7 +1320,7 @@ func (a *API) handlePublicIPReservation(ctx context.Context, db *mongo.Database,
 		// the owner if the reservation can then be someone else or the same owner
 		var filter types.WorkloadFilter
 		filter = filter.WithID(swap).
-			WithPoolID(ipWorkload.WorkloadId).
+			WithPoolID(ipWorkload.PoolId).
 			WithNextAction(generated.NextActionDeploy)
 
 		wl, err := filter.Get(ctx, db)
