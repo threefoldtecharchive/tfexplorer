@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/tfexplorer/models"
+	generateddirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/mw"
@@ -1278,6 +1279,10 @@ func (a *API) setWorkloadDelete(ctx context.Context, db *mongo.Database, w types
 }
 
 func (a *API) handlePublicIPReservation(ctx context.Context, db *mongo.Database, workload types.WorkloaderType) mw.Response {
+	// handling ip reservation is very special because
+	// 1- It's mostly handled by the explorer itself
+	// 2- it should be possible for the IP owner to move the IP reservation to another node (swap)
+
 	ipWorkload := workload.Workloader.(*generated.PublicIP)
 
 	var nodeFilter directory.NodeFilter
@@ -1294,7 +1299,44 @@ func (a *API) handlePublicIPReservation(ctx context.Context, db *mongo.Database,
 		return mw.BadRequest(errors.Wrap(err, "failed to retrieve farm"))
 	}
 
-	if err := directory.FarmIPReserve(ctx, db, farm.ID, ipWorkload.IPaddress, workload.GetID()); err != nil {
+	var pubIP *generateddirectory.PublicIP
+	for i := range farm.IPAddresses {
+		ip := &farm.IPAddresses[i]
+
+		if ip.Address.IP.Equal(ipWorkload.IPaddress.IP) {
+			pubIP = ip
+			break
+		}
+	}
+
+	if pubIP == nil {
+		// no ip found
+		return mw.NotFound(fmt.Errorf("public ip not found in farm"))
+	}
+
+	swap := pubIP.ReservationID
+	// if swap != 0 then the ip is already allocated to 'someone'
+	if swap != 0 {
+		// the owner if the reservation can then be someone else or the same owner
+		var filter types.WorkloadFilter
+		filter = filter.WithID(swap).
+			WithPoolID(ipWorkload.PoolId).
+			WithNextAction(generated.NextActionDeploy)
+
+		wl, err := filter.Get(ctx, db)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			// this reservation is owned by another user!! we can't do swap
+			return mw.Conflict(fmt.Errorf("ip address already in use by another pool"))
+		}
+
+		// same user, we need to deprovision this one
+		if _, err := a.setWorkloadDelete(ctx, db, wl); err != nil {
+			return mw.Error(errors.Wrap(err, "failed to schedule ip reservation to be deleted"))
+		}
+	}
+
+	// swap will atomically swap the reservation on the IP address against
+	if err := directory.FarmIPSwap(ctx, db, farm.ID, ipWorkload.IPaddress, swap, workload.GetID()); err != nil {
 		return mw.Conflict(err)
 	}
 
