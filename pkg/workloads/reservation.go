@@ -1320,13 +1320,13 @@ func (a *API) handlePublicIPReservation(ctx context.Context, db *mongo.Database,
 		// the owner if the reservation can then be someone else or the same owner
 		var filter types.WorkloadFilter
 		filter = filter.WithID(swap).
-			WithCustomerID(workload.GetCustomerTid()).
+			WithPoolID(ipWorkload.WorkloadId).
 			WithNextAction(generated.NextActionDeploy)
 
 		wl, err := filter.Get(ctx, db)
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			// this reservation is owned by another user!! we can't do swap
-			return mw.Conflict(fmt.Errorf("ip address already in use"))
+			return mw.Conflict(fmt.Errorf("ip address already in use by another pool"))
 		}
 
 		// same user, we need to deprovision this one
