@@ -253,19 +253,24 @@ func FarmUpdate(ctx context.Context, db *mongo.Database, id schema.ID, farm Farm
 
 // FarmIPReserve reserves an IP if it's only free
 func FarmIPReserve(ctx context.Context, db *mongo.Database, farm schema.ID, ip schema.IPCidr, reservation schema.ID) error {
+	return FarmIPSwap(ctx, db, farm, ip, 0, reservation)
+}
+
+// FarmIPSwap swaps ip reservation id atomically
+func FarmIPSwap(ctx context.Context, db *mongo.Database, farm schema.ID, ip schema.IPCidr, from, to schema.ID) error {
 	col := db.Collection(FarmCollection)
 	// filter using 0 reservation id (not reserved)
-	filter := FarmFilter{}.WithID(farm).WithIP(ip, 0)
+	filter := FarmFilter{}.WithID(farm).WithIP(ip, from)
 
 	results, err := col.UpdateOne(ctx, filter, bson.M{
-		"$set": bson.M{"ipaddresses.$.reservation_id": reservation},
+		"$set": bson.M{"ipaddresses.$.reservation_id": to},
 	})
 	if err != nil {
 		return err
 	}
 
 	if results.ModifiedCount != 1 {
-		return fmt.Errorf("ip is not available for reservation")
+		return fmt.Errorf("ip reservation swap failed")
 	}
 
 	return nil
