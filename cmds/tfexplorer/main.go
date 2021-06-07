@@ -74,7 +74,7 @@ func main() {
 	flag.BoolVar(&f.flushEscrows, "flush-escrows", false, "flush all escrows in the database, including currently active ones, and their associated addressses")
 	flag.BoolVar(&f.enablePProf, "pprof", false, "enable pprof")
 	flag.Int64Var(&f.prometheusPort, "prometheus-port", 3200, "port the run the prometheus server on")
-	flag.StringVar(&f.horizonURL, "horizon", "", "Horizon server URL to communicate with")
+	flag.StringVar(&config.Config.HorizonURL, "horizon", "", "Horizon server URL to communicate with")
 
 	flag.Parse()
 
@@ -190,7 +190,7 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 			log.Fatal().Err(err).Msg("failed to create escrow database indexes")
 		}
 
-		wallet, err := stellar.New(f.seed, config.Config.WalletNetwork, f.backupSigners, f.horizonURL)
+		wallet, err := stellar.New(f.seed, config.Config.WalletNetwork, f.backupSigners, config.Config.HorizonURL)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to create stellar wallet")
 		}
