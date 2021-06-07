@@ -87,7 +87,7 @@ func TestPayoutDistribution(t *testing.T) {
 		assert.NoError(t, pd.Valid())
 	}
 
-	w, err := stellar.New("", stellar.NetworkTest, nil)
+	w, err := stellar.New("", stellar.NetworkTest, nil, "")
 	assert.NoError(t, err)
 
 	e := NewStellar(w, nil, "", gridnetworks.GridNetworkMainnet)

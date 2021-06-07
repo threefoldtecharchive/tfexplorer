@@ -17,7 +17,7 @@ type AddressValidator struct {
 
 // NewAddressValidator creates an address validator instance
 func NewAddressValidator(network, assetCode string) (*AddressValidator, error) {
-	w, err := New("", network, nil)
+	w, err := New("", network, nil, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wallet")
 	}

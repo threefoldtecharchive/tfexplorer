@@ -31,7 +31,7 @@ func create(c *cli.Context) error {
 		return err
 	}
 
-	wallet, err := stellar.New(seed, network, nil)
+	wallet, err := stellar.New(seed, network, nil, "")
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func signAndSubmit(c *cli.Context) error {
 	network := c.String("network")
 	transaction := c.String("transaction")
 
-	wallet, err := stellar.New(seed, network, nil)
+	wallet, err := stellar.New(seed, network, nil, "")
 	if err != nil {
 		return err
 	}
