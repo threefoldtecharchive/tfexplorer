@@ -54,7 +54,6 @@ type flags struct {
 	backupSigners      stellar.Signers
 	enablePProf        bool
 	prometheusPort     int64
-	horizonURL         string
 }
 
 func main() {
