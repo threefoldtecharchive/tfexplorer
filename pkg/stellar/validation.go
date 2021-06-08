@@ -11,13 +11,14 @@ import (
 
 // AddressValidator validates stellar address
 type AddressValidator struct {
-	network string
-	asset   Asset
+	network    string
+	asset      Asset
+	horizonURL string
 }
 
 // NewAddressValidator creates an address validator instance
-func NewAddressValidator(network, assetCode string) (*AddressValidator, error) {
-	w, err := New("", network, nil)
+func NewAddressValidator(network, assetCode, horizonURL string) (*AddressValidator, error) {
+	w, err := New("", network, nil, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create wallet")
 	}
@@ -25,7 +26,7 @@ func NewAddressValidator(network, assetCode string) (*AddressValidator, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not load asset code")
 	}
-	return &AddressValidator{network: network, asset: asset}, nil
+	return &AddressValidator{network: network, asset: asset, horizonURL: horizonURL}, nil
 }
 
 // Valid validates a stellar address, and only return nil if address is valid
@@ -70,6 +71,10 @@ func (a *AddressValidator) getAccountDetails(address string) (account hProtocol.
 }
 
 func (a *AddressValidator) getHorizonClient() (*horizonclient.Client, error) {
+	if a.horizonURL != "" {
+		return &horizonclient.Client{HorizonURL: a.horizonURL}, nil
+	}
+
 	switch a.network {
 	case NetworkTest:
 		return horizonclient.DefaultTestNetClient, nil

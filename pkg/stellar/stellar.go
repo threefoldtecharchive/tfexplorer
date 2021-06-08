@@ -32,10 +32,11 @@ type (
 	// stellarWallet is the foundation wallet
 	// Payments will be funded and fees will be taken with this wallet
 	stellarWallet struct {
-		keypair *keypair.Full
-		network string
-		assets  map[Asset]struct{}
-		signers Signers
+		keypair    *keypair.Full
+		network    string
+		assets     map[Asset]struct{}
+		signers    Signers
+		horizonURL string
 	}
 
 	// Wallet interface
@@ -81,7 +82,7 @@ var (
 // New stellar wallet from an optional seed. If no seed is given (i.e. empty string),
 // the wallet will panic on all actions which need to be signed, or otherwise require
 // a key to be loaded.
-func New(seed, network string, signers []string) (Wallet, error) {
+func New(seed, network string, signers []string, horizonURL string) (Wallet, error) {
 	assets := mainnetAssets
 
 	if len(signers) < 3 && seed != "" {
@@ -89,9 +90,10 @@ func New(seed, network string, signers []string) (Wallet, error) {
 	}
 
 	w := &stellarWallet{
-		network: network,
-		assets:  assets,
-		signers: signers,
+		network:    network,
+		assets:     assets,
+		signers:    signers,
+		horizonURL: horizonURL,
 	}
 
 	var err error
@@ -632,6 +634,10 @@ func (w *stellarWallet) keypairFromEncryptedSeed(seed string) (keypair.Full, err
 
 // GetHorizonClient gets the horizon client based on the wallet's network
 func (w *stellarWallet) GetHorizonClient() (*horizonclient.Client, error) {
+	if w.horizonURL != "" {
+		return &horizonclient.Client{HorizonURL: w.horizonURL}, nil
+	}
+
 	switch w.network {
 	case "testnet":
 		return horizonclient.DefaultTestNetClient, nil

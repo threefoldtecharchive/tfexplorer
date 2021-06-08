@@ -13,6 +13,7 @@ import (
 type Settings struct {
 	WalletNetwork string
 	TFNetwork     string
+	HorizonURL    string
 }
 
 var (

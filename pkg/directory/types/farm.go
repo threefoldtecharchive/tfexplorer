@@ -49,7 +49,7 @@ func (f *Farm) Validate() error {
 	if config.Config.WalletNetwork != "" {
 		found := false
 		for _, a := range f.WalletAddresses {
-			validator, err := stellar.NewAddressValidator(config.Config.WalletNetwork, a.Asset)
+			validator, err := stellar.NewAddressValidator(config.Config.WalletNetwork, a.Asset, config.Config.HorizonURL)
 			if err != nil {
 				if errors.Is(err, stellar.ErrAssetCodeNotSupported) {
 					continue
