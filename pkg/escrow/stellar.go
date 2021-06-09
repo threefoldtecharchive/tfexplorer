@@ -82,7 +82,7 @@ const (
 	balanceCheckInterval = time.Second * 5
 
 	// maximum time for a capacity reservation
-	capacityReservationTimeout = time.Minute * 1
+	capacityReservationTimeout = time.Hour * 1
 )
 
 const (
@@ -245,7 +245,6 @@ func (e *Stellar) Payout(ctx context.Context) error {
 		for !ready {
 			select {
 			case <-ctx.Done():
-				log.Debug().Msg("we are done")
 				log.Info().Msg("escrow context done, exiting")
 				return nil
 
@@ -276,7 +275,6 @@ func (e *Stellar) Payout(ctx context.Context) error {
 				if len(secrets) > 0 {
 					ready = true
 				} else {
-					log.Debug().Msg("waiting")
 					time.Sleep(1 * time.Second)
 				}
 			}
