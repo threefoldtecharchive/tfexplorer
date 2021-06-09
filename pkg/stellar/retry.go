@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/stellar/go/clients/horizonclient"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 type (
@@ -65,9 +66,9 @@ func (r *retryWallet) error(op, memo string, err error) error {
 // 	return
 // }
 
-func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset) (err error) {
+func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, reservation_id schema.ID) (err error) {
 	err = r.backoff(func() error {
-		err = r.Wallet.Refund(encryptedSeed, memo, asset)
+		err = r.Wallet.Refund(encryptedSeed, memo, asset, batchTxs, pn, reservation_id)
 		return r.error("Refund", memo, err)
 	})
 

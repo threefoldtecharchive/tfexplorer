@@ -13,6 +13,7 @@ type (
 	// Escrow are responsible for the payment flow of a reservation
 	Escrow interface {
 		Run(ctx context.Context) error
+		Payout(ctx context.Context) error
 		CapacityReservation(reservation capacitytypes.Reservation, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error)
 		PaidCapacity() <-chan schema.ID
 	}
@@ -31,6 +32,11 @@ func NewFree(db *mongo.Database) *Free {
 
 // Run implements the escrow interface
 func (e *Free) Run(ctx context.Context) error {
+	return nil
+}
+
+// Run implements the escrow interface
+func (e *Free) Payout(ctx context.Context) error {
 	return nil
 }
 

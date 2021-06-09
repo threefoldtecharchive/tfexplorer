@@ -3,6 +3,8 @@ package stellar
 import (
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -16,6 +18,7 @@ import (
 	"github.com/stellar/go/support/errors"
 	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
+	"github.com/threefoldtech/tfexplorer/schema"
 )
 
 type (
@@ -25,8 +28,18 @@ type (
 	// PayoutInfo holds information about which address needs to receive how many funds
 	// for payment commands which take multiple receivers
 	PayoutInfo struct {
-		Address string
-		Amount  xdr.Int64
+		encryptedSeed string
+		Address       string
+		Amount        xdr.Int64
+	}
+
+	PayoutJob struct {
+		Id        schema.ID
+		Payments  []txnbuild.Payment
+		Memo      string
+		Asset     Asset
+		SecretKey string
+		Refund    bool
 	}
 
 	// stellarWallet is the foundation wallet
@@ -39,18 +52,25 @@ type (
 		horizonURL string
 	}
 
+	BatchTransactionsInfo struct {
+		Ops map[string][]int
+	}
+
 	// Wallet interface
 	Wallet interface {
 		AssetFromCode(code string) (Asset, error)
 		PrecisionDigits() int
 		PublicAddress() string
 		CreateAccount() (encSeed string, address string, err error)
-		GetBalance(address string, memo string, asset Asset) (xdr.Int64, []string, error)
-		Refund(encryptedSeed string, memo string, asset Asset) error
+		GetBalance(address string, memo string, asset Asset, batchTxs *BatchTransactionsInfo) (xdr.Int64, []string, error)
+		Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, reservation_id schema.ID) error
 		PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) error
 		GetAccountDetails(address string) (account hProtocol.Account, err error)
+		GetNextSequenceNumber() (string, error)
 		GetHorizonClient() (*horizonclient.Client, error)
 		GetNetworkPassPhrase() string
+		QueuePayout(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset, Id schema.ID, pn chan PayoutJob) error
+		ProcessPayoutBatches(payouts []txnbuild.Payment, secets []string) error
 	}
 )
 
@@ -336,21 +356,29 @@ func (w *stellarWallet) setupEscrowMultisig(sourceAccount hProtocol.Account) []t
 	return operations
 }
 
+func getOpIdfromLink(oplink string) (uint64, error) {
+	split := strings.Split(oplink, "/")
+	return strconv.ParseUint(split[len(split)-1], 10, 64)
+}
+
 // GetBalance gets balance for an address and a given reservation id. It also returns
 // a list of addresses which funded the given address.
-func (w *stellarWallet) GetBalance(address string, memo string, asset Asset) (xdr.Int64, []string, error) {
+func (w *stellarWallet) GetBalance(address string, memo string, asset Asset, batchTxs *BatchTransactionsInfo) (xdr.Int64, []string, error) {
 	if address == "" {
 		err := fmt.Errorf("trying to get the balance of an empty address. this should never happen")
 		log.Warn().Err(err).Send()
 		return 0, nil, err
 	}
-
+	if batchTxs == nil {
+		batchTxs = &BatchTransactionsInfo{
+			Ops: make(map[string][]int),
+		}
+	}
 	var total xdr.Int64
 	horizonClient, err := w.GetHorizonClient()
 	if err != nil {
 		return 0, nil, err
 	}
-
 	cursor := ""
 
 	txReq := horizonclient.TransactionRequest{
@@ -364,11 +392,11 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset) (xd
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not get transactions")
 	}
-
 	donors := make(map[string]struct{})
 	for len(txes.Embedded.Records) != 0 {
 		for _, tx := range txes.Embedded.Records {
-			if tx.Memo == memo {
+			inBatchTransaction := batchTxs.IsTransactionInMemo(tx.AccountSequence)
+			if tx.Memo == memo || inBatchTransaction {
 				effectsReq := horizonclient.EffectRequest{
 					ForTransaction: tx.Hash,
 				}
@@ -379,12 +407,27 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset) (xd
 				}
 				// first check if we have been paid
 				var isFunding bool
+				var offset uint64 = 0
 				for _, effect := range effects.Embedded.Records {
 					if effect.GetAccount() != address {
 						continue
 					}
 					if effect.GetType() == "account_credited" {
 						creditedEffect := effect.(horizoneffects.AccountCredited)
+						opId, _ := getOpIdfromLink(creditedEffect.Links.Operation.Href)
+						if offset == 0 {
+							offset = opId
+						}
+
+						log.Debug().
+							Int("idx", int(opId-offset)).
+							Str("seq", tx.AccountSequence).
+							Bool("inbatch", inBatchTransaction).
+							Bool("actually in batch", batchTxs.IsOperationInMemo(tx.AccountSequence, int(opId-offset))).
+							Msg("processing opeartion")
+						if inBatchTransaction && !batchTxs.IsOperationInMemo(tx.AccountSequence, int(opId-offset)) {
+							continue
+						}
 						if creditedEffect.Asset.Code != asset.Code() ||
 							creditedEffect.Asset.Issuer != asset.Issuer() {
 							continue
@@ -394,9 +437,20 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset) (xd
 							continue
 						}
 						isFunding = true
+						log.Debug().
+							Uint64("op", opId).
+							Uint("amount", uint(parsedAmount)).
+							Msg("credited")
 						total += parsedAmount
 					} else if effect.GetType() == "account_debited" {
 						debitedEffect := effect.(horizoneffects.AccountDebited)
+						opId, _ := getOpIdfromLink(debitedEffect.Links.Operation.Href)
+						if offset == 0 {
+							offset = opId
+						}
+						if inBatchTransaction && !batchTxs.IsOperationInMemo(tx.AccountSequence, int(opId-offset)) {
+							continue
+						}
 						if debitedEffect.Asset.Code != asset.Code() ||
 							debitedEffect.Asset.Issuer != asset.Issuer() {
 							continue
@@ -452,13 +506,13 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset) (xd
 // Refund an escrow address for a reservation. This will transfer all funds
 // for this reservation that are currently on the address (if any), to (some of)
 // the addresses which these funds came from.
-func (w *stellarWallet) Refund(encryptedSeed string, memo string, asset Asset) error {
+func (w *stellarWallet) Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, reservation_id schema.ID) error {
 	keypair, err := w.keypairFromEncryptedSeed(encryptedSeed)
 	if err != nil {
 		return errors.Wrap(err, "could not get keypair from encrypted seed")
 	}
 
-	amount, funders, err := w.GetBalance(keypair.Address(), memo, asset)
+	amount, funders, err := w.GetBalance(keypair.Address(), memo, asset, batchTxs)
 	if err != nil {
 		return errors.Wrap(err, "failed to get balance")
 	}
@@ -483,24 +537,32 @@ func (w *stellarWallet) Refund(encryptedSeed string, memo string, asset Asset) e
 		},
 		SourceAccount: &sourceAccount,
 	}
-
-	memoText := txnbuild.MemoText(memo)
-	tx := txnbuild.TransactionParams{
-		Operations: []txnbuild.Operation{&paymentOP},
-		Timebounds: txnbuild.NewTimeout(300),
-		Memo:       memoText,
+	job := PayoutJob{
+		Memo:      memo,
+		Payments:  []txnbuild.Payment{paymentOP},
+		SecretKey: encryptedSeed,
+		Asset:     asset,
+		Refund:    true,
+		Id:        reservation_id,
 	}
+	pn <- job
+	// memoText := txnbuild.MemoText(memo)
+	// tx := txnbuild.TransactionParams{
+	// 	Operations: []txnbuild.Operation{&paymentOP},
+	// 	Timebounds: txnbuild.NewTimeout(300),
+	// 	Memo:       memoText,
+	// }
 
-	fundedTx, err := w.fundTransaction(&tx)
-	if err != nil {
-		return errors.Wrap(err, "failed to fund transaction")
-	}
+	// fundedTx, err := w.fundTransaction(&tx)
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to fund transaction")
+	// }
 
-	log.Debug().Int64("amount", int64(amount)).Str("destination", destination).Msg("refund")
-	err = w.signAndSubmitTx(&keypair, fundedTx)
-	if err != nil {
-		return errors.Wrap(err, "failed to sign and submit transaction")
-	}
+	// log.Debug().Int64("amount", int64(amount)).Str("destination", destination).Msg("refund")
+	// err = w.signAndSubmitTx(&keypair, fundedTx)
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to sign and submit transaction")
+	// }
 	return nil
 }
 
@@ -547,6 +609,128 @@ func (w *stellarWallet) PayoutFarmers(encryptedSeed string, destinations []Payou
 		return errors.Wrap(err, "failed to sign and submit transaction")
 	}
 	return nil
+}
+
+// QueuePayout enqueues a group of farmers payment, from an escrow account. The escrow
+// account must be provided as the encrypted string of the seed.
+func (w *stellarWallet) QueuePayout(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset, Id schema.ID, pn chan PayoutJob) error {
+	keypair, err := w.keypairFromEncryptedSeed(encryptedSeed)
+	if err != nil {
+		return errors.Wrap(err, "could not get keypair from encrypted seed")
+	}
+	sourceAccount, err := w.GetAccountDetails(keypair.Address())
+	if err != nil {
+		return errors.Wrap(err, "failed to get source account")
+	}
+
+	amount, funders, err := w.GetBalance(keypair.Address(), memo, asset, nil)
+
+	job := PayoutJob{
+		Id:        Id,
+		SecretKey: encryptedSeed,
+		Asset:     asset,
+		Memo:      memo,
+		Refund:    false,
+	}
+
+	for _, pi := range destinations {
+		log.Debug().Int("Id", int(Id)).Msg("queuing payout")
+		job.Payments = append(job.Payments,
+			txnbuild.Payment{
+				Destination: pi.Address,
+				Amount:      big.NewRat(int64(pi.Amount), stellarPrecision).FloatString(stellarPrecisionDigits),
+				Asset: txnbuild.CreditAsset{
+					Code:   asset.Code(),
+					Issuer: asset.Issuer(),
+				},
+				SourceAccount: &sourceAccount,
+			},
+		)
+		amount -= pi.Amount
+	}
+	if amount > 0 {
+		if memo == "p-64" {
+			amount *= 1000
+		}
+		job.Payments = append(job.Payments,
+			txnbuild.Payment{
+				Destination: funders[0],
+				Amount:      big.NewRat(int64(amount), stellarPrecision).FloatString(stellarPrecisionDigits),
+				Asset: txnbuild.CreditAsset{
+					Code:   asset.Code(),
+					Issuer: asset.Issuer(),
+				},
+				SourceAccount: &sourceAccount,
+			})
+	}
+	pn <- job
+	return nil
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+func (w *stellarWallet) ProcessPayoutBatches(payouts []txnbuild.Payment, secrets []string) error {
+	client, err := w.GetHorizonClient()
+	paymentOps := make([]txnbuild.Operation, 0, len(payouts)+1)
+
+	for i, pi := range payouts {
+		log.Debug().
+			Str("source", pi.SourceAccount.GetAccountID()).
+			Str("destination", pi.Destination).
+			Str("amount", pi.Amount).
+			Msg("batch processing")
+		paymentOps = append(paymentOps, &payouts[i])
+	}
+	tx := txnbuild.TransactionParams{
+		Operations: paymentOps,
+		Timebounds: txnbuild.NewTimeout(300),
+	}
+	fundedTx, err := w.fundTransaction(&tx)
+	if err != nil {
+		return errors.Wrap(err, "failed to fund transaction")
+	}
+	log.Debug().Str("funded_tx", fundedTx.ToXDR().GoString()).Msg("funded xdr")
+	for _, secret := range secrets {
+		keyPair, err := w.keypairFromEncryptedSeed(secret)
+		if err != nil {
+			return errors.Wrap(err, "could not get keypair from encrypted seed")
+		}
+		fundedTx, err = fundedTx.Sign(w.GetNetworkPassPhrase(), &keyPair)
+		log.Debug().Str("funded_tx", fundedTx.ToXDR().GoString()).Msg("loop funded xdr")
+		if err != nil {
+			return errors.Wrap(err, "failed to sign transaction with keypair")
+		}
+	}
+	log.Info().Msg("submitting transaction to the stellar network")
+	// Submit the transaction
+	log.Debug().Str("funded_tx", fundedTx.ToXDR().GoString()).Msg("final funded xdr")
+	_, err = client.SubmitTransaction(fundedTx)
+
+	if err != nil {
+		if err2, ok := err.(*horizonclient.Error); ok {
+			fmt.Println("Error has additional info")
+			fmt.Println(err2.ResultCodes())
+			fmt.Println(err2.ResultString())
+			fmt.Println(err2.Problem)
+		}
+		return err
+	}
+	return nil
+}
+
+func (w *stellarWallet) GetNextSequenceNumber() (string, error) {
+	sourceAccount, err := w.GetAccountDetails(w.keypair.Address())
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get source account")
+	}
+	seqNum, err := strconv.ParseUint(sourceAccount.Sequence, 10, 64)
+	return fmt.Sprint(seqNum + 1), nil
 }
 
 // fundTransaction funds a transaction with the foundation wallet
@@ -679,4 +863,25 @@ func (i *Signers) String() string {
 func (i *Signers) Set(value string) error {
 	*i = append(*i, value)
 	return nil
+}
+func (b BatchTransactionsInfo) IsOperationInMemo(sequence string, opIdx int) bool {
+	for k, v := range b.Ops {
+		if k == sequence {
+			for z := range v {
+				if opIdx == z {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (b BatchTransactionsInfo) IsTransactionInMemo(sequence string) bool {
+	for k, _ := range b.Ops {
+		if k == sequence {
+			return true
+		}
+	}
+	return false
 }
