@@ -37,7 +37,7 @@ type (
 
 		paidCapacityInfoChannel chan schema.ID
 
-		payoutsChannel chan stellar.PayoutJob
+		paymentsChannel chan stellar.PayoutJob
 
 		nodeAPI    NodeAPI
 		gatewayAPI GatewayAPI
@@ -83,6 +83,12 @@ const (
 
 	// maximum time for a capacity reservation
 	capacityReservationTimeout = time.Hour * 1
+
+	// maximum number of signatures in a transaction
+	MaxSignaturesPerTx = 20
+
+	// maximum number of operations in a transaction
+	MaxOperationsPerTx = 100
 )
 
 const (
@@ -170,7 +176,7 @@ func NewStellar(wallet stellar.Wallet, db *mongo.Database, foundationAddress str
 		nodeAPI:           &directory.NodeAPI{},
 		gatewayAPI:        &directory.GatewayAPI{},
 		farmAPI:           &directory.FarmAPI{},
-		payoutsChannel:    make(chan stellar.PayoutJob, 50),
+		paymentsChannel:   make(chan stellar.PayoutJob, 100),
 		// paidCapacityInfoChannel is buffered since it is used to communicate
 		// with other workers, which might also try to communicate with this
 		// worker
@@ -232,9 +238,69 @@ func stringInSlice(a string, list []string) bool {
 	}
 	return false
 }
+func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stellar.PayoutJob, payments []txnbuild.Payment, jobMap map[int]int) error {
+	badJob := make(map[int]bool)
+	xdr, err := herr.EnvelopeXDR()
+	resString, err := herr.ResultString()
+	codes, reserr := herr.ResultCodes()
+	var operationCodes []string
+	if reserr != nil {
+		// repush all if we can't fetch the error
+		log.Debug().Err(err).Msg("couldn't get result codes")
+		operationCodes = make([]string, 0)
+	} else {
+		operationCodes = codes.OperationCodes
 
-// Run the escrow until the context is done
-func (e *Stellar) Payout(ctx context.Context) error {
+	}
+	for i, code := range operationCodes {
+		if code != "op_success" {
+			log.Debug().
+				Str("code", code).
+				Str("source account", payments[i].SourceAccount.GetAccountID()).
+				Str("destination account", payments[i].Destination).
+				Str("amount", payments[i].Amount).
+				Str("memo text", jobs[jobMap[i]].Memo).
+				Str("code", code).
+				Msg("operation failed")
+			badJob[jobMap[i]] = true
+		}
+	}
+	for i, j := range jobs {
+		// repush non-failed transactions in the queue
+		if !badJob[i] {
+			e.paymentsChannel <- j
+		} else if j.Retries > 1 {
+			j.Retries -= 1
+			e.paymentsChannel <- j
+		} else {
+			// refund failed payments and store failed refunds in the db
+			escrowInfo, err := types.CapacityReservationPaymentInfoGet(e.ctx, e.db, j.ID)
+			if err != nil {
+				log.Error().Err(err).Msg("could not get reservation id for failed payment")
+				continue
+			}
+			if !j.Refund {
+				e.refundCapacityEscrow(escrowInfo, "farmer_payout")
+			} else {
+				failed := types.FailedPaymentInfo{
+					ReservatoinID: j.ID,
+					MemoText:      j.Memo,
+					ErrorCode:     operationCodes[i],
+					EnvelopeXDR:   xdr,
+					ResultString:  resString,
+				}
+				err := types.FailedPaymentInfoInfoCreate(e.ctx, e.db, failed)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to push the failed payment to the db")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// PaymentsLoop the payment loop the context is done
+func (e *Stellar) PaymentsLoop(ctx context.Context) error {
 	for {
 		var secrets []string
 		var payments []txnbuild.Payment
@@ -248,34 +314,32 @@ func (e *Stellar) Payout(ctx context.Context) error {
 				log.Info().Msg("escrow context done, exiting")
 				return nil
 
-			case job := <-e.payoutsChannel:
+			case job := <-e.paymentsChannel:
 				jobs = append(jobs, job)
-				// for _, payout := range payouts {
-				log.Debug().
-					Str("amount", job.Payments[0].Amount).
-					Str("source", job.Payments[0].SourceAccount.GetAccountID()).
-					Str("destination", job.Payments[0].Destination).
-					Str("asset", job.Asset.String()).
-					Str("secret key", job.SecretKey).
-					Str("secret key", job.Memo).
-					Msg("another payout received")
 				memoMap[job.Memo] = make([]int, 0)
 				if !stringInSlice(job.SecretKey, secrets) {
 					secrets = append(secrets, job.SecretKey)
 				}
 				for _, payment := range job.Payments {
+					log.Debug().
+						Str("amount", payment.Amount).
+						Str("source", payment.SourceAccount.GetAccountID()).
+						Str("destination", payment.Destination).
+						Str("asset", job.Asset.String()).
+						Msg("another payment received")
 					memoMap[job.Memo] = append(memoMap[job.Memo], len(payments))
 					jobMap[len(payments)] = len(jobs) - 1
 					payments = append(payments, payment)
 				}
-				if len(payments) == 80 || len(secrets) == 15 {
+				if len(payments) >= MaxOperationsPerTx*.8 || len(secrets) >= MaxSignaturesPerTx*.8 {
 					ready = true
 				}
 			default:
 				if len(secrets) > 0 {
 					ready = true
 				} else {
-					time.Sleep(1 * time.Second)
+					log.Debug().Msg("waiting")
+					time.Sleep(70 * time.Second)
 				}
 			}
 		}
@@ -294,47 +358,23 @@ func (e *Stellar) Payout(ctx context.Context) error {
 		totalStellarTransactions.Inc()
 		if err != nil {
 			if err2, ok := err.(*horizonclient.Error); ok {
-				badJob := make(map[int]bool)
-
-				codes, err := err2.ResultCodes()
-				if err != nil {
-					log.Debug().Err(err).Msg("couldn't get result codes")
-				}
-
-				for i, code := range codes.OperationCodes {
-					if code != "op_success" {
-						log.Debug().
-							Str("code", code).
-							Str("source account", payments[i].SourceAccount.GetAccountID()).
-							Str("destination account", payments[i].Destination).
-							Str("amount", payments[i].Amount).
-							Str("memo text", jobs[jobMap[i]].Memo).
-							Str("code", code).
-							Msg("operation failed")
-						badJob[jobMap[i]] = true
-					}
-				}
-				for i, j := range jobs {
-					// repush non-failed transactions in the queue
-					if !badJob[i] {
-						e.payoutsChannel <- j
-					}
-				}
+				err = e.requeueFailedPayments(err2, jobs, payments, jobMap)
 			}
 			log.Error().Msgf("failed to submit all payouts: %s", err)
 			continue
 		}
 		log.Debug().Msg("End submitting batches")
 		for id, job := range jobs {
-			rpi, err := types.CapacityReservationPaymentInfoGet(ctx, e.db, jobs[id].Id)
+			rpi, err := types.CapacityReservationPaymentInfoGet(ctx, e.db, jobs[id].ID)
 			if err != nil {
 				log.Error().Msgf("failed to get payment info by id: %s", err)
 			}
 			if !job.Refund {
 				rpi.Released = true
 				if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
-					return errors.Wrapf(err, "could not mark escrows for %d as released", rpi.ReservationID)
+					log.Error().Err(err).Msgf("could not mark escrows for %d as released", rpi.ReservationID)
 				}
+				e.paidCapacityInfoChannel <- rpi.ReservationID
 			}
 		}
 	}
@@ -422,7 +462,6 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 	}
 
 	slog.Debug().Msg("escrow marked as paid")
-	e.paidCapacityInfoChannel <- escrowInfo.ReservationID
 	return nil
 }
 
@@ -699,7 +738,7 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 		log.Error().Msgf("failed to load escrow address info: %s", err)
 		return errors.Wrap(err, "could not load escrow address info")
 	}
-	if err = e.wallet.QueuePayout(addressInfo.Secret, paymentInfo, capacityReservationMemo(rpi.ReservationID), rpi.Asset, rpi.ReservationID, e.payoutsChannel); err != nil {
+	if err = e.wallet.QueuePayout(addressInfo.Secret, paymentInfo, capacityReservationMemo(rpi.ReservationID), rpi.Asset, rpi.ReservationID, e.paymentsChannel); err != nil {
 		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, rpi.ReservationID)
 		return errors.Wrap(err, "could not pay farmer")
 	}
@@ -719,7 +758,7 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 		return errors.Wrap(err, "failed to load escrow info")
 	}
 	batchTxs, err := getBatchMemoTransactions(e.ctx, e.db, capacityReservationMemo(escrowInfo.ReservationID))
-	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset, &batchTxs, e.payoutsChannel, escrowInfo.ReservationID); err != nil {
+	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset, &batchTxs, e.paymentsChannel, escrowInfo.ReservationID); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
 	escrowInfo.Canceled = true

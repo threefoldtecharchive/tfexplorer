@@ -204,7 +204,7 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 	}
 
 	go e.Run(context.Background())
-	go e.Payout(context.Background())
+	go e.PaymentsLoop(context.Background())
 	if f.enablePProf {
 		runtime.SetBlockProfileRate(1)
 		router.PathPrefix("/debug/").Handler(http.DefaultServeMux)

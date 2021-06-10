@@ -66,9 +66,9 @@ func (r *retryWallet) error(op, memo string, err error) error {
 // 	return
 // }
 
-func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, reservation_id schema.ID) (err error) {
+func (r *retryWallet) Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, ReservationID schema.ID) (err error) {
 	err = r.backoff(func() error {
-		err = r.Wallet.Refund(encryptedSeed, memo, asset, batchTxs, pn, reservation_id)
+		err = r.Wallet.Refund(encryptedSeed, memo, asset, batchTxs, pn, ReservationID)
 		return r.error("Refund", memo, err)
 	})
 
