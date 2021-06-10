@@ -438,10 +438,6 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset, bat
 							continue
 						}
 						isFunding = true
-						log.Debug().
-							Uint64("op", opID).
-							Uint("amount", uint(parsedAmount)).
-							Msg("credited")
 						total += parsedAmount
 					} else if effect.GetType() == "account_debited" {
 						debitedEffect := effect.(horizoneffects.AccountDebited)
@@ -548,23 +544,6 @@ func (w *stellarWallet) Refund(encryptedSeed string, memo string, asset Asset, b
 		Retries:   ClientRefundsMaxRetries,
 	}
 	pn <- job
-	// memoText := txnbuild.MemoText(memo)
-	// tx := txnbuild.TransactionParams{
-	// 	Operations: []txnbuild.Operation{&paymentOP},
-	// 	Timebounds: txnbuild.NewTimeout(300),
-	// 	Memo:       memoText,
-	// }
-
-	// fundedTx, err := w.fundTransaction(&tx)
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to fund transaction")
-	// }
-
-	// log.Debug().Int64("amount", int64(amount)).Str("destination", destination).Msg("refund")
-	// err = w.signAndSubmitTx(&keypair, fundedTx)
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to sign and submit transaction")
-	// }
 	return nil
 }
 
@@ -696,21 +675,17 @@ func (w *stellarWallet) ProcessPayoutBatches(payouts []txnbuild.Payment, secrets
 	if err != nil {
 		return errors.Wrap(err, "failed to fund transaction")
 	}
-	log.Debug().Str("funded_tx", fundedTx.ToXDR().GoString()).Msg("funded xdr")
 	for _, secret := range secrets {
 		keyPair, err := w.keypairFromEncryptedSeed(secret)
 		if err != nil {
 			return errors.Wrap(err, "could not get keypair from encrypted seed")
 		}
 		fundedTx, err = fundedTx.Sign(w.GetNetworkPassPhrase(), &keyPair)
-		log.Debug().Str("funded_tx", fundedTx.ToXDR().GoString()).Msg("loop funded xdr")
 		if err != nil {
 			return errors.Wrap(err, "failed to sign transaction with keypair")
 		}
 	}
 	log.Info().Msg("submitting transaction to the stellar network")
-	// Submit the transaction
-	log.Debug().Str("funded_tx", fundedTx.ToXDR().GoString()).Msg("final funded xdr")
 	_, err = client.SubmitTransaction(fundedTx)
 
 	if err != nil {

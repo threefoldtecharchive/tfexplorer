@@ -31,12 +31,6 @@ func CapacityMemoTextInfoCreate(ctx context.Context, db *mongo.Database, info Ca
 	col := db.Collection(CapacityMemoTextCollection)
 	_, err := col.InsertOne(ctx, info)
 	if err != nil {
-		if merr, ok := err.(mongo.WriteException); ok {
-			errCode := merr.WriteErrors[0].Code
-			if errCode == 11000 {
-				return ErrEscrowExists
-			}
-		}
 		return err
 	}
 	return nil

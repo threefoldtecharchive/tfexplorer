@@ -347,7 +347,6 @@ func (e *Stellar) processFailedPayments(herr *horizonclient.Error, jobs []stella
 
 // PaymentsLoop the payment loop the context is done
 func (e *Stellar) PaymentsLoop(ctx context.Context) error {
-	time.Sleep(7 * time.Second)
 	for {
 		var secrets []string
 		var payments []txnbuild.Payment
@@ -485,7 +484,12 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 
 	// calculate total amount needed for reservation
 	requiredValue := escrowInfo.Amount
-	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset, nil)
+	memo := capacityReservationMemo(escrowInfo.ReservationID)
+	batchTx, err := getBatchMemoTransactions(e.ctx, e.db, memo)
+	if err != nil {
+		log.Error().Err(err).Str("memo", memo).Msg("failed to get batch memo transactions")
+	}
+	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, memo, escrowInfo.Asset, &batchTx)
 	if err != nil {
 		return errors.Wrap(err, "failed to verify escrow account balance")
 	}
