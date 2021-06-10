@@ -8,11 +8,12 @@ import (
 )
 
 const (
-	// CapacityEscrowCollection db collection for mapping between payment request and transaction sequence number and operations ids
+	// FailedPaymentsCollectoins db collection for failed payments
 	FailedPaymentsCollectoins = "capacity-failed-transactions"
 )
 
 type (
+	// FailedPaymentInfo contains info about failed payment
 	FailedPaymentInfo struct {
 		// ID of the pool
 		ReservatoinID schema.ID `bson:"res_id"`

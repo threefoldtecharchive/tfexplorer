@@ -28,9 +28,8 @@ type (
 	// PayoutInfo holds information about which address needs to receive how many funds
 	// for payment commands which take multiple receivers
 	PayoutInfo struct {
-		encryptedSeed string
-		Address       string
-		Amount        xdr.Int64
+		Address string
+		Amount  xdr.Int64
 	}
 
 	// PayoutJob a unit containing a list of payments from a unique account
@@ -54,6 +53,7 @@ type (
 		horizonURL string
 	}
 
+	// BatchTransactionsInfo mapping between transaction sequence and operation indices for a specific memo text
 	BatchTransactionsInfo struct {
 		Ops map[string][]int
 	}
@@ -65,7 +65,7 @@ type (
 		PublicAddress() string
 		CreateAccount() (encSeed string, address string, err error)
 		GetBalance(address string, memo string, asset Asset, batchTxs *BatchTransactionsInfo) (xdr.Int64, []string, error)
-		Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, reservation_id schema.ID) error
+		Refund(encryptedSeed string, memo string, asset Asset, batchTxs *BatchTransactionsInfo, pn chan PayoutJob, ReservationID schema.ID) error
 		PayoutFarmers(encryptedSeed string, destinations []PayoutInfo, memo string, asset Asset) error
 		GetAccountDetails(address string) (account hProtocol.Account, err error)
 		GetNextSequenceNumber() (string, error)
@@ -93,9 +93,9 @@ const (
 	// global multiplier for the base fee
 	baseFeeMultiplier = 2
 
-	// retries for farmer payouts
+	// FarmerPayoutsMaxRetries retries for farmer payouts
 	FarmerPayoutsMaxRetries = 2
-	// retries for client refunds
+	// ClientRefundsMaxRetries retries for client refunds
 	ClientRefundsMaxRetries = 6
 )
 
@@ -402,7 +402,7 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset, bat
 	donors := make(map[string]struct{})
 	for len(txes.Embedded.Records) != 0 {
 		for _, tx := range txes.Embedded.Records {
-			inBatchTransaction := batchTxs.IsTransactionInMemo(tx.AccountSequence)
+			inBatchTransaction := batchTxs.isTransactionInMemo(tx.AccountSequence)
 			if tx.Memo == memo || inBatchTransaction {
 				effectsReq := horizonclient.EffectRequest{
 					ForTransaction: tx.Hash,
@@ -426,7 +426,7 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset, bat
 							offset = opID
 						}
 
-						if inBatchTransaction && !batchTxs.IsOperationInMemo(tx.AccountSequence, int(opID-offset)) {
+						if inBatchTransaction && !batchTxs.isOperationInMemo(tx.AccountSequence, int(opID-offset)) {
 							continue
 						}
 						if creditedEffect.Asset.Code != asset.Code() ||
@@ -449,7 +449,7 @@ func (w *stellarWallet) GetBalance(address string, memo string, asset Asset, bat
 						if offset == 0 {
 							offset = opID
 						}
-						if inBatchTransaction && !batchTxs.IsOperationInMemo(tx.AccountSequence, int(opID-offset)) {
+						if inBatchTransaction && !batchTxs.isOperationInMemo(tx.AccountSequence, int(opID-offset)) {
 							continue
 						}
 						if debitedEffect.Asset.Code != asset.Code() ||
@@ -627,6 +627,10 @@ func (w *stellarWallet) QueuePayout(encryptedSeed string, destinations []PayoutI
 
 	amount, funders, err := w.GetBalance(keypair.Address(), memo, asset, nil)
 
+	if err != nil {
+		return errors.Wrap(err, "couldn't get source account balance")
+	}
+
 	job := PayoutJob{
 		ID:        ID,
 		SecretKey: encryptedSeed,
@@ -667,16 +671,13 @@ func (w *stellarWallet) QueuePayout(encryptedSeed string, destinations []PayoutI
 	return nil
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
 func (w *stellarWallet) ProcessPayoutBatches(payouts []txnbuild.Payment, secrets []string) error {
 	client, err := w.GetHorizonClient()
+
+	if err != nil {
+		return errors.Wrap(err, "failed to get horizon client")
+	}
+
 	paymentOps := make([]txnbuild.Operation, 0, len(payouts)+1)
 
 	for i, pi := range payouts {
@@ -730,6 +731,9 @@ func (w *stellarWallet) GetNextSequenceNumber() (string, error) {
 		return "", errors.Wrap(err, "failed to get source account")
 	}
 	seqNum, err := strconv.ParseUint(sourceAccount.Sequence, 10, 64)
+	if err != nil {
+		return "", err
+	}
 	return fmt.Sprint(seqNum + 1), nil
 }
 
@@ -864,7 +868,7 @@ func (i *Signers) Set(value string) error {
 	*i = append(*i, value)
 	return nil
 }
-func (b BatchTransactionsInfo) IsOperationInMemo(sequence string, opID int) bool {
+func (b BatchTransactionsInfo) isOperationInMemo(sequence string, opID int) bool {
 	for k, v := range b.Ops {
 		if k == sequence {
 			for z := range v {
@@ -877,7 +881,7 @@ func (b BatchTransactionsInfo) IsOperationInMemo(sequence string, opID int) bool
 	return false
 }
 
-func (b BatchTransactionsInfo) IsTransactionInMemo(sequence string) bool {
+func (b BatchTransactionsInfo) isTransactionInMemo(sequence string) bool {
 	for k := range b.Ops {
 		if k == sequence {
 			return true

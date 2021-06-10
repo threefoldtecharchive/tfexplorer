@@ -84,10 +84,10 @@ const (
 	// maximum time for a capacity reservation
 	capacityReservationTimeout = time.Hour * 1
 
-	// maximum number of signatures in a transaction
+	// MaxSignaturesPerTx maximum number of signatures in a transaction
 	MaxSignaturesPerTx = 20
 
-	// maximum number of operations in a transaction
+	// MaxOperationsPerTx maximum number of operations in a transaction
 	MaxOperationsPerTx = 100
 )
 
@@ -241,7 +241,16 @@ func stringInSlice(a string, list []string) bool {
 func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stellar.PayoutJob, payments []txnbuild.Payment, jobMap map[int]int) error {
 	badJob := make(map[int]bool)
 	xdr, err := herr.EnvelopeXDR()
+	if err != nil {
+		log.Error().Err(err).Msg("couldn't extract xdr from failed transaction")
+		xdr = ""
+	}
 	resString, err := herr.ResultString()
+	if err != nil {
+		log.Error().Err(err).Msg("couldn't extract result string from failed transaction")
+		resString = ""
+	}
+
 	codes, reserr := herr.ResultCodes()
 	var operationCodes []string
 	if reserr != nil {
@@ -270,7 +279,7 @@ func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stella
 		if !badJob[i] {
 			e.paymentsChannel <- j
 		} else if j.Retries > 1 {
-			j.Retries -= 1
+			j.Retries--
 			e.paymentsChannel <- j
 		} else {
 			// refund failed payments and store failed refunds in the db
@@ -758,6 +767,9 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 		return errors.Wrap(err, "failed to load escrow info")
 	}
 	batchTxs, err := getBatchMemoTransactions(e.ctx, e.db, capacityReservationMemo(escrowInfo.ReservationID))
+	if err != nil {
+		return errors.Wrap(err, "failed to get memo transactions")
+	}
 	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset, &batchTxs, e.paymentsChannel, escrowInfo.ReservationID); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
