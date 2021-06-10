@@ -340,7 +340,7 @@ func (e *Stellar) PaymentsLoop(ctx context.Context) error {
 					jobMap[len(payments)] = len(jobs) - 1
 					payments = append(payments, payment)
 				}
-				if len(payments) >= MaxOperationsPerTx*.8 || len(secrets) >= MaxSignaturesPerTx*.8 {
+				if len(payments) >= MaxOperationsPerTx*.8 || len(secrets) >= MaxSignaturesPerTx-1 {
 					ready = true
 				}
 			default:
