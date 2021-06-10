@@ -14,6 +14,7 @@ type (
 	Escrow interface {
 		Run(ctx context.Context) error
 		PaymentsLoop(ctx context.Context) error
+		RepushPendingPayments() error
 		CapacityReservation(reservation capacitytypes.Reservation, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error)
 		PaidCapacity() <-chan schema.ID
 	}
@@ -54,4 +55,9 @@ func (e *Free) CapacityReservation(reservation capacitytypes.Reservation, _ []st
 // PaidCapacity implements the escrow interface
 func (e *Free) PaidCapacity() <-chan schema.ID {
 	return e.capacityChan
+}
+
+// RepushPendingPayments implements the escrow interface
+func (e *Free) RepushPendingPayments() error {
+	return nil
 }

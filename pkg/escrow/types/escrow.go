@@ -68,8 +68,11 @@ type (
 		Paid bool `json:"paid" bson:"paid"`
 		// Released means we tried to pay the farmer
 		Released bool `json:"released" bson:"released"`
+		// CancellationPending means the escrow forwarding from the client to farmer
+		// failed. Client refund is issued but not completed
+		CancellationPending bool `json:"cancellation_pending" bson:"cancellation_pending"`
 		// Canceled means the escrow got canceled, i.e. client refunded. This can
-		// only happen in case the reservation expires.
+		// only happen in case the reservation expires or the farmer payment fails.
 		Canceled bool `json:"canceled" bson:"canceled"`
 		// Cause of cancellation
 		Cause string `json:"cause" bson:"cause"`
@@ -168,7 +171,7 @@ func GetAllActiveCapacityReservationPaymentInfos(ctx context.Context, db *mongo.
 
 // GetAllExpiredReservationPaymentInfos get all expired reservation payment information
 func GetAllExpiredReservationPaymentInfos(ctx context.Context, db *mongo.Database) ([]ReservationPaymentInformation, error) {
-	filter := bson.M{"released": false, "canceled": false, "expiration": bson.M{"$lte": schema.Date{Time: time.Now()}}}
+	filter := bson.M{"released": false, "canceled": false, "cancellation_pending": false, "expiration": bson.M{"$lte": schema.Date{Time: time.Now()}}}
 	cursor, err := db.Collection(EscrowCollection).Find(ctx, filter)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cursor over expired payment infos")
@@ -183,7 +186,7 @@ func GetAllExpiredReservationPaymentInfos(ctx context.Context, db *mongo.Databas
 
 // GetAllExpiredCapacityReservationPaymentInfos get all expired reservation payment information
 func GetAllExpiredCapacityReservationPaymentInfos(ctx context.Context, db *mongo.Database) ([]CapacityReservationPaymentInformation, error) {
-	filter := bson.M{"released": false, "canceled": false, "expiration": bson.M{"$lte": schema.Date{Time: time.Now()}}}
+	filter := bson.M{"released": false, "canceled": false, "cancellation_pending": false, "expiration": bson.M{"$lte": schema.Date{Time: time.Now()}}}
 	cursor, err := db.Collection(CapacityEscrowCollection).Find(ctx, filter)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get cursor over expired payment infos")
@@ -192,6 +195,37 @@ func GetAllExpiredCapacityReservationPaymentInfos(ctx context.Context, db *mongo
 	err = cursor.All(ctx, &paymentInfos)
 	if err != nil {
 		err = errors.Wrap(err, "failed to decode expired payment information")
+	}
+	return paymentInfos, err
+}
+
+// CapacityReservationPaymentInfoPendingPayoutsGet get pending payouts escrow infos
+func CapacityReservationPaymentInfoPendingPayoutsGet(ctx context.Context, db *mongo.Database) ([]CapacityReservationPaymentInformation, error) {
+	filter := bson.M{"paid": true, "released": false, "canceled": false, "cancellation_pending": false, "expiration": bson.M{"$gt": schema.Date{Time: time.Now()}}}
+	cursor, err := db.Collection(CapacityEscrowCollection).Find(ctx, filter)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cursor over pending payment infos")
+	}
+	paymentInfos := make([]CapacityReservationPaymentInformation, 0)
+	err = cursor.All(ctx, &paymentInfos)
+	if err != nil {
+		err = errors.Wrap(err, "failed to decode pending payment information")
+	}
+	return paymentInfos, err
+
+}
+
+// CapacityReservationPaymentInfoPendingCancellationGet get pending cancellation escrow infos
+func CapacityReservationPaymentInfoPendingCancellationGet(ctx context.Context, db *mongo.Database) ([]CapacityReservationPaymentInformation, error) {
+	filter := bson.M{"paid": true, "released": false, "canceled": false, "cancellation_pending": true, "expiration": bson.M{"$gt": schema.Date{Time: time.Now()}}}
+	cursor, err := db.Collection(CapacityEscrowCollection).Find(ctx, filter)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cursor over pending payment cancellation infos")
+	}
+	paymentInfos := make([]CapacityReservationPaymentInformation, 0)
+	err = cursor.All(ctx, &paymentInfos)
+	if err != nil {
+		err = errors.Wrap(err, "failed to decode pending payment cancellation information")
 	}
 	return paymentInfos, err
 }

@@ -202,7 +202,9 @@ func createServer(f flags, client *mongo.Client, dropEscrowData bool) (*http.Ser
 		log.Info().Msg("escrow disabled")
 		e = escrow.NewFree(db.Database())
 	}
-
+	if err := e.RepushPendingPayments(); err != nil {
+		log.Fatal().Err(err).Msg("couldn't set transaction states")
+	}
 	go e.Run(context.Background())
 	go e.PaymentsLoop(context.Background())
 	if f.enablePProf {

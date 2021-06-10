@@ -20,9 +20,9 @@ type (
 		// MemoText the memo text of the payment request
 		MemoText string `bson:"memo_text"`
 		// TxSequence the sequence number of the
-		ErrorCode string `bson:"error_code"`
+		ErrorCodes []string `bson:"error_code"`
 		// TxSequence the sequence number of the
-		EnvelopeXDR string `bson:"error_code"`
+		EnvelopeXDR string `bson:"xdr"`
 		// OperationIDs list of indices in the transaction not the stellar operation id
 		ResultString string `bson:"result_string"`
 	}

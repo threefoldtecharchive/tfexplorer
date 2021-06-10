@@ -185,6 +185,31 @@ func NewStellar(wallet stellar.Wallet, db *mongo.Database, foundationAddress str
 	}
 }
 
+// RepushPendingPayments at initialization push all unprocessed pending payments
+func (e *Stellar) RepushPendingPayments() error {
+	pendingCancellations, err := types.CapacityReservationPaymentInfoPendingCancellationGet(e.ctx, e.db)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pending payment cancellations")
+	}
+	pendingPayments, err := types.CapacityReservationPaymentInfoPendingPayoutsGet(e.ctx, e.db)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pending payments")
+	}
+	for _, escrowInfo := range pendingCancellations {
+		err = e.refundCapacityEscrow(escrowInfo, escrowInfo.Cause)
+		if err != nil {
+			log.Error().Err(err).Int("id", int(escrowInfo.ReservationID)).Msg("failed to push refund to the queue")
+		}
+	}
+	for _, escrowInfo := range pendingPayments {
+		err = e.payoutFarmersCap(escrowInfo)
+		if err != nil {
+			log.Error().Err(err).Int("id", int(escrowInfo.ReservationID)).Msg("failed to push payment to the queue")
+		}
+	}
+	return nil
+}
+
 // Run the escrow until the context is done
 func (e *Stellar) Run(ctx context.Context) error {
 	ticker := time.NewTicker(balanceCheckInterval)
@@ -238,7 +263,8 @@ func stringInSlice(a string, list []string) bool {
 	}
 	return false
 }
-func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stellar.PayoutJob, payments []txnbuild.Payment, jobMap map[int]int) error {
+
+func (e *Stellar) processFailedPayments(herr *horizonclient.Error, jobs []stellar.PayoutJob, payments []txnbuild.Payment, jobMap map[int]int) error {
 	badJob := make(map[int]bool)
 	xdr, err := herr.EnvelopeXDR()
 	if err != nil {
@@ -252,18 +278,19 @@ func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stella
 	}
 
 	codes, reserr := herr.ResultCodes()
+	transactionFailed := false
 	var operationCodes []string
-	if reserr != nil {
-		// repush all if we can't fetch the error
-		log.Debug().Err(err).Msg("couldn't get result codes")
-		operationCodes = make([]string, 0)
+	if reserr != nil || len(codes.OperationCodes) == 0 {
+		// repush all if the whole transaction failed
+		log.Debug().Err(err).Msg("couldn't get result codes or no op codes")
+		transactionFailed = true
 	} else {
 		operationCodes = codes.OperationCodes
 
 	}
 	for i, code := range operationCodes {
-		if code != "op_success" {
-			log.Debug().
+		if !transactionFailed && code != "op_success" {
+			log.Error().
 				Str("code", code).
 				Str("source account", payments[i].SourceAccount.GetAccountID()).
 				Str("destination account", payments[i].Destination).
@@ -274,8 +301,15 @@ func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stella
 			badJob[jobMap[i]] = true
 		}
 	}
+	var curOpIdx int
 	for i, j := range jobs {
+		curOpIdx += len(j.Payments)
 		// repush non-failed transactions in the queue
+		escrowInfo, err := types.CapacityReservationPaymentInfoGet(e.ctx, e.db, j.ID)
+		if err != nil {
+			log.Error().Err(err).Msg("could not get reservation id for failed payment")
+			continue
+		}
 		if !badJob[i] {
 			e.paymentsChannel <- j
 		} else if j.Retries > 1 {
@@ -283,24 +317,27 @@ func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stella
 			e.paymentsChannel <- j
 		} else {
 			// refund failed payments and store failed refunds in the db
-			escrowInfo, err := types.CapacityReservationPaymentInfoGet(e.ctx, e.db, j.ID)
-			if err != nil {
-				log.Error().Err(err).Msg("could not get reservation id for failed payment")
-				continue
-			}
 			if !j.Refund {
 				e.refundCapacityEscrow(escrowInfo, "farmer_payout")
 			} else {
+				fmt.Printf("code: %s, idx: %d, opcodes: %v", operationCodes[i], i, operationCodes)
+				escrowInfo.Cause = fmt.Sprintf("Failed to refund user, original error: %s", escrowInfo.Cause)
+				escrowInfo.CancellationPending = false
+				escrowInfo.Canceled = true // we gave up
 				failed := types.FailedPaymentInfo{
 					ReservatoinID: j.ID,
 					MemoText:      j.Memo,
-					ErrorCode:     operationCodes[i],
+					ErrorCodes:    operationCodes[curOpIdx-len(j.Payments) : curOpIdx],
 					EnvelopeXDR:   xdr,
 					ResultString:  resString,
 				}
 				err := types.FailedPaymentInfoInfoCreate(e.ctx, e.db, failed)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to push the failed payment to the db")
+				}
+				err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to update the escrow info in the db")
 				}
 			}
 		}
@@ -310,6 +347,7 @@ func (e *Stellar) requeueFailedPayments(herr *horizonclient.Error, jobs []stella
 
 // PaymentsLoop the payment loop the context is done
 func (e *Stellar) PaymentsLoop(ctx context.Context) error {
+	time.Sleep(7 * time.Second)
 	for {
 		var secrets []string
 		var payments []txnbuild.Payment
@@ -366,7 +404,7 @@ func (e *Stellar) PaymentsLoop(ctx context.Context) error {
 		totalStellarTransactions.Inc()
 		if err != nil {
 			if err2, ok := err.(*horizonclient.Error); ok {
-				err = e.requeueFailedPayments(err2, jobs, payments, jobMap)
+				err = e.processFailedPayments(err2, jobs, payments, jobMap)
 			}
 			log.Error().Msgf("failed to submit all payouts: %s", err)
 			continue
@@ -379,10 +417,14 @@ func (e *Stellar) PaymentsLoop(ctx context.Context) error {
 			}
 			if !job.Refund {
 				rpi.Released = true
-				if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
-					log.Error().Err(err).Msgf("could not mark escrows for %d as released", rpi.ReservationID)
-				}
 				e.paidCapacityInfoChannel <- rpi.ReservationID
+			} else {
+				rpi.CancellationPending = false
+				rpi.Canceled = true
+
+			}
+			if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
+				log.Error().Err(err).Msgf("could not mark escrows for %d as released", rpi.ReservationID)
 			}
 		}
 	}
@@ -577,15 +619,16 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	}
 
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{
-		ReservationID: reservation.ID,
-		Address:       address,
-		Expiration:    schema.Date{Time: time.Now().Add(capacityReservationTimeout)},
-		Asset:         asset,
-		Amount:        amount,
-		Paid:          false,
-		Released:      false,
-		Canceled:      false,
-		FarmerID:      schema.ID(farmIDs[0]),
+		ReservationID:       reservation.ID,
+		Address:             address,
+		Expiration:          schema.Date{Time: time.Now().Add(capacityReservationTimeout)},
+		Asset:               asset,
+		Amount:              amount,
+		Paid:                false,
+		Released:            false,
+		Canceled:            false,
+		CancellationPending: false,
+		FarmerID:            schema.ID(farmIDs[0]),
 	}
 
 	if amount == 0 {
@@ -714,7 +757,7 @@ func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, fa
 
 // payoutFarmersCap pays out the farmer for a processed reservation
 func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformation) error {
-	if rpi.Released || rpi.Canceled {
+	if rpi.Released || rpi.Canceled || rpi.CancellationPending {
 		// already paid
 		return nil
 	}
@@ -772,7 +815,7 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset, &batchTxs, e.paymentsChannel, escrowInfo.ReservationID); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
-	escrowInfo.Canceled = true
+	escrowInfo.CancellationPending = true
 	escrowInfo.Cause = cause
 	if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
 		return errors.Wrap(err, "failed to mark expired reservation escrow info as cancelled")
