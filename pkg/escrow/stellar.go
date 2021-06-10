@@ -347,8 +347,7 @@ func (e *Stellar) PaymentsLoop(ctx context.Context) error {
 				if len(secrets) > 0 {
 					ready = true
 				} else {
-					log.Debug().Msg("waiting")
-					time.Sleep(70 * time.Second)
+					time.Sleep(1 * time.Second)
 				}
 			}
 		}
