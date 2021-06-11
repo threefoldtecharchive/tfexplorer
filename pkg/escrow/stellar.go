@@ -325,7 +325,7 @@ func (e *Stellar) processFailedPayments(herr *horizonclient.Error, jobs []stella
 				escrowInfo.CancellationPending = false
 				escrowInfo.Canceled = true // we gave up
 				failed := types.FailedPaymentInfo{
-					ReservatoinID: j.ID,
+					ReservationID: j.ID,
 					MemoText:      j.Memo,
 					ErrorCodes:    operationCodes[curOpIdx-len(j.Payments) : curOpIdx],
 					EnvelopeXDR:   xdr,

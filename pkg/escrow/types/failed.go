@@ -15,8 +15,8 @@ const (
 type (
 	// FailedPaymentInfo contains info about failed payment
 	FailedPaymentInfo struct {
-		// ID of the pool
-		ReservatoinID schema.ID `bson:"res_id"`
+		// ReservationID of the pool
+		ReservationID schema.ID `bson:"res_id"`
 		// MemoText the memo text of the payment request
 		MemoText string `bson:"memo_text"`
 		// TxSequence the sequence number of the
