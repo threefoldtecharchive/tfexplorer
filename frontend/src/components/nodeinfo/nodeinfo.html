@@ -49,8 +49,18 @@
       </v-row>
       <v-row>
         <v-flex xs3 class="text-left pr-2">V3 compliant</v-flex>
-        <v-flex class="text-truncate font-weight-bold">
-          <v-icon :color="isV3Icon.color">{{isV3Icon.icon}}</v-icon>
+        <v-flex>
+          <v-tooltip bottom>
+            <template v-slot:activator="{ on, attrs }">
+              <v-icon
+                @click="openLink"
+                v-bind="attrs"
+                v-on="on"
+                :color="isV3Icon.color"
+              >{{isV3Icon.icon}}</v-icon>
+            </template>
+            <span>Click to see more information</span>
+          </v-tooltip>
         </v-flex>
       </v-row>
       <!-- <v-row>
