@@ -38,5 +38,19 @@ func Setup(ctx context.Context, db *mongo.Database) error {
 		log.Error().Err(err).Msg("failed to initialize reservation payment index")
 	}
 
+	memos := db.Collection(CapacityMemoTextCollection)
+	_, err = memos.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.M{"_id": 1},
+		},
+		{
+			Keys:    bson.M{"memo_text": 1},
+			Options: options.Index().SetUnique(false),
+		},
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("failed to initialize failed payment index")
+	}
+
 	return err
 }

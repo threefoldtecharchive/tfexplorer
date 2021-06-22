@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
+	"github.com/stellar/go/clients/horizonclient"
+	"github.com/stellar/go/txnbuild"
 	"github.com/stellar/go/xdr"
 	gdirectory "github.com/threefoldtech/tfexplorer/models/generated/directory"
 	capacitytypes "github.com/threefoldtech/tfexplorer/pkg/capacity/types"
@@ -34,6 +36,8 @@ type (
 		capacityReservationChannel chan capacityReservationRegisterJob
 
 		paidCapacityInfoChannel chan schema.ID
+
+		paymentsChannel chan stellar.PayoutJob
 
 		nodeAPI    NodeAPI
 		gatewayAPI GatewayAPI
@@ -75,10 +79,16 @@ type (
 
 const (
 	// interval between every check of active escrow accounts
-	balanceCheckInterval = time.Minute * 1
+	balanceCheckInterval = time.Second * 5
 
 	// maximum time for a capacity reservation
 	capacityReservationTimeout = time.Hour * 1
+
+	// MaxSignaturesPerTx maximum number of signatures in a transaction
+	MaxSignaturesPerTx = 20
+
+	// MaxOperationsPerTx maximum number of operations in a transaction
+	MaxOperationsPerTx = 100
 )
 
 const (
@@ -137,6 +147,20 @@ func init() {
 	prometheus.MustRegister(totalEscrowsPaid)
 }
 
+func getBatchMemoTransactions(ctx context.Context, db *mongo.Database, memo string) (stellar.BatchTransactionsInfo, error) {
+	memoInfos, err := types.CapacityMemoTextInfoGet(ctx, db, memo)
+	res := stellar.BatchTransactionsInfo{
+		Ops: make(map[string][]int),
+	}
+	if err != nil {
+		return res, errors.Wrap(err, "couldn't get capacity memo text info")
+	}
+	for _, info := range memoInfos {
+		res.Ops[info.TxSequence] = info.OperationIDs
+	}
+	return res, nil
+}
+
 // NewStellar creates a new escrow object and fetches all addresses for the escrow wallet
 func NewStellar(wallet stellar.Wallet, db *mongo.Database, foundationAddress string, gridNetwork gridnetworks.GridNetwork) *Stellar {
 	addr := foundationAddress
@@ -152,12 +176,38 @@ func NewStellar(wallet stellar.Wallet, db *mongo.Database, foundationAddress str
 		nodeAPI:           &directory.NodeAPI{},
 		gatewayAPI:        &directory.GatewayAPI{},
 		farmAPI:           &directory.FarmAPI{},
+		paymentsChannel:   make(chan stellar.PayoutJob, 100),
 		// paidCapacityInfoChannel is buffered since it is used to communicate
 		// with other workers, which might also try to communicate with this
 		// worker
 		paidCapacityInfoChannel:    make(chan schema.ID, 100),
 		capacityReservationChannel: make(chan capacityReservationRegisterJob),
 	}
+}
+
+// RepushPendingPayments at initialization push all unprocessed pending payments
+func (e *Stellar) RepushPendingPayments() error {
+	pendingCancellations, err := types.CapacityReservationPaymentInfoPendingCancellationGet(e.ctx, e.db)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pending payment cancellations")
+	}
+	pendingPayments, err := types.CapacityReservationPaymentInfoPendingPayoutsGet(e.ctx, e.db)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pending payments")
+	}
+	for _, escrowInfo := range pendingCancellations {
+		err = e.refundCapacityEscrow(escrowInfo, escrowInfo.Cause)
+		if err != nil {
+			log.Error().Err(err).Int("id", int(escrowInfo.ReservationID)).Msg("failed to push refund to the queue")
+		}
+	}
+	for _, escrowInfo := range pendingPayments {
+		err = e.payoutFarmersCap(escrowInfo)
+		if err != nil {
+			log.Error().Err(err).Int("id", int(escrowInfo.ReservationID)).Msg("failed to push payment to the queue")
+		}
+	}
+	return nil
 }
 
 // Run the escrow until the context is done
@@ -202,6 +252,180 @@ func (e *Stellar) Run(ctx context.Context) error {
 			totalReservationsProcessed.Inc()
 		}
 
+	}
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+func (e *Stellar) processFailedPayments(herr *horizonclient.Error, jobs []stellar.PayoutJob, payments []txnbuild.Payment, jobMap map[int]int) error {
+	badJob := make(map[int]bool)
+	xdr, err := herr.EnvelopeXDR()
+	if err != nil {
+		log.Error().Err(err).Msg("couldn't extract xdr from failed transaction")
+		xdr = ""
+	}
+	resString, err := herr.ResultString()
+	if err != nil {
+		log.Error().Err(err).Msg("couldn't extract result string from failed transaction")
+		resString = ""
+	}
+
+	codes, reserr := herr.ResultCodes()
+	transactionFailed := false
+	var operationCodes []string
+	if reserr != nil || len(codes.OperationCodes) == 0 {
+		// repush all if the whole transaction failed
+		log.Debug().Err(err).Msg("couldn't get result codes or no op codes")
+		transactionFailed = true
+	} else {
+		operationCodes = codes.OperationCodes
+
+	}
+	for i, code := range operationCodes {
+		if !transactionFailed && code != "op_success" {
+			log.Error().
+				Str("code", code).
+				Str("source account", payments[i].SourceAccount.GetAccountID()).
+				Str("destination account", payments[i].Destination).
+				Str("amount", payments[i].Amount).
+				Str("memo text", jobs[jobMap[i]].Memo).
+				Str("code", code).
+				Msg("operation failed")
+			badJob[jobMap[i]] = true
+		}
+	}
+	var curOpIdx int
+	for i, j := range jobs {
+		curOpIdx += len(j.Payments)
+		// repush non-failed transactions in the queue
+		escrowInfo, err := types.CapacityReservationPaymentInfoGet(e.ctx, e.db, j.ID)
+		if err != nil {
+			log.Error().Err(err).Msg("could not get reservation id for failed payment")
+			continue
+		}
+		if !badJob[i] {
+			e.paymentsChannel <- j
+		} else if j.Retries > 1 {
+			j.Retries--
+			e.paymentsChannel <- j
+		} else {
+			// refund failed payments and store failed refunds in the db
+			if !j.Refund {
+				e.refundCapacityEscrow(escrowInfo, "farmer_payout")
+			} else {
+				fmt.Printf("code: %s, idx: %d, opcodes: %v", operationCodes[i], i, operationCodes)
+				escrowInfo.Cause = fmt.Sprintf("Failed to refund user, original error: %s", escrowInfo.Cause)
+				escrowInfo.CancellationPending = false
+				escrowInfo.Canceled = true // we gave up
+				failed := types.FailedPaymentInfo{
+					ReservationID: j.ID,
+					MemoText:      j.Memo,
+					ErrorCodes:    operationCodes[curOpIdx-len(j.Payments) : curOpIdx],
+					EnvelopeXDR:   xdr,
+					ResultString:  resString,
+				}
+				err := types.FailedPaymentInfoInfoCreate(e.ctx, e.db, failed)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to push the failed payment to the db")
+				}
+				err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to update the escrow info in the db")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// PaymentsLoop the payment loop the context is done
+func (e *Stellar) PaymentsLoop(ctx context.Context) error {
+	for {
+		var secrets []string
+		var payments []txnbuild.Payment
+		var jobs []stellar.PayoutJob
+		jobMap := make(map[int]int)
+		memoMap := make(map[string][]int)
+		ready := false
+		for !ready {
+			select {
+			case <-ctx.Done():
+				log.Info().Msg("escrow context done, exiting")
+				return nil
+
+			case job := <-e.paymentsChannel:
+				jobs = append(jobs, job)
+				memoMap[job.Memo] = make([]int, 0)
+				if !stringInSlice(job.SecretKey, secrets) {
+					secrets = append(secrets, job.SecretKey)
+				}
+				for _, payment := range job.Payments {
+					log.Debug().
+						Str("amount", payment.Amount).
+						Str("source", payment.SourceAccount.GetAccountID()).
+						Str("destination", payment.Destination).
+						Str("asset", job.Asset.String()).
+						Msg("another payment received")
+					memoMap[job.Memo] = append(memoMap[job.Memo], len(payments))
+					jobMap[len(payments)] = len(jobs) - 1
+					payments = append(payments, payment)
+				}
+				if len(payments) >= MaxOperationsPerTx*.8 || len(secrets) >= MaxSignaturesPerTx-1 {
+					ready = true
+				}
+			default:
+				if len(secrets) > 0 {
+					ready = true
+				} else {
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+		sequenctNumber, err := e.wallet.GetNextSequenceNumber()
+		if err != nil {
+			log.Error().Msgf("failed to get sequence number: %s", err)
+		}
+		for memo, ops := range memoMap {
+			types.CapacityMemoTextInfoCreate(ctx, e.db, types.CapacityMemoTextInfo{
+				MemoText:     memo,
+				OperationIDs: ops,
+				TxSequence:   sequenctNumber,
+			})
+		}
+		err = e.wallet.ProcessPayoutBatches(payments, secrets)
+		totalStellarTransactions.Inc()
+		if err != nil {
+			if err2, ok := err.(*horizonclient.Error); ok {
+				err = e.processFailedPayments(err2, jobs, payments, jobMap)
+			}
+			log.Error().Msgf("failed to submit all payouts: %s", err)
+			continue
+		}
+		log.Debug().Msg("End submitting batches")
+		for id, job := range jobs {
+			rpi, err := types.CapacityReservationPaymentInfoGet(ctx, e.db, jobs[id].ID)
+			if err != nil {
+				log.Error().Msgf("failed to get payment info by id: %s", err)
+			}
+			if !job.Refund {
+				rpi.Released = true
+				e.paidCapacityInfoChannel <- rpi.ReservationID
+			} else {
+				rpi.CancellationPending = false
+				rpi.Canceled = true
+
+			}
+			if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
+				log.Error().Err(err).Msgf("could not mark escrows for %d as released", rpi.ReservationID)
+			}
+		}
 	}
 }
 
@@ -260,8 +484,12 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 
 	// calculate total amount needed for reservation
 	requiredValue := escrowInfo.Amount
-
-	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset)
+	memo := capacityReservationMemo(escrowInfo.ReservationID)
+	batchTx, err := getBatchMemoTransactions(e.ctx, e.db, memo)
+	if err != nil {
+		log.Error().Err(err).Str("memo", memo).Msg("failed to get batch memo transactions")
+	}
+	balance, _, err := e.wallet.GetBalance(escrowInfo.Address, memo, escrowInfo.Asset, &batchTx)
 	if err != nil {
 		return errors.Wrap(err, "failed to verify escrow account balance")
 	}
@@ -288,7 +516,6 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 	}
 
 	slog.Debug().Msg("escrow marked as paid")
-	e.paidCapacityInfoChannel <- escrowInfo.ReservationID
 	return nil
 }
 
@@ -296,7 +523,6 @@ func (e *Stellar) checkCapacityReservationPaid(escrowInfo types.CapacityReservat
 // calculates resources and their costs
 func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservation, offeredCurrencyCodes []string) (types.CustomerCapacityEscrowInformation, error) {
 	var customerInfo types.CustomerCapacityEscrowInformation
-
 	// filter out unsupported currencies
 	currencies := []stellar.Asset{}
 	for _, offeredCurrency := range offeredCurrencyCodes {
@@ -387,11 +613,9 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
 		}
 	} else {
-
 		cuDollarPerMonth := price.CustomCloudUnitPrice.CU
 		suDollarPerMonth := price.CustomCloudUnitPrice.SU
 		ip4uDollarPerMonth := price.CustomCloudUnitPrice.IPv4U
-
 		amount, err = e.calculateCustomCapacityReservationCost(reservation.DataReservation.CUs, reservation.DataReservation.SUs, reservation.DataReservation.IPv4Us, cuDollarPerMonth, suDollarPerMonth, ip4uDollarPerMonth)
 		if err != nil {
 			return customerInfo, errors.Wrap(err, "failed to calculate capacity reservation cost")
@@ -399,15 +623,16 @@ func (e *Stellar) processCapacityReservation(reservation capacitytypes.Reservati
 	}
 
 	reservationPaymentInfo := types.CapacityReservationPaymentInformation{
-		ReservationID: reservation.ID,
-		Address:       address,
-		Expiration:    schema.Date{Time: time.Now().Add(capacityReservationTimeout)},
-		Asset:         asset,
-		Amount:        amount,
-		Paid:          false,
-		Released:      false,
-		Canceled:      false,
-		FarmerID:      schema.ID(farmIDs[0]),
+		ReservationID:       reservation.ID,
+		Address:             address,
+		Expiration:          schema.Date{Time: time.Now().Add(capacityReservationTimeout)},
+		Asset:               asset,
+		Amount:              amount,
+		Paid:                false,
+		Released:            false,
+		Canceled:            false,
+		CancellationPending: false,
+		FarmerID:            schema.ID(farmIDs[0]),
 	}
 
 	if amount == 0 {
@@ -536,7 +761,7 @@ func (e *Stellar) getPayouts(rpi types.CapacityReservationPaymentInformation, fa
 
 // payoutFarmersCap pays out the farmer for a processed reservation
 func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformation) error {
-	if rpi.Released || rpi.Canceled {
+	if rpi.Released || rpi.Canceled || rpi.CancellationPending {
 		// already paid
 		return nil
 	}
@@ -568,27 +793,9 @@ func (e *Stellar) payoutFarmersCap(rpi types.CapacityReservationPaymentInformati
 		log.Error().Msgf("failed to load escrow address info: %s", err)
 		return errors.Wrap(err, "could not load escrow address info")
 	}
-	if err = e.wallet.PayoutFarmers(addressInfo.Secret, paymentInfo, capacityReservationMemo(rpi.ReservationID), rpi.Asset); err != nil {
+	if err = e.wallet.QueuePayout(addressInfo.Secret, paymentInfo, capacityReservationMemo(rpi.ReservationID), rpi.Asset, rpi.ReservationID, e.paymentsChannel); err != nil {
 		log.Error().Msgf("failed to pay farmer: %s for reservation %d", err, rpi.ReservationID)
 		return errors.Wrap(err, "could not pay farmer")
-	}
-	totalStellarTransactions.Inc()
-
-	// now refund any possible overpayment
-	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(rpi.ReservationID), rpi.Asset); err != nil {
-		log.Error().Msgf("failed to refund overpayment farmer: %s", err)
-		return errors.Wrap(err, "could not refund overpayment")
-	}
-	totalStellarTransactions.Inc()
-
-	log.Info().
-		Str("escrow address", rpi.Address).
-		Int64("reservation id", int64(rpi.ReservationID)).
-		Msgf("paid farmer")
-
-	rpi.Released = true
-	if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, rpi); err != nil {
-		return errors.Wrapf(err, "could not mark escrows for %d as released", rpi.ReservationID)
 	}
 	return nil
 }
@@ -605,19 +812,20 @@ func (e *Stellar) refundCapacityEscrow(escrowInfo types.CapacityReservationPayme
 	if err != nil {
 		return errors.Wrap(err, "failed to load escrow info")
 	}
-
-	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset); err != nil {
+	batchTxs, err := getBatchMemoTransactions(e.ctx, e.db, capacityReservationMemo(escrowInfo.ReservationID))
+	if err != nil {
+		return errors.Wrap(err, "failed to get memo transactions")
+	}
+	if err = e.wallet.Refund(addressInfo.Secret, capacityReservationMemo(escrowInfo.ReservationID), escrowInfo.Asset, &batchTxs, e.paymentsChannel, escrowInfo.ReservationID); err != nil {
 		return errors.Wrap(err, "failed to refund clients")
 	}
-	totalStellarTransactions.Inc()
-
-	escrowInfo.Canceled = true
+	escrowInfo.CancellationPending = true
 	escrowInfo.Cause = cause
 	if err = types.CapacityReservationPaymentInfoUpdate(e.ctx, e.db, escrowInfo); err != nil {
 		return errors.Wrap(err, "failed to mark expired reservation escrow info as cancelled")
 	}
 
-	slog.Info().Msgf("refunded client for escrow")
+	slog.Info().Msgf("refund client scheduled for escrow")
 	return nil
 }
 

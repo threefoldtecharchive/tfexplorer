@@ -13,6 +13,8 @@ type (
 	// Escrow are responsible for the payment flow of a reservation
 	Escrow interface {
 		Run(ctx context.Context) error
+		PaymentsLoop(ctx context.Context) error
+		RepushPendingPayments() error
 		CapacityReservation(reservation capacitytypes.Reservation, supportedCurrencies []string) (types.CustomerCapacityEscrowInformation, error)
 		PaidCapacity() <-chan schema.ID
 	}
@@ -34,6 +36,11 @@ func (e *Free) Run(ctx context.Context) error {
 	return nil
 }
 
+// PaymentsLoop implements the escrow interface
+func (e *Free) PaymentsLoop(ctx context.Context) error {
+	return nil
+}
+
 // CapacityReservation implements the escrow interface
 func (e *Free) CapacityReservation(reservation capacitytypes.Reservation, _ []string) (detail types.CustomerCapacityEscrowInformation, err error) {
 	// free escrow does not run in its own goroutine, so it would block and cause
@@ -48,4 +55,9 @@ func (e *Free) CapacityReservation(reservation capacitytypes.Reservation, _ []st
 // PaidCapacity implements the escrow interface
 func (e *Free) PaidCapacity() <-chan schema.ID {
 	return e.capacityChan
+}
+
+// RepushPendingPayments implements the escrow interface
+func (e *Free) RepushPendingPayments() error {
+	return nil
 }
