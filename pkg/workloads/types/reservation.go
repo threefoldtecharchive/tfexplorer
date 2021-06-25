@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	generated "github.com/threefoldtech/tfexplorer/models/generated/workloads"
 	"github.com/threefoldtech/tfexplorer/schema"
+	"github.com/threefoldtech/zos/pkg"
 	"github.com/threefoldtech/zos/pkg/crypto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -668,25 +670,42 @@ func WorkloadPop(ctx context.Context, db *mongo.Database, id schema.ID) error {
 // Result is a wrapper around TfgridWorkloadsReservationResult1 type
 type Result generated.Result
 
+// Bytes returns a slice of bytes container all the information
+// used to sign the Result object
+func (r *Result) encode() ([]byte, error) {
+	buf := &bytes.Buffer{}
+	if err := buf.WriteByte(byte(r.State)); err != nil {
+		return nil, err
+	}
+	if _, err := buf.WriteString(r.Message); err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write(r.DataJson); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
 // Verify that the signature matches the result data
 func (r *Result) Verify(pk string) error {
-	return nil
-	// sig, err := hex.DecodeString(r.Signature)
-	// if err != nil {
-	// 	return errors.Wrap(err, "invalid signature expecting hex encoded")
-	// }
+	// return nil
+	sig, err := hex.DecodeString(r.Signature)
+	if err != nil {
+		return errors.Wrap(err, "invalid signature expecting hex encoded")
+	}
 
-	// key, err := crypto.KeyFromID(pkg.StrIdentifier(pk))
-	// if err != nil {
-	// 	return errors.Wrap(err, "invalid verification key")
-	// }
+	key, err := crypto.KeyFromID(pkg.StrIdentifier(pk))
+	if err != nil {
+		return errors.Wrap(err, "invalid verification key")
+	}
 
-	// bytes, err := r.encode()
-	// if err != nil {
-	// 	return err
-	// }
+	bytes, err := r.encode()
+	if err != nil {
+		return err
+	}
 
-	// return crypto.Verify(key, bytes, sig)
+	return crypto.Verify(key, bytes, sig)
 }
 
 // ResultPush pushes result to a reservation result array.

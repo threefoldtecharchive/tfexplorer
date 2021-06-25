@@ -765,6 +765,50 @@ func (a *API) newWorkloadGet(r *http.Request) (interface{}, mw.Response) {
 	return result, nil
 }
 
+func (a *API) workloadPutConsumption(r *http.Request) (interface{}, mw.Response) {
+	defer r.Body.Close()
+
+	nodeID := mux.Vars(r)["node_id"]
+	gwid := mux.Vars(r)["gwid"]
+
+	rid, err := a.parseID(strings.Split(gwid, "-")[0])
+	if err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
+	}
+
+	var result types.Result
+	if err := json.NewDecoder(r.Body).Decode(&result); err != nil {
+		return nil, mw.BadRequest(err)
+	}
+
+	result.NodeId = nodeID
+	result.WorkloadId = gwid
+	result.Epoch = schema.Date{Time: time.Now()}
+
+	if err := result.Verify(nodeID); err != nil {
+		return nil, mw.UnAuthorized(errors.Wrap(err, "invalid result signature"))
+	}
+
+	var data map[string]uint64
+	if err := json.Unmarshal(result.DataJson, &data); err != nil {
+		return nil, mw.BadRequest(errors.Wrap(err, "invalid consumption body"))
+	}
+
+	var filter types.WorkloadFilter
+	filter = filter.WithID(rid)
+
+	db := mw.Database(r)
+	_, err = filter.Get(r.Context(), db)
+	if err != nil {
+		return nil, mw.NotFound(err)
+	}
+
+	// TODO: deduct valuse from pools. we probably need to keep previous reported value
+	// so we can reduce the pool consumption.
+
+	return nil, nil
+}
+
 func (a *API) workloadPutResult(r *http.Request) (interface{}, mw.Response) {
 	defer r.Body.Close()
 
