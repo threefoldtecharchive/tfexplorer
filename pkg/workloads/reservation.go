@@ -769,42 +769,33 @@ func (a *API) workloadPutConsumption(r *http.Request) (interface{}, mw.Response)
 	defer r.Body.Close()
 
 	nodeID := mux.Vars(r)["node_id"]
-	gwid := mux.Vars(r)["gwid"]
 
-	rid, err := a.parseID(strings.Split(gwid, "-")[0])
-	if err != nil {
-		return nil, mw.BadRequest(errors.Wrap(err, "invalid reservation id part"))
-	}
-
+	// we use the same result object as a 'container' for the actual
+	//
 	var result types.Result
 	if err := json.NewDecoder(r.Body).Decode(&result); err != nil {
 		return nil, mw.BadRequest(err)
 	}
 
-	result.NodeId = nodeID
-	result.WorkloadId = gwid
-	result.Epoch = schema.Date{Time: time.Now()}
-
 	if err := result.Verify(nodeID); err != nil {
 		return nil, mw.UnAuthorized(errors.Wrap(err, "invalid result signature"))
 	}
 
-	var data map[string]uint64
+	var data map[string]struct {
+		NetRxPackets uint64 `json:"net_rx_packets"`
+		NetRxBytes   uint64 `json:"net_rx_bytes"`
+		NetTxPackets uint64 `json:"net_tx_packets"`
+		NetTxBytes   uint64 `json:"net_tx_bytes"`
+	}
+
 	if err := json.Unmarshal(result.DataJson, &data); err != nil {
 		return nil, mw.BadRequest(errors.Wrap(err, "invalid consumption body"))
 	}
 
-	var filter types.WorkloadFilter
-	filter = filter.WithID(rid)
-
-	db := mw.Database(r)
-	_, err = filter.Get(r.Context(), db)
-	if err != nil {
-		return nil, mw.NotFound(err)
-	}
-
-	// TODO: deduct valuse from pools. we probably need to keep previous reported value
-	// so we can reduce the pool consumption.
+	// TODO: the data sent by the node are absolute values directly from the taps
+	// it means, we need to compare it against last reported value for each reservation id
+	// and then calculate actual consumption since last report. The calculated value then
+	// can be deducted from the uer pool.
 
 	return nil, nil
 }

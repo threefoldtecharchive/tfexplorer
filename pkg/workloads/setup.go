@@ -57,10 +57,10 @@ func Setup(parent *mux.Router, db *mongo.Database, network gridnetworks.GridNetw
 
 	// Nodes oriented endpoints
 	apiReservation.HandleFunc("/nodes/{node_id}/workloads", mw.AsHandlerFunc(service.workloads)).Queries("from", "{from:\\d+}").Methods(http.MethodGet).Name("versionned-workloads-poll")
+	apiReservation.HandleFunc("/nodes/{node_id}/workloads", mw.AsHandlerFunc(service.workloadPutConsumption)).Methods(http.MethodPatch).Name("versionned-workloads-put-consumption")
 	apiReservation.HandleFunc("/nodes/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadGet)).Methods(http.MethodGet).Name("versionned-workload-get")
 	apiReservation.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutResult)).Methods(http.MethodPut).Name("versionned-workloads-results")
 	apiReservation.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutDeleted)).Methods(http.MethodDelete).Name("versionned-workloads-deleted")
-	apiReservation.HandleFunc("/nodes/{node_id}/workloads/{gwid:\\d+-\\d+}", mw.AsHandlerFunc(service.workloadPutConsumption)).Methods(http.MethodPatch).Name("versionned-workloads-update-consumption")
 
 	// legacy endpoints
 	legacyReservations := parent.PathPrefix("/explorer/reservations").Subrouter()
