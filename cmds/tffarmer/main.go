@@ -166,7 +166,7 @@ func main() {
 							Required: true,
 						},
 					},
-					Action: addIp,
+					Action: addIP,
 				},
 				{
 					Name:     "deleteip",
@@ -184,7 +184,7 @@ func main() {
 							Required: true,
 						},
 					},
-					Action: deleteIp,
+					Action: deleteIP,
 				},
 				{
 					Name:     "list",

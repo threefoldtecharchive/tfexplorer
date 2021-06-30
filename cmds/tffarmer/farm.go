@@ -87,7 +87,7 @@ func updateFarm(c *cli.Context) error {
 	return nil
 }
 
-func addIp(c *cli.Context) error {
+func addIP(c *cli.Context) error {
 	id := c.Int64("id")
 	farm, err := db.FarmGet(schema.ID(id))
 	if err != nil {
@@ -105,14 +105,14 @@ func addIp(c *cli.Context) error {
 		return err
 	}
 
-	gatewayIp := net.ParseIP(gateway)
-	if gatewayIp == nil {
-		return fmt.Errorf("Gateway IP not valid")
+	gatewayIP := net.ParseIP(gateway)
+	if gatewayIP == nil {
+		return fmt.Errorf("gateway ip not valid")
 	}
 
 	address := directory.PublicIP{
 		Address: ip,
-		Gateway: schema.IP{gatewayIp},
+		Gateway: schema.IP{gatewayIP},
 	}
 
 	if err := db.FarmAddIP(farm.ID, address); err != nil {
@@ -122,7 +122,7 @@ func addIp(c *cli.Context) error {
 	return nil
 }
 
-func deleteIp(c *cli.Context) error {
+func deleteIP(c *cli.Context) error {
 	id := c.Int64("id")
 	farm, err := db.FarmGet(schema.ID(id))
 	if err != nil {
