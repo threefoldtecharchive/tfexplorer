@@ -104,7 +104,7 @@ func New(seed, network string, signers []string, horizonURL string) (Wallet, err
 		}
 	}
 
-	return &retryWallet{w}, nil
+	return w, nil
 }
 
 // AssetFromCode loads the full asset from a code, provided the wallet supports
