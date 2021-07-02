@@ -181,11 +181,10 @@ func (e *Stellar) Run(ctx context.Context) error {
 				log.Error().Err(err).Msgf("failed to check capacity reservations")
 			}
 
-			// Don't refund until stellar horizon operation is back to normal
-			// log.Info().Msg("scanning for expired capacity escrows")
-			// if err := e.refundExpiredCapacityReservations(); err != nil {
-			// 	log.Error().Err(err).Msgf("failed to refund expired capacity reservations")
-			// }
+			log.Info().Msg("scanning for expired capacity escrows")
+			if err := e.refundExpiredCapacityReservations(); err != nil {
+				log.Error().Err(err).Msgf("failed to refund expired capacity reservations")
+			}
 
 		case job := <-e.capacityReservationChannel:
 			log.Info().Int64("reservation_id", int64(job.reservation.ID)).Msg("processing new reservation escrow for reservation")

@@ -57,7 +57,9 @@ type (
 const (
 	stellarPrecision       = 1e7
 	stellarPrecisionDigits = 7
-	stellarPageLimit       = 200
+	// Temporarily fetch txes one by one
+	// stellarPageLimit       = 200
+	stellarPageLimit       = 1
 	stellarOneCoin         = 10000000
 
 	// NetworkProduction uses stellar production network
