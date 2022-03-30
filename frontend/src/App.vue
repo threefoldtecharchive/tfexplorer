@@ -6,6 +6,9 @@
       </v-app-bar-nav-icon>
       <v-toolbar-title>ThreeFold Capacity Explorer</v-toolbar-title>
     </v-toolbar>
+    <v-toolbar class="toolbar" color="red">
+      <v-toolbar-title class="white--text flex">Make sure to migrate your nodes to <a target="_blank" href="https://forum.threefold.io/t/farming-migration-grid-v2-v3/2143" class="text-white">TF Grid v3</a> before May 1st 2022 as this tool will no longer be supported after that date.</v-toolbar-title>
+    </v-toolbar>
 
     <v-content class="content">
       <v-col>
