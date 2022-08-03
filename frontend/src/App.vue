@@ -7,7 +7,8 @@
       <v-toolbar-title>ThreeFold Capacity Explorer</v-toolbar-title>
     </v-toolbar>
     <v-toolbar class="toolbar" color="red">
-      <v-toolbar-title class="white--text flex">Make sure to migrate your nodes to <a target="_blank" href="https://forum.threefold.io/t/farming-migration-grid-v2-v3/2143" class="text-white">TF Grid v3</a> before May 1st 2022 as this tool will no longer be supported after that date.</v-toolbar-title>
+      <v-toolbar-title class="white--text flex">Our resources are solely going to development on Grid v3. Please make sure to <a target="_blank" href="https://forum.threefold.io/t/farming-migration-grid-v2-v3/2143" class="text-white">migrate</a> your farm/nodes.
+        You can find the grid 3 explorer <a target="_blank" href="https://explorer3.grid.tf/" class="text-white">here</a>.</v-toolbar-title>
     </v-toolbar>
 
     <v-content class="content">
